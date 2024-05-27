@@ -15,7 +15,10 @@ StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
   
 2.requirements  
 ----
+need ip_adapter
+ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main
 
+需要安装ip_adapter，整合包版本的特别需要
 
 3 Need  model 
 ----
