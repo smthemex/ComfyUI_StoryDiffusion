@@ -1,3 +1,4 @@
+ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main
 gradio==4.22.0
 xformers==0.0.20
 huggingface-hub
