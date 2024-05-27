@@ -9,7 +9,7 @@ import os
 import random
 import datetime
 from PIL import ImageFont
-from .ip_adapter.attention_processor import IPAttnProcessor2_0
+from ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 from .utils.gradio_utils import (
     character_to_dict,
