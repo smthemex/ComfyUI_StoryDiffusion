@@ -1,0 +1,4 @@
+gradio==4.22.0
+xformers==0.0.20
+huggingface-hub
+spaces==0.19.4
