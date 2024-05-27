@@ -17,7 +17,8 @@ StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 ----
 pip install -r requirements.txt
 
-需要安装ip_adapter，整合包版本的特别需要  ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main  
+需要安装ip_adapter，整合包版本的特别需要  常规的包安装pip install -r requirements.txt  
+整合包安装方式pip install -r requirements.txt --target= "你的路径/python_embeded/Lib/site-packages"   
 
 If bitsandbytes reports an error in the CUDA environment, you can "pip uninstall bitsandbytes"  and  then  "Pip install" Bitsandbytes"   
 
