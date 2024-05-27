@@ -1,7 +1,7 @@
 # ComfyUI_StoryDiffusion
 You can using StoryDiffusion in ComfyUI 
 
-CustomNet  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
+StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 ----
 
 1.Installation
