@@ -50,10 +50,22 @@ img2img 图生图
 Citation
 ------
 
+StoryDiffusion
 ``` python  
 @article{zhou2024storydiffusion,
   title={StoryDiffusion: Consistent Self-Attention for Long-Range Image and Video Generation},
   author={Zhou, Yupeng and Zhou, Daquan and Cheng, Ming-Ming and Feng, Jiashi and Hou, Qibin},
   journal={arXiv preprint arXiv:2405.01434},
   year={2024}
-}
+
+```
+IP-Adapter
+```
+python  
+@article{ye2023ip-adapter,
+  title={IP-Adapter: Text Compatible Image Prompt Adapter for Text-to-Image Diffusion Models},
+  author={Ye, Hu and Zhang, Jun and Liu, Sibo and Han, Xiao and Yang, Wei},
+  booktitle={arXiv preprint arxiv:2308.06721},
+  year={2023}
+
+
