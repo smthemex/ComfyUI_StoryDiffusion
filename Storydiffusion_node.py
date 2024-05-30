@@ -1253,7 +1253,7 @@ class Storydiffusion_Img2Img:
         if device != "mps":
             pipe.enable_model_cpu_offload()
         unet = pipe.unet
-        cur_model_type = sd_type + "-" + "original"
+        cur_model_type = "Unstable" + "-" + "original"
         ### Insert PairedAttention
         for name in unet.attn_processors.keys():
             cross_attention_dim = (
