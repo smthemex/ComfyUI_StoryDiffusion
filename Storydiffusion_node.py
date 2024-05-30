@@ -948,7 +948,7 @@ class Storydiffusion_Text2Img:
         local_dir = os.path.join(file_path, "models", "photomaker")
         photomaker_local_path = os.path.join(local_dir, photomake_model)
         photomaker_local_path = get_instance_path(photomaker_local_path)
-        repo_id = models_dict[sd_type]["path"]
+
         style_name = img_style
         font_path = os.path.join(dir_path, "fonts", f"{font}.ttf")
 
@@ -1017,8 +1017,9 @@ class Storydiffusion_Text2Img:
         global pipe
         global sd_model_path
         pipe = None
-        sd_model_path = models_dict["SDXL"]["path"]  # "SG161222/RealVisXL_V4.0"
-        single_files = models_dict["SDXL"]["single_files"]
+
+        sd_model_path = models_dict[sd_type]["path"] # "SG161222/RealVisXL_V4.0"
+        single_files = models_dict[sd_type]["single_files"]
         ### LOAD Stable Diffusion Pipeline
         if single_files:
             pipe = StableDiffusionXLPipeline.from_single_file(
@@ -1036,7 +1037,8 @@ class Storydiffusion_Text2Img:
         if device != "mps":
             pipe.enable_model_cpu_offload()
         unet = pipe.unet
-        cur_model_type = sd_type + "-" + "original"
+        cur_model_type = "Unstable" + "-" + "original"
+       
         ### Insert PairedAttention
         for name in unet.attn_processors.keys():
             cross_attention_dim = (
@@ -1163,7 +1165,7 @@ class Storydiffusion_Img2Img:
         local_dir = os.path.join(file_path, "models", "photomaker")
         photomaker_local_path = os.path.join(local_dir, photomake_model)
         photomaker_local_path = get_instance_path(photomaker_local_path)
-        repo_id = models_dict[sd_type]["path"]
+
         style_name = img_style
         font_path = os.path.join(dir_path, "fonts", f"{font}.ttf")
 
@@ -1232,8 +1234,8 @@ class Storydiffusion_Img2Img:
         global pipe
         global sd_model_path
         pipe = None
-        sd_model_path = models_dict["SDXL"]["path"]  # "SG161222/RealVisXL_V4.0"
-        single_files = models_dict["SDXL"]["single_files"]
+        sd_model_path = models_dict[sd_type]["path"]  # "SG161222/RealVisXL_V4.0"
+        single_files = models_dict[sd_type]["single_files"]
         ### LOAD Stable Diffusion Pipeline
         if single_files:
             pipe = StableDiffusionXLPipeline.from_single_file(
