@@ -435,20 +435,20 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
             timesteps = self.scheduler.timesteps
 
             negative_prompt_embeds = torch.cat(negative_prompt_embeds_arr ,dim =0)
-            print(negative_prompt_embeds.shape)
+            #print(negative_prompt_embeds.shape)
             if not nc_flag:
                 prompt_embeds = torch.cat(prompt_embeds_arr ,dim = 0)
-                print(prompt_embeds.shape)
+               # print(prompt_embeds.shape)
                 pooled_prompt_embeds = torch.cat(pooled_prompt_embeds_arr,dim = 0)
-                print(pooled_prompt_embeds.shape)
+                #print(pooled_prompt_embeds.shape)
 
             prompt_embeds_text_only = torch.cat(prompt_embeds_text_only_arr   ,dim = 0)
-            print(prompt_embeds_text_only.shape)
+            #print(prompt_embeds_text_only.shape)
             pooled_prompt_embeds_text_only = torch.cat(pooled_prompt_embeds_text_only_arr  ,dim = 0)
-            print(pooled_prompt_embeds_text_only.shape)
+            #print(pooled_prompt_embeds_text_only.shape)
 
             negative_pooled_prompt_embeds = torch.cat(negative_pooled_prompt_embeds_arr ,dim = 0)
-            print(negative_pooled_prompt_embeds.shape)
+            #print(negative_pooled_prompt_embeds.shape)
             # 8. Prepare latent variables
             num_channels_latents = self.unet.config.in_channels
             latents = self.prepare_latents(
@@ -482,8 +482,8 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
             add_time_ids = add_time_ids.to(device).repeat(batch_size * num_images_per_prompt, 1)
 
 
-            print(latents.shape)
-            print(add_time_ids.shape)
+            #print(latents.shape)
+            #print(add_time_ids.shape)
 
         # 11. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
