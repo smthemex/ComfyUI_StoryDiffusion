@@ -87,7 +87,7 @@ def add_caption(image, text, position = "bottom-mid",  font = None, text_color= 
     draw_with_transparency.rectangle(rectangle_position, fill=bg_color + (bg_opacity,))
     
     image.paste(Image.alpha_composite(image.convert('RGBA'), image_with_transparency))
-    print(ind,text_position)
+    #print(ind,text_position)
     draw = ImageDraw.Draw(image)
     for ind, line in enumerate(lines[::-1]):
         text_position = text_positions[ind]
@@ -123,7 +123,7 @@ def get_comic_classical(images,captions = None,font = None,pad_image = None):
     images = [add_white_border(image) for image in images]
     pad_image = pad_image.resize(images[0].size, Image.LANCZOS)
     images_groups = distribute_images2(images,pad_image)
-    print(images_groups)
+    #print(images_groups)
     if captions != None:
         captions_groups = get_caption_group(images_groups,captions)
     # print(images_groups)
