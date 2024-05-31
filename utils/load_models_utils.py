@@ -3,12 +3,21 @@ import torch
 from diffusers import StableDiffusionXLPipeline
 from .pipeline import PhotoMakerStableDiffusionXLPipeline
 import os
-
+import sys
 dir_path = os.path.dirname(os.path.abspath(__file__))
 path_dir = os.path.dirname(dir_path)
 file_path = os.path.dirname(path_dir)
-yaml_path = os.path.join(path_dir ,'config/models.yaml')
+yaml_path = os.path.join(path_dir ,'config','models.yaml')
+original_config_file=os.path.join(path_dir,'config','sd_xl_base.yaml')
+def get_instance_path(path):
+    instance_path = os.path.normpath(path)
+    if sys.platform == 'win32':
+        instance_path = path.replace('\\', "/")
+    return instance_path
 
+yaml_path=get_instance_path(yaml_path)
+original_config_file = get_instance_path(original_config_file)
+#print(yaml_path,original_config_file)
 def get_models_dict():
     # 打开并读取YAML文件
     with open(yaml_path, 'r') as stream:
@@ -33,18 +42,18 @@ def load_models(model_info,device,photomaker_path):
     if model_type == "original":
         if single_files:
             pipe = StableDiffusionXLPipeline.from_single_file(
-                path, 
-                torch_dtype=torch.float16
+                pretrained_model_link_or_path=path,
+                original_config_file=original_config_file,torch_dtype=torch.float16,
             )
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(path, torch_dtype=torch.float16, use_safetensors=use_safetensors)
+            pipe = StableDiffusionXLPipeline.from_pretrained(path, torch_dtype=torch.float16,)
         pipe = pipe.to(device)
     elif model_type == "Photomaker":
         if single_files:
             print("loading from a single_files")
             pipe = PhotoMakerStableDiffusionXLPipeline.from_single_file(
-                path, 
-                torch_dtype=torch.float16
+                pretrained_model_link_or_path=path, original_config_file=original_config_file,
+                torch_dtype=torch.float16,use_safetensors=use_safetensors
             )
         else:
             pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
@@ -60,3 +69,4 @@ def load_models(model_info,device,photomaker_path):
     else:
         raise NotImplementedError("You should choice between original and Photomaker!",f"But you choice {model_type}")
     return pipe
+
