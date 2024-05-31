@@ -5,7 +5,7 @@ import torch
 import random
 import torch.nn as nn
 import torch.nn.functional as F
-import gradio as gr
+
 
 class SpatialAttnProcessor2_0(torch.nn.Module):
     r"""
@@ -448,7 +448,7 @@ def character_to_dict(general_prompt):
             if "#" in value:
                 value =  value.rpartition('#')[0] 
             if key in character_dict:
-                raise gr.Error("duplicate character descirption: " + key)
+                raise f"duplicate character descirption:{key}"
             character_dict[key] = value
             character_list.append(key)
 
@@ -501,11 +501,11 @@ def process_original_prompt(character_dict,prompts,id_length):
     print(character_index_dict)
     for character_key in character_index_dict.keys():
         if character_key not in character_index_dict:
-            raise gr.Error("{} not have prompt description, please remove it".format(character_key))
+            raise "{character_key} not have prompt description, please remove it"
         index_list = character_index_dict[character_key]
         index_list = [index for index in index_list if len(invert_character_index_dict[index]) == 1]
         if len(index_list) < id_length:
-            raise gr.Error(f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}")
+            raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
         ref_index_dict[character_key] = index_list[:id_length]
         ref_totals = ref_totals + index_list[:id_length]
     return character_index_dict,invert_character_index_dict,replace_prompts,ref_index_dict,ref_totals
