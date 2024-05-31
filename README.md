@@ -4,6 +4,18 @@ You can using StoryDiffusion in ComfyUI
 StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 ----
 
+Update
+----
+2024/05/31    
+1、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
+2、加入SDXL-flash 加速模型  
+3、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出）   
+
+1. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
+2. Add SDXL flash acceleration model   
+3. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu   
+
+
 1.Installation
 -----
   In the ./ComfyUI /custom_node directory, run the following:   
@@ -29,6 +41,13 @@ If bitsandbytes reports an error in the CUDA environment, you can "pip uninstall
 3 Need  model 
 ----
 3.1  
+
+打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以填写扩散模型的绝对地址，须是“/” .  
+
+如果不想下载扩散模型，可以菜单选择Use_Single_XL_Model，然后在ckpt_name菜单选择你想使用的XL模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  ）。   
+
+注意：如果使用单模型模式，可能会要求联外网，包括会下载一些clip文件，每个人的系统不同，不能一一例举。。
+
 open ..ComfyUI_StoryDiffusion/config/models.yaml change or using diffusers models default...  
 
 G161222/RealVisXL_V4.0   
@@ -37,9 +56,12 @@ stabilityai/stable-diffusion-xl-base-1.0
 or  
 stablediffusionapi/sdxl-unstable-diffusers-y   
 or  
-https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/blob/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  
+sd-community/sdxl-flash   
+or 
 
-打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以填写扩散模型的绝对地址，须是“/” 
+Menu  choice 'Use_Single_XL_Model', and menu 'ckpt_name' choice any comfyUI or Web UI SDXL model    
+
+example Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  
 
 3.2  
 在comfyUI的models目录下，确认是否有photomaker 目录，没有会自己新建并下载 photomaker-v1.bin   [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
@@ -52,8 +74,14 @@ https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/blob/main/Juggernaut-XL_v9_
 txt2img 文生图
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_2.png)
 
+txt2img use sdxl-flash 7 steps  使用sdxl-flash加速模型，7步出图   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_flash.png)
+
 img2img 图生图
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_1.png)
+
+use single XL comfyUI model 使用comfy的XL模型   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_single.png)
 
 
 Citation
