@@ -1,13 +1,11 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import gradio as gr
 import numpy as np
 import torch
 import gc
 import copy
 import os
 import random
-import datetime
 from PIL import ImageFont
 from ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
@@ -26,9 +24,6 @@ if is_torch2_available():
 else:
     from .utils.gradio_utils import AttnProcessor
 from huggingface_hub import hf_hub_download
-from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import (
-    StableDiffusionXLPipeline,
-)
 from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMScheduler, ControlNetModel,
                        KDPM2AncestralDiscreteScheduler, LMSDiscreteScheduler,
                        AutoPipelineForInpainting, DPMSolverMultistepScheduler, DPMSolverSinglestepScheduler,
@@ -38,7 +33,6 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, TCDScheduler, LCMScheduler)
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import torch.nn.functional as F
-from diffusers.utils.loading_utils import load_image
 from .utils.utils import get_comic
 from .utils.style_template import styles
 from .utils.load_models_utils import get_models_dict, load_models, get_instance_path
@@ -74,13 +68,11 @@ def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
     return img
 
-
 def tensor_to_image(tensor):
     tensor = tensor.cpu()
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
-
 
 def get_local_path(file_path, model_path):
     path = os.path.join(file_path, "models", "diffusers", model_path)
@@ -88,7 +80,6 @@ def get_local_path(file_path, model_path):
     if sys.platform.startswith('win32'):
         model_path = model_path.replace('\\', "/")
     return model_path
-
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -98,37 +89,12 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
 
-
 def get_image_path_list(folder_name):
     image_basename_list = os.listdir(folder_name)
     image_path_list = sorted(
         [os.path.join(folder_name, basename) for basename in image_basename_list]
     )
     return image_path_list
-
-
-def swap_to_gallery(images):
-    return (
-        gr.update(value=images, visible=True),
-        gr.update(visible=True),
-        gr.update(visible=False),
-    )
-
-
-def upload_example_to_gallery(images, prompt, style, negative_prompt):
-    return (
-        gr.update(value=images, visible=True),
-        gr.update(visible=True),
-        gr.update(visible=False),
-    )
-
-
-def remove_back_to_files():
-    return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True)
-
-
-def remove_tips():
-    return gr.update(visible=False)
 
 
 def apply_style_positive(style_name: str, positive: str):
@@ -142,27 +108,9 @@ def apply_style(style_name: str, positives: list, negative: str = ""):
         p.replace("{prompt}", positive) for positive in positives
     ], n + " " + negative
 
-
-def change_visiale_by_model_type(_model_type):
-    if _model_type == "Only Using Textual Description":
-        return (
-            gr.update(visible=False),
-            gr.update(visible=False),
-            gr.update(visible=False),
-        )
-    elif _model_type == "Using Ref Images":
-        return (
-            gr.update(visible=True),
-            gr.update(visible=True),
-            gr.update(visible=False),
-        )
-    else:
-        raise ValueError("Invalid model type", _model_type)
-
-
 def load_character_files(character_files: str):
     if character_files == "":
-        raise gr.Error("Please set a character file!")
+        raise "Please set a character file!"
     character_files_arr = character_files.splitlines()
     primarytext = []
     for character_file_name in character_files_arr:
@@ -638,16 +586,12 @@ def process_generation(
         scheduler_choice,
 ):  # Corrected font_choice usage
     if len(general_prompt.splitlines()) >= 3:
-        raise gr.Error(
-            "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
-        )
+        raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
     _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
     if _model_type == "Photomaker" and "img" not in general_prompt:
-        raise gr.Error(
-            'Please add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
-        )
+        raise'Please add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
     if _upload_images is None and _model_type != "original":
-        raise gr.Error(f"Cannot find any input face image!")
+        raise "Cannot find any input face image!"
     global sa32, sa64, id_length, total_length, attn_procs, unet, cur_model_type
     global write
     global cur_step, attn_count
@@ -712,9 +656,7 @@ def process_generation(
         if "[NC]" in prompt:
             nc_indexs.append(ind)
             if ind < id_length:
-                raise gr.Error(
-                    f"The first {id_length} row is id prompts, cannot use [NC]!"
-                )
+                raise f"The first {id_length} row is id prompts, cannot use [NC]!"
     prompts = [
         prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
         for prompt in clipped_prompts
@@ -825,9 +767,7 @@ def process_generation(
         #print(cur_character, real_prompt)
         setup_seed(seed_)
         if len(cur_character) > 1 and _model_type == "Photomaker":
-            raise gr.Error(
-                "Temporarily Not Support Multiple character in Ref Image Mode!"
-            )
+            raise "Temporarily Not Support Multiple character in Ref Image Mode!"
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt = apply_style_positive(style_name, real_prompt)
