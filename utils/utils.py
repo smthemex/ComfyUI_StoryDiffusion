@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image,ImageOps,ImageDraw
 MAX_COLORS = 12
 import os
+import random
 dir_path = os.path.dirname(os.path.abspath(__file__))
 path_dir = os.path.dirname(dir_path)
 file_path = os.path.dirname(path_dir)
