@@ -1,4 +1,4 @@
-Juggernaut: 
+Use_Single_XL_Model:
   path: "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/blob/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors"
   single_files: true   ### if true, is a civitai model
   use_safetensors: true
@@ -17,3 +17,9 @@ Unstable:
   path: "stablediffusionapi/sdxl-unstable-diffusers-y"
   single_files: false
   use_safetensors: false
+
+SDXL_Flash:
+  path: "sd-community/sdxl-flash"
+  single_files: false
+  use_safetensors: true
+
