@@ -302,7 +302,7 @@ def distribute_images2(images, pad_image):
         groups.append(new_group)
         size_index += 1
         remaining -= size
-        print(remaining,groups)
+        #print(remaining,groups)
     groups[-1] = groups[-1] + [pad_image for _ in range(-remaining)]
 
     return groups
