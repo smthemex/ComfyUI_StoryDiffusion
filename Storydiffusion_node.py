@@ -1,5 +1,6 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import hashlib
 import numpy as np
 import torch
 import gc
@@ -37,6 +38,7 @@ from .utils.utils import get_comic
 from .utils.style_template import styles
 from .utils.load_models_utils import get_models_dict, load_models, get_instance_path
 import folder_paths
+from comfy.utils import common_upscale
 
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
@@ -57,22 +59,49 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 path_dir = os.path.dirname(dir_path)
 file_path = os.path.dirname(path_dir)
 
+fonts_path =os.path.join(dir_path,"fonts")
+fonts_lists = os.listdir(fonts_path)
+
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
     "DPM++ SDE", "DPM++ SDE Karras", "DPM2",
     "DPM2 Karras", "DPM2 a", "DPM2 a Karras", "Heun", "LCM", "LMS", "LMS Karras", "UniPC", "TCD"
 ]
 
-
 def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
     return img
 
+
+def get_instance_path(path):
+    instance_path = os.path.normpath(path)
+    if sys.platform =='win32':
+        instance_path = instance_path.replace('\\', "/")
+    return instance_path
+
 def tensor_to_image(tensor):
-    tensor = tensor.cpu()
+    # tensor = tensor.cpu()
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
+
+# get fonts list
+
+def narry_list(list_in):
+    for i in range(len(list_in)):
+        value = list_in[i]
+        modified_value = phi2narry(value)
+        list_in[i] = modified_value
+    return list_in
+
+
+def narry_list_pil(list_in):
+    for i in range(len(list_in)):
+        value = list_in[i]
+        modified_value = tensor_to_image(value)
+        list_in[i] = modified_value
+    return list_in
+
 
 def get_local_path(file_path, model_path):
     path = os.path.join(file_path, "models", "diffusers", model_path)
@@ -81,6 +110,7 @@ def get_local_path(file_path, model_path):
         model_path = model_path.replace('\\', "/")
     return model_path
 
+
 def setup_seed(seed):
     torch.manual_seed(seed)
     if device == "cuda":
@@ -88,6 +118,7 @@ def setup_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
+
 
 def get_image_path_list(folder_name):
     image_basename_list = os.listdir(folder_name)
@@ -107,6 +138,7 @@ def apply_style(style_name: str, positives: list, negative: str = ""):
     return [
         p.replace("{prompt}", positive) for positive in positives
     ], n + " " + negative
+
 
 def load_character_files(character_files: str):
     if character_files == "":
@@ -279,9 +311,10 @@ def save_results(unet, img_list):
     #     os.makedirs(weight_folder_name)
     file_prefix = ''.join(random.choice("0123456789") for _ in range(5))
     for idx, img in enumerate(img_list):
-        file_path_res = os.path.join(file_path, "output", f"image_{file_prefix}_{idx}.png")  # 图片文件名
-        img.save(file_path_res)
-        file_path_res = img
+        # file_path_res = os.path.join(file_path, "output", f"image_{file_prefix}_{idx}.png")  # 图片文件名
+        # img.save(file_path_res)
+        img_enumerate = img
+        img_idx = idx
     global character_dict
 
     # return img
@@ -579,8 +612,6 @@ def process_generation(
         prompt_array,
         G_height,
         G_width,
-        _comic_type,
-        font_choice,
         _char_files,
         photomaker_path,
         scheduler_choice,
@@ -589,7 +620,7 @@ def process_generation(
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
     _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
     if _model_type == "Photomaker" and "img" not in general_prompt:
-        raise'Please add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
+        raise 'Please add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
     if _upload_images is None and _model_type != "original":
         raise "Cannot find any input face image!"
     global sa32, sa64, id_length, total_length, attn_procs, unet, cur_model_type
@@ -675,15 +706,11 @@ def process_generation(
         ref_totals,
     ) = process_original_prompt(character_dict, prompts.copy(), id_length)
     if _model_type != "original":
+        # _upload_images = [_upload_images]
+        # print( len(_upload_images))
         input_id_images_dict = {}
-        # if len(_upload_images) != len(character_dict.keys()):
-        #     raise gr.Error(
-        #         f"You upload images({len(_upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
-        #     )
-        # _upload_images= list(_upload_images)
-        # print(character_list)
-        _upload_images = [_upload_images]
-        # print(_upload_images,type(_upload_images))
+        if len(_upload_images) != len(character_dict.keys()):
+            raise f"You upload images({len(_upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
         for ind, img in enumerate(_upload_images):
             input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load
             # input_id_images_dict[character_list[ind]] = [load_image(img)]
@@ -708,9 +735,9 @@ def process_generation(
         for character_key in character_dict.keys():
             cur_character = [character_key]
             ref_indexs = ref_indexs_dict[character_key]
-            #print(character_key, ref_indexs)
+            # print(character_key, ref_indexs)
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            #print(current_prompts)
+            # print(current_prompts)
             setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
@@ -759,12 +786,12 @@ def process_generation(
         ]
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
-    #print(real_prompts_inds)
+    # print(real_prompts_inds)
 
     for real_prompts_ind in real_prompts_inds:
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
-        #print(cur_character, real_prompt)
+        # print(cur_character, real_prompt)
         setup_seed(seed_)
         if len(cur_character) > 1 and _model_type == "Photomaker":
             raise "Temporarily Not Support Multiple character in Ref Image Mode!"
@@ -805,20 +832,6 @@ def process_generation(
             )
         yield [results_dict[ind] for ind in results_dict.keys()]
     total_results = [results_dict[ind] for ind in range(len(prompts))]
-    if _comic_type != "No typesetting (default)":
-        captions = prompt_array.splitlines()
-        captions = [caption.replace("[NC]", "") for caption in captions]
-        captions = [
-            caption.split("#")[-1] if "#" in caption else caption
-            for caption in captions
-        ]
-        # font_path = os.path.join("fonts", font_choice)
-        font = ImageFont.truetype(font_choice, int(45))
-        total_results = (
-                get_comic(total_results, _comic_type, captions=captions, font=font)
-                + total_results
-        )
-    save_results(pipe.unet, total_results)
     yield total_results
 
 
@@ -830,7 +843,7 @@ class Storydiffusion_Text2Img:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "sd_type": (["SDXL", "Use_Single_XL_Model","SDXL_Flash","RealVision", "Unstable", ],),
+                "sd_type": (["SDXL", "Use_Single_XL_Model", "SDXL_Flash", "RealVision", "Unstable", ],),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "character_prompt": ("STRING", {"multiline": True,
@@ -852,11 +865,9 @@ class Storydiffusion_Text2Img:
                                                           "extra crus, ugly fingers, horn, cartoon, cg, 3d, unreal, "
                                                           "animate, amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
-                "font": (["Inkfree", "ariali"],),
                 "img_style": (
                     ["No style", "Japanese Anime", "Cinematic", "Disney Charactor", "Photographic", "Comic book",
                      "Line art"],),
-                "typesetting_style": (["No typesetting (default)", "Four_Pannel", "Classic_Comic_Style"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -869,15 +880,15 @@ class Storydiffusion_Text2Img:
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
+    RETURN_TYPES = ("IMAGE", "STRING",)
+    RETURN_NAMES = ("image", "prompt_array",)
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
     def text2image(self, sd_type, ckpt_name, steps, img_style, photomake_model, scheduler, cfg, seed,
                    sa32_degree,
                    sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
-                   img_height, img_width, typesetting_style, font):
+                   img_height, img_width):
 
         # Automatically select the device
         scheduler_choice = get_scheduler(scheduler)
@@ -885,7 +896,6 @@ class Storydiffusion_Text2Img:
         photomaker_local_path = os.path.join(local_dir, photomake_model)
         photomaker_local_path = get_instance_path(photomaker_local_path)
         style_name = img_style
-        font_path = os.path.join(dir_path, "fonts", f"{font}.ttf")
 
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
@@ -926,10 +936,8 @@ class Storydiffusion_Text2Img:
         guidance_scale = cfg
         general_prompt = character_prompt
         prompt_array = scene_prompt
-        _comic_type = typesetting_style
         G_height = height
         G_width = width
-        font_choice = font_path
         _char_files = ""
         img_output_pass = None
         _Ip_Adapter_Strength = 0.5
@@ -939,25 +947,18 @@ class Storydiffusion_Text2Img:
         attn_count = 0
         total_count = 0
         cur_step = 0
-        #id_length = 4
+        # id_length = 4
         total_length = 5
         cur_model_type = ""
         global attn_procs, unet
         attn_procs = {}
-        ###
         write = False
-        ###
-        # sa32 = 0.5
-        # sa64 = 0.5
-        # height = 768
-        # width = 768
-        ###
         global pipe
         global sd_model_path
         pipe = None
         original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
         original_config_file = get_instance_path(original_config_file)
-        #print(original_config_file)
+        # print(original_config_file)
         if sd_type == "Use_Single_XL_Model":
             sd_model_path = ckpt_path
         else:
@@ -966,7 +967,7 @@ class Storydiffusion_Text2Img:
         ### LOAD Stable Diffusion Pipeline
         if single_files:
             pipe = StableDiffusionXLPipeline.from_single_file(
-                sd_model_path, original_config_file=original_config_file,torch_dtype=torch.float16,
+                sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
             )
         else:
             pipe = StableDiffusionXLPipeline.from_pretrained(
@@ -1014,33 +1015,33 @@ class Storydiffusion_Text2Img:
             dtype=torch.float16,
         )
 
-        generator_with_yield = process_generation(_sd_type, ckpt_path,
-                                                  _model_type,
-                                                  _upload_images,
-                                                  _num_steps,
-                                                  style_name,
-                                                  _Ip_Adapter_Strength,
-                                                  _style_strength_ratio,
-                                                  guidance_scale,
-                                                  seed_,
-                                                  sa32_,
-                                                  sa64_,
-                                                  id_length_,
-                                                  general_prompt,
-                                                  negative_prompt,
-                                                  prompt_array,
-                                                  G_height,
-                                                  G_width,
-                                                  _comic_type,
-                                                  font_choice,
-                                                  _char_files,
-                                                  photomaker_path,
-                                                  scheduler_choice)
+        gen = process_generation(_sd_type, ckpt_path,
+                                 _model_type,
+                                 _upload_images,
+                                 _num_steps,
+                                 style_name,
+                                 _Ip_Adapter_Strength,
+                                 _style_strength_ratio,
+                                 guidance_scale,
+                                 seed_,
+                                 sa32_,
+                                 sa64_,
+                                 id_length_,
+                                 general_prompt,
+                                 negative_prompt,
+                                 prompt_array,
+                                 G_height,
+                                 G_width,
+                                 _char_files,
+                                 photomaker_path,
+                                 scheduler_choice)
 
-        for value in generator_with_yield:
+        for value in gen:
             pass_value = value
-        image = phi2narry(value[0])
-        return (image,)
+        image = narry_list(value)
+        image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
+        prompt_array = scene_prompt
+        return (image,prompt_array)
 
 
 class Storydiffusion_Img2Img:
@@ -1052,7 +1053,7 @@ class Storydiffusion_Img2Img:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "sd_type": (["SDXL", "Use_Single_XL_Model","SDXL_Flash","RealVision", "Unstable", ],),
+                "sd_type": (["SDXL", "Use_Single_XL_Model", "SDXL_Flash", "RealVision", "Unstable", ],),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "character_prompt": ("STRING", {"multiline": True,
@@ -1068,11 +1069,9 @@ class Storydiffusion_Img2Img:
                                                           "extra crus, ugly fingers, horn, cartoon, cg, 3d, unreal, "
                                                           "animate, amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
-                "font": (["Inkfree", "ariali"],),
                 "img_style": (
                     ["No style", "Japanese Anime", "Cinematic", "Disney Charactor", "Photographic", "Comic book",
                      "Line art"],),
-                "typesetting_style": (["No typesetting (default)", "Four_Pannel", "Classic_Comic_Style"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -1087,17 +1086,30 @@ class Storydiffusion_Img2Img:
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
+    RETURN_TYPES = ("IMAGE", "STRING",)
+    RETURN_NAMES = ("image", "prompt_array",)
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type,ckpt_name, photomake_model, character_prompt, scene_prompt, character_id_number,
-                  negative_prompt, scheduler, font, img_style, typesetting_style,
+    def img2image(self, image, sd_type, ckpt_name, photomake_model, character_prompt, scene_prompt, character_id_number,
+                  negative_prompt, scheduler,img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
-
-        image_load = tensor_to_image(image)
+        d1, _, _, _ = image.size()
+        if d1 == 2:
+            image_1, image_2 = torch.chunk(image, chunks=2)
+            image_1 = tensor_to_image(image_1)
+            image_2 = tensor_to_image(image_2)
+            image_load = [image_1] + [image_2]
+        elif d1 == 3:
+            image_1, image_2, image_3 = torch.chunk(image, chunks=3)
+            image_1 = tensor_to_image(image_1)
+            image_2 = tensor_to_image(image_2)
+            image_3 = tensor_to_image(image_3)
+            image_load = [image_1] + [image_2] + [image_3]
+        else:
+            image = tensor_to_image(image)
+            image_load = [image]
         # Automatically select the device
         scheduler_choice = get_scheduler(scheduler)
         local_dir = os.path.join(file_path, "models", "photomaker")
@@ -1106,7 +1118,6 @@ class Storydiffusion_Img2Img:
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
         style_name = img_style
-        font_path = os.path.join(dir_path, "fonts", f"{font}.ttf")
 
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
@@ -1124,10 +1135,6 @@ class Storydiffusion_Img2Img:
         global height, width
         global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
 
-        #
-        # assert (
-        #         len(character_prompt.strip()) > 0
-        # ), "Please provide the description of the character."
 
         height = img_height
         width = img_width
@@ -1143,10 +1150,8 @@ class Storydiffusion_Img2Img:
         guidance_scale = cfg
         general_prompt = character_prompt
         prompt_array = scene_prompt
-        _comic_type = typesetting_style
         G_height = height
         G_width = width
-        font_choice = font_path
         _char_files = ""
         img_output_pass = None
         _Ip_Adapter_Strength = ip_adapter_strength
@@ -1161,14 +1166,8 @@ class Storydiffusion_Img2Img:
         cur_model_type = ""
         global attn_procs, unet
         attn_procs = {}
-        ###
+
         write = False
-        ###
-        # sa32 = 0.5
-        # sa64 = 0.5
-        # height = 768
-        # width = 768
-        ###
         global pipe
         global sd_model_path
         pipe = None
@@ -1183,7 +1182,7 @@ class Storydiffusion_Img2Img:
         ### LOAD Stable Diffusion Pipeline
         if single_files:
             pipe = StableDiffusionXLPipeline.from_single_file(
-                sd_model_path,original_config_file=original_config_file, torch_dtype=torch.float16
+                sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
             )
         else:
             pipe = StableDiffusionXLPipeline.from_pretrained(
@@ -1231,42 +1230,128 @@ class Storydiffusion_Img2Img:
             dtype=torch.float16,
         )
 
-        generator_with_yield = process_generation(_sd_type,
-                                                  ckpt_path,
-                                                  _model_type,
-                                                  _upload_images,
-                                                  _num_steps,
-                                                  style_name,
-                                                  _Ip_Adapter_Strength,
-                                                  _style_strength_ratio,
-                                                  guidance_scale,
-                                                  seed_,
-                                                  sa32_,
-                                                  sa64_,
-                                                  id_length_,
-                                                  general_prompt,
-                                                  negative_prompt,
-                                                  prompt_array,
-                                                  G_height,
-                                                  G_width,
-                                                  _comic_type,
-                                                  font_choice,
-                                                  _char_files,
-                                                  photomaker_path,
-                                                  scheduler_choice)
+        gen = process_generation(_sd_type,
+                                 ckpt_path,
+                                 _model_type,
+                                 _upload_images,
+                                 _num_steps,
+                                 style_name,
+                                 _Ip_Adapter_Strength,
+                                 _style_strength_ratio,
+                                 guidance_scale,
+                                 seed_,
+                                 sa32_,
+                                 sa64_,
+                                 id_length_,
+                                 general_prompt,
+                                 negative_prompt,
+                                 prompt_array,
+                                 G_height,
+                                 G_width,
+                                 _char_files,
+                                 photomaker_path,
+                                 scheduler_choice)
 
-        for value in generator_with_yield:
-            pass_value=value
-        image = phi2narry(value[0])
-        return (image,)
+        for value in gen:
+            pass_value = value
+        image = narry_list(value)
+        image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
+        prompt_array = scene_prompt
+        return (image, prompt_array,)
+
+
+class Comic_Type:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"image": ("IMAGE",),
+                             "prompt_array": ("STRING", {"multiline": True,"forceInput": True,"default": ""}),
+                             "fonts_list": (fonts_lists,),
+                             "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
+                             "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
+                             }}
+
+    RETURN_TYPES = ("IMAGE",)
+    ETURN_NAMES = ("image",)
+    FUNCTION = "comic_gen"
+    CATEGORY = "Storydiffusion"
+
+    def comic_gen(self, image, prompt_array, fonts_list,text_size, comic_type):
+        result = [item for index, item in enumerate(image)]
+        total_results = narry_list_pil(result)
+        font_choice = os.path.join(dir_path, "fonts", fonts_list)
+        captions = prompt_array.splitlines()
+        captions = [caption.replace("[NC]", "") for caption in captions]
+        captions = [
+            caption.split("#")[-1] if "#" in caption else caption
+            for caption in captions
+        ]
+        font = ImageFont.truetype(font_choice, text_size)
+        images = (
+                get_comic(total_results, comic_type, captions=captions, font=font)
+                + total_results
+        )
+        images=phi2narry(images[0])
+        return (images,)
+
+
+class Character_Batch:
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"image1": ("IMAGE",), "image2": ("IMAGE",), "image3": ("IMAGE",)}}
+
+    RETURN_TYPES = ("IMAGE",)
+    ETURN_NAMES = ("image",)
+    FUNCTION = "character_batch"
+    CATEGORY = "Storydiffusion"
+
+    def get_image_hash(self, pil_image):
+        image_bytes = pil_image.tobytes()
+        return hashlib.md5(image_bytes).hexdigest()
+
+    def character_batch(self, image1, image2, image3):
+        pil_image1 = tensor_to_image(image1)
+        pil_image2 = tensor_to_image(image2)
+        pil_image3 = tensor_to_image(image3)
+        hash_img1 = self.get_image_hash(pil_image1)
+        hash_img2 = self.get_image_hash(pil_image2)
+        hash_img3 = self.get_image_hash(pil_image3)
+        if hash_img1 == hash_img2 and hash_img1 == hash_img3:
+            character_batch = image1
+            #print("32222", character_batch, type(character_batch))
+        elif hash_img2 == hash_img3 and hash_img2 != hash_img1 or hash_img1 == hash_img2 and hash_img1 != hash_img3:
+            image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
+                                    "center").movedim(1, -1)
+            character_batch = torch.cat((image1, image3), dim=0)
+        elif hash_img1 != hash_img2 and hash_img1 != hash_img3 and hash_img2 != hash_img3:
+            image2 = common_upscale(image2.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
+                                    "center").movedim(1, -1)
+            image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
+                                    "center").movedim(1, -1)
+            character_batch = torch.cat((image1, image2, image3), dim=0)
+        elif hash_img1 != hash_img2 and hash_img1 == hash_img3:
+            image2 = common_upscale(image2.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
+                                    "center").movedim(1, -1)
+            character_batch = torch.cat((image1, image2), dim=0)
+        # elif image1.shape[1:] != image2.shape[1:] or image1.shape[1:] != image3.shape[1:]:
+        #     image2 = common_upscale(image2.movedim(-1,1), image1.shape[2], image1.shape[1], "bilinear", "center").movedim(1,-1)
+        #     image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
+        #                             "center").movedim(1, -1)
+        #     character_batch=torch.cat((image1, image2, image3), dim=0)
+        #print(image2.shape, "1234", character_batch, character_batch.shape)
+        return (character_batch,)
 
 
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Text2Img": Storydiffusion_Text2Img,
-    "Storydiffusion_Img2Img": Storydiffusion_Img2Img
+    "Storydiffusion_Img2Img": Storydiffusion_Img2Img,
+    "Comic_Type": Comic_Type,
+    "Character_Batch": Character_Batch
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Text2Img": "Storydiffusion_Text2Img",
-    "Storydiffusion_Img2Img": "Storydiffusion_Img2Img"
+    "Storydiffusion_Img2Img": "Storydiffusion_Img2Img",
+    "Comic_Type": "Comic_Type",
+    "Character_Batch": "Character_Batch"
 }
