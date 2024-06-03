@@ -6,7 +6,14 @@ StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 
 Update
 ----
-2024/05/31    
+2024/06/03   
+1、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
+2、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
+
+1. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
+2. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
+
+--- 既往更新 Previous updates   
 1、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
 2、加入SDXL-flash 加速模型  
 3、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出）   
@@ -60,8 +67,8 @@ sd-community/sdxl-flash
 or 
 
 Menu  choice 'Use_Single_XL_Model', and menu 'ckpt_name' choice any comfyUI or Web UI SDXL model    
-
-example Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  
+---
+example：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  
 
 3.2  
 在comfyUI的models目录下，确认是否有photomaker 目录，没有会自己新建并下载 photomaker-v1.bin   [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
@@ -72,16 +79,13 @@ example Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
 4 Example
 ----
 txt2img 文生图
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_2.png)
-
-txt2img use sdxl-flash 7 steps  使用sdxl-flash加速模型，7步出图   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_flash.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img.png)
 
 img2img 图生图
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_1.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img.png)
 
-use single XL comfyUI model 使用comfy的XL模型   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_single.png)
+two character  双角色   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2character.png)
 
 
 Citation
