@@ -87,6 +87,9 @@ img2img 图生图
 two character  双角色   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2character.png)
 
+use single model  使用单模型  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/use_single_model.png)
+
 
 Citation
 ------
