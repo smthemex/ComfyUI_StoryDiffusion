@@ -1,6 +1,6 @@
 import yaml
 import torch
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
 from .pipeline import PhotoMakerStableDiffusionXLPipeline
 import os
 import sys
@@ -26,14 +26,14 @@ def get_models_dict():
             data = yaml.safe_load(stream)
             
             # 此时 'data' 是一个Python字典，里面包含了YAML文件的所有数据
-            #print(data)
+            # print(data)
             return data
             
         except yaml.YAMLError as exc:
             # 如果在解析过程中发生了错误，打印异常信息
             print(exc)
 
-def load_models(model_info,device,photomaker_path):
+def load_models(model_info,_sd_type,device,photomaker_path):
     path =  model_info["path"]
     single_files =  model_info["single_files"]
     use_safetensors = model_info["use_safetensors"]
@@ -46,7 +46,14 @@ def load_models(model_info,device,photomaker_path):
                 original_config_file=original_config_file,torch_dtype=torch.float16,
             )
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(path, torch_dtype=torch.float16,)
+            if _sd_type=="Playground_v2p5":
+                pipe = DiffusionPipeline.from_pretrained(
+                    path, torch_dtype=torch.float16, use_safetensors=use_safetensors
+                )
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    path, torch_dtype=torch.float16,use_safetensors=use_safetensors
+                )
         pipe = pipe.to(device)
     elif model_type == "Photomaker":
         if single_files:
@@ -56,8 +63,14 @@ def load_models(model_info,device,photomaker_path):
                 torch_dtype=torch.float16,use_safetensors=use_safetensors
             )
         else:
-            pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
-                path, torch_dtype=torch.float16, use_safetensors=use_safetensors)
+            if _sd_type=="Playground_v2p5":
+                pipe = DiffusionPipeline.from_pretrained(
+                    path, torch_dtype=torch.float16, use_safetensors=use_safetensors
+                )
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    path, torch_dtype=torch.float16,use_safetensors=use_safetensors
+                )
         pipe = pipe.to(device)
         pipe.load_photomaker_adapter(
             os.path.dirname(photomaker_path),
