@@ -23,3 +23,8 @@ SDXL_Flash:
   single_files: false
   use_safetensors: true
 
+Playground_v2p5:
+  path: "playgroundai/playground-v2.5-1024px-aesthetic"
+  single_files: false
+  use_safetensors: true
+
