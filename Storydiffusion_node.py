@@ -48,6 +48,7 @@ STYLE_NAMES = list(styles.keys())
 DEFAULT_STYLE_NAME = "Japanese Anime"
 global models_dict
 models_dict = get_models_dict()  # 获取模型信息
+
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -59,14 +60,18 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 path_dir = os.path.dirname(dir_path)
 file_path = os.path.dirname(path_dir)
 
-fonts_path =os.path.join(dir_path,"fonts")
+fonts_path = os.path.join(dir_path, "fonts")
 fonts_lists = os.listdir(fonts_path)
+
+yaml_list = list(models_dict.keys())
+#print(yaml_list)
 
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
     "DPM++ SDE", "DPM++ SDE Karras", "DPM2",
     "DPM2 Karras", "DPM2 a", "DPM2 a Karras", "Heun", "LCM", "LMS", "LMS Karras", "UniPC", "TCD"
 ]
+
 
 def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
@@ -75,15 +80,17 @@ def phi2narry(img):
 
 def get_instance_path(path):
     instance_path = os.path.normpath(path)
-    if sys.platform =='win32':
+    if sys.platform == 'win32':
         instance_path = instance_path.replace('\\', "/")
     return instance_path
+
 
 def tensor_to_image(tensor):
     # tensor = tensor.cpu()
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
+
 
 # get fonts list
 
@@ -653,7 +660,7 @@ def process_generation(
         model_info["model_type"] = _model_type
         if _sd_type == "Use_Single_XL_Model":
             model_info["path"] = ckpt_path
-        pipe = load_models(model_info, device=device, photomaker_path=photomaker_path)
+        pipe = load_models(model_info,_sd_type, device=device, photomaker_path=photomaker_path)
         set_attention_processor(pipe.unet, id_length_, is_ipadapter=False)
         ##### ########################
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
@@ -843,7 +850,7 @@ class Storydiffusion_Text2Img:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "sd_type": (["SDXL", "Use_Single_XL_Model", "SDXL_Flash", "RealVision", "Unstable", ],),
+                "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "character_prompt": ("STRING", {"multiline": True,
@@ -970,9 +977,14 @@ class Storydiffusion_Text2Img:
                 sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
             )
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(
-                sd_model_path, torch_dtype=torch.float16, use_safetensors=False
-            )
+            if sd_type == "Playground_v2p5":
+                pipe = DiffusionPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16
+                )
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16
+                )
         pipe = pipe.to(device)
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
@@ -1041,7 +1053,7 @@ class Storydiffusion_Text2Img:
         image = narry_list(value)
         image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
         prompt_array = scene_prompt
-        return (image,prompt_array)
+        return (image, prompt_array)
 
 
 class Storydiffusion_Img2Img:
@@ -1053,7 +1065,7 @@ class Storydiffusion_Img2Img:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "sd_type": (["SDXL", "Use_Single_XL_Model", "SDXL_Flash", "RealVision", "Unstable", ],),
+                "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "character_prompt": ("STRING", {"multiline": True,
@@ -1092,7 +1104,7 @@ class Storydiffusion_Img2Img:
     CATEGORY = "Storydiffusion"
 
     def img2image(self, image, sd_type, ckpt_name, photomake_model, character_prompt, scene_prompt, character_id_number,
-                  negative_prompt, scheduler,img_style,
+                  negative_prompt, scheduler, img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
         d1, _, _, _ = image.size()
@@ -1134,7 +1146,6 @@ class Storydiffusion_Img2Img:
         global write
         global height, width
         global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
-
 
         height = img_height
         width = img_width
@@ -1185,9 +1196,14 @@ class Storydiffusion_Img2Img:
                 sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
             )
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(
-                sd_model_path, torch_dtype=torch.float16, use_safetensors=False
-            )
+            if sd_type=="Playground_v2p5":
+                pipe = DiffusionPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16
+                )
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16
+                )
         pipe = pipe.to(device)
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
@@ -1196,7 +1212,7 @@ class Storydiffusion_Img2Img:
         if device != "mps":
             pipe.enable_model_cpu_offload()
         unet = pipe.unet
-        cur_model_type = sd_type + "-" + "original"
+        cur_model_type = "Unstable" + "-" + "original"
         ### Insert PairedAttention
         for name in unet.attn_processors.keys():
             cross_attention_dim = (
@@ -1264,7 +1280,7 @@ class Comic_Type:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"image": ("IMAGE",),
-                             "prompt_array": ("STRING", {"multiline": True,"forceInput": True,"default": ""}),
+                             "prompt_array": ("STRING", {"multiline": True, "forceInput": True, "default": ""}),
                              "fonts_list": (fonts_lists,),
                              "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
                              "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
@@ -1275,7 +1291,7 @@ class Comic_Type:
     FUNCTION = "comic_gen"
     CATEGORY = "Storydiffusion"
 
-    def comic_gen(self, image, prompt_array, fonts_list,text_size, comic_type):
+    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type):
         result = [item for index, item in enumerate(image)]
         total_results = narry_list_pil(result)
         font_choice = os.path.join(dir_path, "fonts", fonts_list)
@@ -1290,7 +1306,7 @@ class Comic_Type:
                 get_comic(total_results, comic_type, captions=captions, font=font)
                 + total_results
         )
-        images=phi2narry(images[0])
+        images = phi2narry(images[0])
         return (images,)
 
 
@@ -1318,7 +1334,7 @@ class Character_Batch:
         hash_img3 = self.get_image_hash(pil_image3)
         if hash_img1 == hash_img2 and hash_img1 == hash_img3:
             character_batch = image1
-            #print("32222", character_batch, type(character_batch))
+            # print("32222", character_batch, type(character_batch))
         elif hash_img2 == hash_img3 and hash_img2 != hash_img1 or hash_img1 == hash_img2 and hash_img1 != hash_img3:
             image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
                                     "center").movedim(1, -1)
@@ -1338,7 +1354,7 @@ class Character_Batch:
         #     image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
         #                             "center").movedim(1, -1)
         #     character_batch=torch.cat((image1, image2, image3), dim=0)
-        #print(image2.shape, "1234", character_batch, character_batch.shape)
+        # print(image2.shape, "1234", character_batch, character_batch.shape)
         return (character_batch,)
 
 
