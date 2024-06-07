@@ -1,4 +1,2 @@
 ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main
-xformers==0.0.20
-huggingface-hub
 spaces==0.19.4
