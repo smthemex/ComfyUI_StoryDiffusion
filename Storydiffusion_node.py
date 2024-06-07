@@ -10,6 +10,7 @@ import random
 from PIL import ImageFont
 from ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
+import re
 from .utils.gradio_utils import (
     character_to_dict,
     process_original_prompt,
@@ -77,13 +78,11 @@ def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
     return img
 
-
 def get_instance_path(path):
     instance_path = os.path.normpath(path)
     if sys.platform == 'win32':
         instance_path = instance_path.replace('\\', "/")
     return instance_path
-
 
 def tensor_to_image(tensor):
     # tensor = tensor.cpu()
@@ -91,10 +90,17 @@ def tensor_to_image(tensor):
     image = Image.fromarray(image_np, mode='RGB')
     return image
 
-
 # get fonts list
 
 def narry_list(list_in):
+    for i in range(len(list_in)):
+        value = list_in[i]
+        modified_value = phi2narry(value)
+        list_in[i] = modified_value
+    return list_in
+
+
+def tensor_list(list_in):
     for i in range(len(list_in)):
         value = list_in[i]
         modified_value = phi2narry(value)
@@ -858,11 +864,11 @@ class Storydiffusion_Text2Img:
                                                            "[Alice]a woman, wearing a white shirt."}),
                 "scene_prompt": ("STRING", {"multiline": True,
                                             "default": "[Bob] at home, read new paper #at home, The newspaper says "
-                                                       "there is a treasure house in the forest.\n[Bob] on the road, "
-                                                       "near the forest\n[Alice] is make a call at home \n[NC]A tiger "
-                                                       "appeared in the forest, at night \n[NC] The car on the road, "
+                                                       "there is a treasure house in the forest;\n[Bob] on the road, "
+                                                       "near the forest;\n[Alice] is make a call at home;\n[NC]A tiger "
+                                                       "appeared in the forest, at night;\n[NC] The car on the road, "
                                                        "near the forest #They drives to the forest in search of "
-                                                       "treasure.at night #He is overjoyed inside the house.\n[Alice] very frightened, open mouth, in the forest, at night."}),
+                                                       "treasure house;\n[Bob]at night #He is overjoyed inside the house;\n[Alice] very frightened, open mouth, in the forest, at night."}),
                 "character_id_number": ("INT", {"default": 2, "min": 1, "max": 4, "step": 1, "display": "number"}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
@@ -1071,7 +1077,7 @@ class Storydiffusion_Img2Img:
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
                 "scene_prompt": ("STRING", {"multiline": True,
-                                            "default": "[Taylor]wake up in the bed,\n[Taylor]have breakfast by the window,\n[Taylor]is walking on the road, go to company,\n[Taylor]work in the company."}),
+                                            "default": "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Taylor]is walking on the road, go to company;\n[Taylor]work in the company."}),
                 "character_id_number": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1, "display": "number"}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
@@ -1284,6 +1290,7 @@ class Comic_Type:
                              "fonts_list": (fonts_lists,),
                              "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
                              "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
+                             "split_lines": ("STRING", {"default": ";"}),
                              }}
 
     RETURN_TYPES = ("IMAGE",)
@@ -1291,16 +1298,20 @@ class Comic_Type:
     FUNCTION = "comic_gen"
     CATEGORY = "Storydiffusion"
 
-    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type):
+    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type,split_lines):
         result = [item for index, item in enumerate(image)]
         total_results = narry_list_pil(result)
         font_choice = os.path.join(dir_path, "fonts", fonts_list)
         captions = prompt_array.splitlines()
-        captions = [caption.replace("[NC]", "") for caption in captions]
-        captions = [
-            caption.split("#")[-1] if "#" in caption else caption
-            for caption in captions
-        ]
+        if len(captions)>1:
+            captions = [caption.replace("[NC]", "") for caption in captions]
+            captions = [
+                caption.split("#")[-1] if "#" in caption else caption
+                for caption in captions
+            ]
+        else:
+            prompt_array=prompt_array.replace(split_lines,"\n")
+            captions = prompt_array.splitlines()
         font = ImageFont.truetype(font_choice, text_size)
         images = (
                 get_comic(total_results, comic_type, captions=captions, font=font)
@@ -1309,6 +1320,31 @@ class Comic_Type:
         images = phi2narry(images[0])
         return (images,)
 
+class Pre_Translate_prompt:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"prompt_array": ("STRING", {"forceInput": True, "default": ""}),
+                             "keep_character_name": ("BOOLEAN", {"default": False},)
+                             }}
+    RETURN_TYPES = ("STRING",)
+    ETURN_NAMES = ("prompt_array",)
+    FUNCTION = "translate_prompt"
+    CATEGORY = "Storydiffusion"
+
+    def translate_prompt(self, prompt_array,keep_character_name):
+        captions = prompt_array.splitlines()
+        captions = [caption.replace("[NC]", "") for caption in captions]
+        if not keep_character_name:
+            captions = [caption.split("]", 1)[-1] for caption in captions]
+        else:
+            captions = [caption.replace("]", "") for caption in captions]
+            captions = [caption.replace("[", "") for caption in captions]
+        captions = [
+            caption.split("#")[-1] if "#" in caption else caption
+            for caption in captions
+        ]
+        prompt_array = ''.join(captions)
+        return (prompt_array,)
 
 class Character_Batch:
 
@@ -1361,6 +1397,7 @@ class Character_Batch:
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Text2Img": Storydiffusion_Text2Img,
     "Storydiffusion_Img2Img": Storydiffusion_Img2Img,
+    "Pre_Translate_prompt":Pre_Translate_prompt,
     "Comic_Type": Comic_Type,
     "Character_Batch": Character_Batch
 }
@@ -1368,6 +1405,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Text2Img": "Storydiffusion_Text2Img",
     "Storydiffusion_Img2Img": "Storydiffusion_Img2Img",
+    "Pre_Translate_prompt":"Pre_Translate_prompt",
     "Comic_Type": "Comic_Type",
     "Character_Batch": "Character_Batch"
 }
