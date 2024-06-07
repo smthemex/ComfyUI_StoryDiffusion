@@ -64,11 +64,11 @@ def load_models(model_info,_sd_type,device,photomaker_path):
             )
         else:
             if _sd_type=="Playground_v2p5":
-                pipe = DiffusionPipeline.from_pretrained(
+                pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
                     path, torch_dtype=torch.float16, use_safetensors=use_safetensors
                 )
             else:
-                pipe = StableDiffusionXLPipeline.from_pretrained(
+                pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
                     path, torch_dtype=torch.float16,use_safetensors=use_safetensors
                 )
         pipe = pipe.to(device)
