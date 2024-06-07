@@ -6,25 +6,30 @@ StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 
 Update
 ----
-2024/06/05   
+2024/06/06   
+1、修复图生图photomake失效的bug；  
+2、增加预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)    
+3、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
+
+1. Fix the bug that caused the failure of photo making in the image generation process;
+2. Add preprocessing translation text nodes, as shown in the example diagram. (Pay attention to changing fonts)   
+
+--- 既往更新 Previous updates   
 1、修复图生图unstable无法正确使用的bug，现在编辑config/models.yaml文件，记住用同样的格式，加入你喜欢的基于SDXL的扩散模型。  
 2、示例的playground模型运行，但是无法出图，请勿使用，仅是测试。  
+3、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
+4、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
+5、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
+6、加入SDXL-flash 加速模型  
+7、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出）   
 
 1. Fix the bug where unstable graphics cannot be used correctly. Now edit the config/model.yaml file and remember to use the same format. Add your favorite SDXL based diffusion models.  
 2. The playground model of the example is running, but it cannot be illustrated. Please do not use it, it is only for testing.  
-
---- 既往更新 Previous updates   
-1、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
-2、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
-3、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
-4、加入SDXL-flash 加速模型  
-5、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出）   
-
-1. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
-2. Add SDXL flash acceleration model   
-3. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu
-4. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
-5. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
+3. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
+4. Add SDXL flash acceleration model   
+5. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu
+6. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
+7. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
 
 
 1.Installation
@@ -93,6 +98,9 @@ two character  双角色
 
 use single model  使用单模型  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/use_single_model.png)
+
+using other language    使用其他语言的文本    
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_tran.png)
 
 
 Citation
