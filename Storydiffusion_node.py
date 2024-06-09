@@ -32,7 +32,7 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        EulerDiscreteScheduler, HeunDiscreteScheduler, UNet2DConditionModel,
                        AutoPipelineForText2Image, StableDiffusionXLControlNetImg2ImgPipeline, KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler, AutoencoderKL,
-                       StableDiffusionXLControlNetPipeline, DDPMScheduler, TCDScheduler, LCMScheduler)
+                       StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import torch.nn.functional as F
 from .utils.utils import get_comic
@@ -70,7 +70,7 @@ yaml_list = list(models_dict.keys())
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
     "DPM++ SDE", "DPM++ SDE Karras", "DPM2",
-    "DPM2 Karras", "DPM2 a", "DPM2 a Karras", "Heun", "LCM", "LMS", "LMS Karras", "UniPC", "TCD"
+    "DPM2 Karras", "DPM2 a", "DPM2 a Karras", "Heun", "LCM", "LMS", "LMS Karras", "UniPC"
 ]
 
 
@@ -271,8 +271,6 @@ def get_scheduler(name):
         scheduler = LMSDiscreteScheduler(use_karras_sigmas=True)
     elif name == "UniPC":
         scheduler = UniPCMultistepScheduler()
-    elif name == "TCD":
-        scheduler = TCDScheduler()
     return scheduler
 
 
@@ -1279,6 +1277,7 @@ class Storydiffusion_Img2Img:
         image = narry_list(value)
         image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
         prompt_array = scene_prompt
+        del gen
         return (image, prompt_array,)
 
 
