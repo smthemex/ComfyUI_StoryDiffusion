@@ -1274,6 +1274,7 @@ class Storydiffusion_Img2Img:
 
         for value in gen:
             pass_value = value
+            del pass_value
         image = narry_list(value)
         image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
         prompt_array = scene_prompt
