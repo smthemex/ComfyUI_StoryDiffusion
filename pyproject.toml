@@ -1,0 +1,15 @@
+[project]
+name = "comfyui_storydiffusion"
+description = "A StoryDiffusion node for ComfyUI."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main", "spaces==0.19.4"]
+
+[project.urls]
+Repository = "https://github.com/smthemex/ComfyUI_StoryDiffusion"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI_StoryDiffusion"
+Icon = ""
