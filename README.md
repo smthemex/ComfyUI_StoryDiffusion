@@ -4,6 +4,16 @@ You can using StoryDiffusion in ComfyUI
 StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 ----
 
+Notice
+---
+图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等  
+图片不出现角色，场景prompt前面加入[NC]  
+分段prompt，用#，例如 AAAA#BBBB,将生成AAAABBBB内容，但是文字只显示BBBB
+
+The process of generating images using PhotosMaker requires the "img" keyword in the character prompt column. You can use keywords such as a woman "img", a man "img", etc  
+No characters appear in the image, add [NC] before the scene prompt   
+Segmented prompt, using #, such as AAAA # BBBB, will generate AAAABBBB content, but the text will only display BBBB   
+
 Update
 ----
 2024/06/06   
