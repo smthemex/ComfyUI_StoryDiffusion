@@ -49,7 +49,9 @@ STYLE_NAMES = list(styles.keys())
 DEFAULT_STYLE_NAME = "Japanese Anime"
 global models_dict
 models_dict = get_models_dict()  # 获取模型信息
-
+import diffusers
+dif_version = str(diffusers.__version__)
+dif_version_int= int(dif_version.split(".")[1])
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -142,12 +144,12 @@ def get_image_path_list(folder_name):
 
 
 def apply_style_positive(style_name: str, positive: str):
-    p, n = styles.get(style_name, styles[DEFAULT_STYLE_NAME])
+    p, n = styles.get(style_name, styles[style_name])
     return p.replace("{prompt}", positive)
 
 
 def apply_style(style_name: str, positives: list, negative: str = ""):
-    p, n = styles.get(style_name, styles[DEFAULT_STYLE_NAME])
+    p, n = styles.get(style_name, styles[style_name])
     return [
         p.replace("{prompt}", positive) for positive in positives
     ], n + " " + negative
@@ -626,6 +628,8 @@ def process_generation(
         _char_files,
         photomaker_path,
         scheduler_choice,
+        lora,
+        lora_scale
 ):  # Corrected font_choice usage
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
@@ -670,6 +674,8 @@ def process_generation(
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+        pipe.load_lora_weights(lora)
+        #pipe._lora_scale=lora_scale
         cur_model_type = _sd_type + "-" + _model_type
         pipe.enable_vae_slicing()
         if device != "mps":
@@ -748,13 +754,14 @@ def process_generation(
             ref_indexs = ref_indexs_dict[character_key]
             # print(character_key, ref_indexs)
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            # print(current_prompts)
+            #print(current_prompts)
             setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
+            
             if _model_type == "original":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -762,6 +769,7 @@ def process_generation(
                     guidance_scale=guidance_scale,
                     height=height,
                     width=width,
+                    cross_attention_kwargs={"scale": lora_scale},
                     negative_prompt=negative_prompt,
                     generator=generator,
                 ).images
@@ -774,6 +782,7 @@ def process_generation(
                     start_merge_step=start_merge_step,
                     height=height,
                     width=width,
+                    cross_attention_kwargs={"scale": lora_scale},
                     negative_prompt=negative_prompt,
                     generator=generator,
                 ).images
@@ -802,13 +811,14 @@ def process_generation(
     for real_prompts_ind in real_prompts_inds:
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
-        # print(cur_character, real_prompt)
+        print(cur_character, real_prompt)
         setup_seed(seed_)
         if len(cur_character) > 1 and _model_type == "Photomaker":
             raise "Temporarily Not Support Multiple character in Ref Image Mode!"
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt = apply_style_positive(style_name, real_prompt)
+        #print(real_prompt)
         if _model_type == "original":
             results_dict[real_prompts_ind] = pipe(
                 real_prompt,
@@ -816,6 +826,7 @@ def process_generation(
                 guidance_scale=guidance_scale,
                 height=height,
                 width=width,
+                cross_attention_kwargs={"scale": lora_scale},
                 negative_prompt=negative_prompt,
                 generator=generator,
             ).images[0]
@@ -832,6 +843,7 @@ def process_generation(
                 start_merge_step=start_merge_step,
                 height=height,
                 width=width,
+                cross_attention_kwargs={"scale": lora_scale},
                 negative_prompt=negative_prompt,
                 generator=generator,
                 nc_flag=True if real_prompts_ind in nc_indexs else False,
@@ -857,6 +869,8 @@ class Storydiffusion_Text2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
+                "lora": (folder_paths.get_filename_list("loras"),),
+                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Bob] A man, wearing a black sui,\n"
                                                            "[Alice]a woman, wearing a white shirt."}),
@@ -873,12 +887,12 @@ class Storydiffusion_Text2Img:
                                                           "three hands, three legs, bad arms, missing legs, "
                                                           "missing arms, poorly drawn face, bad face, fused face, "
                                                           "cloned face, three crus, fused feet, fused thigh, "
-                                                          "extra crus, ugly fingers, horn, cartoon, cg, 3d, unreal, "
+                                                          "extra crus, ugly fingers, horn,"
                                                           "animate, amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
                 "img_style": (
-                    ["No style", "Japanese Anime", "Cinematic", "Disney Charactor", "Photographic", "Comic book",
-                     "Line art"],),
+                    ["No_style", "Realistic","Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character", "Photographic", "Comic_book",
+                     "Line_art","Black_and_White_Film_Noir","Isometric_Rooms"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -896,7 +910,7 @@ class Storydiffusion_Text2Img:
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, sd_type, ckpt_name, steps, img_style, photomake_model, scheduler, cfg, seed,
+    def text2image(self, sd_type, ckpt_name,lora,lora_scale, steps, img_style, photomake_model, scheduler, cfg, seed,
                    sa32_degree,
                    sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
                    img_height, img_width):
@@ -910,6 +924,9 @@ class Storydiffusion_Text2Img:
 
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
+
+        lora_path=folder_paths.get_full_path("loras", lora)
+        lora = get_instance_path(lora_path)
         # print(ckpt_path)
 
         if photomake_model == "none":
@@ -977,9 +994,13 @@ class Storydiffusion_Text2Img:
         single_files = models_dict[sd_type]["single_files"]
         ### LOAD Stable Diffusion Pipeline
         if single_files:
-            pipe = StableDiffusionXLPipeline.from_single_file(
-                sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
-            )
+            if dif_version_int>=28:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16)
+            else:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
+                )
         else:
             if sd_type == "Playground_v2p5":
                 pipe = DiffusionPipeline.from_pretrained(
@@ -1050,7 +1071,7 @@ class Storydiffusion_Text2Img:
                                  G_width,
                                  _char_files,
                                  photomaker_path,
-                                 scheduler_choice)
+                                 scheduler_choice,lora,lora_scale)
 
         for value in gen:
             pass_value = value
@@ -1072,6 +1093,8 @@ class Storydiffusion_Img2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
+                "lora": (folder_paths.get_filename_list("loras"),),
+                "lora_scale":("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
                 "scene_prompt": ("STRING", {"multiline": True,
@@ -1082,12 +1105,12 @@ class Storydiffusion_Img2Img:
                                                           "three hands, three legs, bad arms, missing legs, "
                                                           "missing arms, poorly drawn face, bad face, fused face, "
                                                           "cloned face, three crus, fused feet, fused thigh, "
-                                                          "extra crus, ugly fingers, horn, cartoon, cg, 3d, unreal, "
-                                                          "animate, amputation, disconnected limbs"}),
+                                                          "extra crus, ugly fingers, horn"
+                                                          " amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
                 "img_style": (
-                    ["No style", "Japanese Anime", "Cinematic", "Disney Charactor", "Photographic", "Comic book",
-                     "Line art"],),
+                    ["No_style", "Realistic","Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character", "Photographic", "Comic_book",
+                     "Line_art","Black_and_White_Film_Noir","Isometric_Rooms"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -1107,7 +1130,7 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type, ckpt_name, photomake_model, character_prompt, scene_prompt, character_id_number,
+    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale, photomake_model, character_prompt, scene_prompt, character_id_number,
                   negative_prompt, scheduler, img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
@@ -1134,6 +1157,9 @@ class Storydiffusion_Img2Img:
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
         style_name = img_style
+
+        lora_path = folder_paths.get_full_path("loras", lora)
+        lora = get_instance_path(lora_path)
 
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
@@ -1196,9 +1222,13 @@ class Storydiffusion_Img2Img:
         original_config_file = get_instance_path(original_config_file)
         ### LOAD Stable Diffusion Pipeline
         if single_files:
-            pipe = StableDiffusionXLPipeline.from_single_file(
-                sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
-            )
+            if dif_version_int >= 28:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16)
+            else:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
+                )
         else:
             if sd_type=="Playground_v2p5":
                 pipe = DiffusionPipeline.from_pretrained(
@@ -1270,7 +1300,8 @@ class Storydiffusion_Img2Img:
                                  G_width,
                                  _char_files,
                                  photomaker_path,
-                                 scheduler_choice)
+                                 scheduler_choice,
+                                 lora,lora_scale)
 
         for value in gen:
             pass_value = value
