@@ -1,12 +1,27 @@
 # ComfyUI_StoryDiffusion
 You can using StoryDiffusion in ComfyUI 
 
+MY ComfyUI node list：
+-----
+
+[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)                --------  [ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)            --------     [ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)
+
+[ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)            --------       [ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  --------      [ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)
+
+[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)  --------      [ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  --------     [ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)
+
+[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)                --------       [ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    --------      [ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)
+
+[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker) 
+
+
+
 StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
 ----
 
 Notice
 ---
-图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等  
+图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等     
 图片不出现角色，场景prompt前面加入[NC]  
 分段prompt，用#，例如 AAAA#BBBB,将生成AAAABBBB内容，但是文字只显示BBBB
 
@@ -16,30 +31,37 @@ Segmented prompt, using #, such as AAAA # BBBB, will generate AAAABBBB content, 
 
 Update
 ----
-2024/06/06   
+2024/06/14    
+1、修复预设的风格无效的问题；   
+2、加入Lora支持，可以使用风格和加速Lora ；     
+3、加入diffuser 0.28以上版本的支持 ；    
+
+1. Fix the issue of invalid preset styles;   
+2. Added support for Lora, allowing for style and acceleration of Lora  ； 
+3. Add support for diffuser versions 0.28 and above；  
+
+
+--- 既往更新 Previous updates   
 1、修复图生图photomake失效的bug；  
 2、增加预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)    
 3、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
+4、修复图生图unstable无法正确使用的bug，现在编辑config/models.yaml文件，记住用同样的格式，加入你喜欢的基于SDXL的扩散模型。  
+5、示例的playground模型运行，但是无法出图，请勿使用，仅是测试。  
+6、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
+7、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
+8、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
+9、加入SDXL-flash 加速模型  
+10、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出） 
 
 1. Fix the bug that caused the failure of photo making in the image generation process;
 2. Add preprocessing translation text nodes, as shown in the example diagram. (Pay attention to changing fonts)   
-
---- 既往更新 Previous updates   
-1、修复图生图unstable无法正确使用的bug，现在编辑config/models.yaml文件，记住用同样的格式，加入你喜欢的基于SDXL的扩散模型。  
-2、示例的playground模型运行，但是无法出图，请勿使用，仅是测试。  
-3、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
-4、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
-5、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
-6、加入SDXL-flash 加速模型  
-7、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出）   
-
-1. Fix the bug where unstable graphics cannot be used correctly. Now edit the config/model.yaml file and remember to use the same format. Add your favorite SDXL based diffusion models.  
-2. The playground model of the example is running, but it cannot be illustrated. Please do not use it, it is only for testing.  
-3. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
-4. Add SDXL flash acceleration model   
-5. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu
-6. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
-7. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
+3. Fix the bug where unstable graphics cannot be used correctly. Now edit the config/model.yaml file and remember to use the same format. Add your favorite SDXL based diffusion models.  
+4. The playground model of the example is running, but it cannot be illustrated. Please do not use it, it is only for testing.  
+5. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
+6. Add SDXL flash acceleration model   
+7. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu
+8. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
+9. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
 
 
 1.Installation
@@ -72,7 +94,7 @@ If bitsandbytes reports an error in the CUDA environment, you can "pip uninstall
 
 如果不想下载扩散模型，可以菜单选择Use_Single_XL_Model，然后在ckpt_name菜单选择你想使用的XL模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  ）。   
 
-注意：如果使用单模型模式，可能会要求联外网，包括会下载一些clip文件，每个人的系统不同，不能一一例举。。
+注意：如果使用单模型模式，可能会要求联外网，包括会下载一些config文件，每个人的系统不同，不能一一例举。。
 
 open ..ComfyUI_StoryDiffusion/config/models.yaml change or using diffusers models default...  
 
@@ -97,6 +119,11 @@ example：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
 
 4 Example
 ----
+
+add lora 加入lora的支持
+
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/lora_and_style.png)
+
 txt2img 文生图
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img.png)
 
