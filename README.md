@@ -80,22 +80,30 @@ Update
   In the ./ComfyUI /custom_node directory, run the following:   
   
   ``` python 
-  git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git   
+  git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
+  
   ```
 
-  
 2.requirements  
 ----
 pip install -r requirements.txt
 
-需要安装ip_adapter，整合包版本的特别需要  常规的包安装pip install -r requirements.txt  
-整合包安装方式pip install -r requirements.txt --target= "你的路径/python_embeded/Lib/site-packages"   
+pip install git+https://github.com/tencent-ailab/IP-Adapter.git
 
-If bitsandbytes reports an error in the CUDA environment, you can "pip uninstall bitsandbytes"  and  then  "Pip install" Bitsandbytes"   
+2.1如果使用的是秋叶包 提示ip_adapter库找不到，可以尝试以下方法：
 
-如果bitsandbytes报错CUDA环境，整合包请去python_embeded/Lib/site-packages下删除以bitsandbyte开头的两个文件夹，然后再 pip install  bitsandbytes --target= "你的路径/python_embeded/Lib/site-packages"   
+在秋叶包的python目录下，打开CMD 然后复制：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "你的路径/python/Lib/site-packages" ，只把你的路径改成你的实际路径，其他不要动   
 
+例如：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "E:/test/ComfyUI_windows/python/Lib/site-packages"   
 
+2.2如果使用的是comfyUI整合包 提示ip_adapter库找不到，可以尝试以下方法：  
+
+在整合包的python_embeded目录下，打开CMD 然后python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "你的路径/python_embeded/Lib/site-packages"   ，只把你的路径改成你的实际路径，其他不要动   
+
+例如：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "E:/test/ComfyUI_windows/python_embeded/Lib/site-packages"   
+
+2.3 如果实在装不上，你需要安装python3.10，git，以及pip，然后运行pip install git+https://github.com/tencent-ailab/IP-Adapter.git。   
+ 
    
 3 Need  model 
 ----
