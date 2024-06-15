@@ -1,23 +1,34 @@
 # ComfyUI_StoryDiffusion
 You can using StoryDiffusion in ComfyUI 
 
-MY ComfyUI node list：
+StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)
+----
+My ComfyUI node list：
 -----
 
-[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)                --------  [ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)            --------     [ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)
+1、ParlerTTS node:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
 
-[ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)            --------       [ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  --------      [ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)
+2、Llama3_8B node:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
 
-[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)  --------      [ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  --------     [ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)
+3、HiDiffusion node：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)
 
-[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)                --------       [ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    --------      [ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)
+4、ID_Animator node： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
 
-[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker) 
+5、StoryDiffusion node：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
 
+6、Pops node：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)
 
+7、stable-audio-open-1.0 node ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)       
 
-StoryDiffusion  From: [link](https://github.com/HVision-NKU/StoryDiffusion)
-----
+8、GLM4 node：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)
+
+9、CustomNet node：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)         
+
+10、Pipeline_Tool node :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
+
+11、Pic2Story node :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)
+
+12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker) 
 
 Notice
 ---
@@ -32,12 +43,12 @@ Segmented prompt, using #, such as AAAA # BBBB, will generate AAAABBBB content, 
 Update
 ----
 2024/06/14    
-1、修复预设的风格无效的问题；   
-2、加入Lora支持，可以使用风格和加速Lora ；     
+1、修复预设的风格无效的问题，修复预设默认style失效。  
+2、加入Lora支持，可以使用风格和加速Lora，lora的关键词除了填在prompt中，lora_adapter也填写，效果会更好；      
 3、加入diffuser 0.28以上版本的支持 ；    
 
-1. Fix the issue of invalid preset styles;   
-2. Added support for Lora, allowing for style and acceleration of Lora  ； 
+1. Fix the issue of invalid preset style and fix the issue of invalid preset default style.    
+2. Adding support for Lora allows for the use of style and acceleration for Lora. In addition to filling in the prompt, the keywords for Lora can also be filled in with lora_adapter, resulting in better results;   
 3. Add support for diffuser versions 0.28 and above；  
 
 
@@ -138,6 +149,7 @@ use single model  使用单模型
 
 using other language    使用其他语言的文本    
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_tran.png)
+
 
 
 Citation
