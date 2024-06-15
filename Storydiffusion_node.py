@@ -629,7 +629,8 @@ def process_generation(
         photomaker_path,
         scheduler_choice,
         lora,
-        lora_scale
+        lora_scale,
+        lora_adapter
 ):  # Corrected font_choice usage
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
@@ -674,7 +675,8 @@ def process_generation(
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        pipe.load_lora_weights(lora)
+        pipe.load_lora_weights(lora,adapter_name=lora_adapter)
+        pipe.set_adapters(lora_adapter)
         #pipe._lora_scale=lora_scale
         cur_model_type = _sd_type + "-" + _model_type
         pipe.enable_vae_slicing()
@@ -761,7 +763,6 @@ def process_generation(
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            
             if _model_type == "original":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -871,6 +872,7 @@ class Storydiffusion_Text2Img:
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "lora": (folder_paths.get_filename_list("loras"),),
                 "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
+                "lora_adapter": ("STRING", {"default": ""}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Bob] A man, wearing a black sui,\n"
                                                            "[Alice]a woman, wearing a white shirt."}),
@@ -910,7 +912,7 @@ class Storydiffusion_Text2Img:
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, sd_type, ckpt_name,lora,lora_scale, steps, img_style, photomake_model, scheduler, cfg, seed,
+    def text2image(self, sd_type, ckpt_name,lora,lora_scale,lora_adapter, steps, img_style, photomake_model, scheduler, cfg, seed,
                    sa32_degree,
                    sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
                    img_height, img_width):
@@ -1071,7 +1073,7 @@ class Storydiffusion_Text2Img:
                                  G_width,
                                  _char_files,
                                  photomaker_path,
-                                 scheduler_choice,lora,lora_scale)
+                                 scheduler_choice,lora,lora_scale,lora_adapter)
 
         for value in gen:
             pass_value = value
@@ -1095,6 +1097,7 @@ class Storydiffusion_Img2Img:
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "lora": (folder_paths.get_filename_list("loras"),),
                 "lora_scale":("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
+                "lora_adapter": ("STRING", {"default": ""}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
                 "scene_prompt": ("STRING", {"multiline": True,
@@ -1130,7 +1133,7 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale, photomake_model, character_prompt, scene_prompt, character_id_number,
+    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale,lora_adapter, photomake_model, character_prompt, scene_prompt, character_id_number,
                   negative_prompt, scheduler, img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
@@ -1301,7 +1304,7 @@ class Storydiffusion_Img2Img:
                                  _char_files,
                                  photomaker_path,
                                  scheduler_choice,
-                                 lora,lora_scale)
+                                 lora,lora_scale,lora_adapter)
 
         for value in gen:
             pass_value = value
