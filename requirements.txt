@@ -1,2 +1,4 @@
+#如果是整合包，把ip_adapter前面的#删掉，再按安装说明里的步骤安装：
+#ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main
 spaces
 peft
