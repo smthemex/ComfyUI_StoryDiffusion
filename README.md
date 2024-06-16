@@ -70,17 +70,20 @@ Notice（节点的特殊功能说明 Special Function Description of Nodes）
 ----
 pip install -r requirements.txt
 
-pip install git+https://github.com/tencent-ailab/IP-Adapter.git
+pip install git+https://github.com/tencent-ailab/IP-Adapter.git   
+
+如果缺失模块，请单独pip install    
+If the module is missing, please pip install   
 
 2.1如果使用的是comfyUI整合包 提示ip_adapter库找不到，可以尝试以下方法：  
 
-在整合包的python_embeded目录下，打开CMD 然后python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "你的路径/python_embeded/Lib/site-packages"   ，只把你的路径改成你的实际路径，其他不要动   
+在整合包的python_embeded目录下，复制插件的requirements.txt文件到这个目录，去掉这个文件里ip-adapter前面的#号，保存，再打开CMD，然后运行pip install -r requirements.txt --target= "你的路径/python_embeded/Lib/site-packages"   ，只把你的路径改成你的实际路径，其他不要动   
 
-例如：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "E:/test/ComfyUI_windows/python_embeded/Lib/site-packages"   
+例如：pip install -r requirements.txt --target= "你的路径/python_embeded/Lib/site-packages"
 
-2.2 如果实在装不上，你需要安装python3.10，git，以及pip，然后运行pip install git+https://github.com/tencent-ailab/IP-Adapter.git。   
+2.2 如果实在装不上，你需要安装python3.10环境，git，以及pip，然后运行pip install git+https://github.com/tencent-ailab/IP-Adapter.git。 安装好之后，在你独立安装的python目录下，找到lib/site-packages下的ip-Adapter文件夹，复制到你的/python_embeded/Lib/site-packages里去  
 
-2.3秋叶包建议用manager升级安装
+2.3秋叶包，理论上是按2.1的方法，如果不行，可以试试，2.2
 
  
 3 Need  model 
