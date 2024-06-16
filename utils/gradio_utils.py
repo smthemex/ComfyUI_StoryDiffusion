@@ -5,6 +5,7 @@ import torch
 import random
 import torch.nn as nn
 import torch.nn.functional as F
+import re
 
 
 class SpatialAttnProcessor2_0(torch.nn.Module):
@@ -429,12 +430,18 @@ class AttnProcessor2_0(torch.nn.Module):
 
 def is_torch2_available():
     return hasattr(F, "scaled_dot_product_attention")
-
+def remove_punctuation_from_strings(lst):
+    pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
+    return [re.sub(pattern, '', s) for s in lst]
 
 # 将列表转换为字典的函数
-def character_to_dict(general_prompt):
-    character_dict = {}    
+def character_to_dict(general_prompt,lora,add_trigger_words):
+    character_dict = {}
     generate_prompt_arr = general_prompt.splitlines()
+    if lora!="none":
+        generate_prompt_arr=remove_punctuation_from_strings(generate_prompt_arr)
+        generate_prompt_arr = [item + add_trigger_words for item in generate_prompt_arr]
+        #print(prompts)
     character_index_dict = {}
     invert_character_index_dict = {}
     character_list = []
