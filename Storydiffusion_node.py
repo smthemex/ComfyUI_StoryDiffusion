@@ -672,15 +672,12 @@ def process_generation(
         model_info["model_type"] = _model_type
         if _sd_type == "Use_Single_XL_Model":
             model_info["path"] = ckpt_path
-        pipe = load_models(model_info,_sd_type, device=device, photomaker_path=photomaker_path)
+        pipe = load_models(model_info,_sd_type, device=device, photomaker_path=photomaker_path,lora=lora,trigger_words=trigger_words)
         set_attention_processor(pipe.unet, id_length_, is_ipadapter=False)
         ##### ########################
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
-        if lora !="none":
-            pipe.load_lora_weights(lora, adapter_name=trigger_words)
-            pipe.set_adapters(trigger_words)
-            # pipe._lora_scale=lora_scale
+
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
         cur_model_type = _sd_type + "-" + _model_type
         pipe.enable_vae_slicing()
@@ -700,7 +697,7 @@ def process_generation(
         #print(prompts)
     global character_dict, character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
 
-    character_dict, character_list = character_to_dict(general_prompt)
+    character_dict, character_list = character_to_dict(general_prompt,lora,add_trigger_words)
     # print(character_dict,character_list,general_prompt)
     start_merge_step = int(float(_style_strength_ratio) / 100 * _num_steps)
     if start_merge_step > 30:
