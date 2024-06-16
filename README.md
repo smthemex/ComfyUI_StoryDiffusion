@@ -30,49 +30,31 @@ My ComfyUI node list：
 
 12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker) 
 
-Notice
----
-图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等     
-图片不出现角色，场景prompt前面加入[NC]  
-分段prompt，用#，例如 AAAA#BBBB,将生成AAAABBBB内容，但是文字只显示BBBB
+Notice（节点的特殊功能说明 Special Function Description of Nodes）  
+---   
+1、预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；       
+2、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
+3、编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。  
+4、示例的playground模型仅是测试，但是无法出图，请勿使用。  
+5、拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）和字体大小，增加了双角色的支持（使用comfyUI的batch image）；    
+6、可以使用单体SDXL模型，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型；
+7、加入Lora的支持，lora菜单选择"none"时，Lora无效；“trigger_words”须填入你选择的Lora模型的对应的trigger_words，无须在prompt中加入，插件会自动在每行的末尾加入；
+8、支持diffuser 0.28以上版本；      
+9、图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；       
+10、图片不出现角色，场景prompt前面加入[NC] ；  
+11、分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB
 
-The process of generating images using PhotosMaker requires the "img" keyword in the character prompt column. You can use keywords such as a woman "img", a man "img", etc  
-No characters appear in the image, add [NC] before the scene prompt   
-Segmented prompt, using #, such as AAAA # BBBB, will generate AAAABBBB content, but the text will only display BBBB   
-
-Update
-----
-2024/06/14    
-1、修复预设的风格无效的问题，修复预设默认style失效。  
-2、加入Lora支持，可以使用风格和加速Lora，lora的关键词除了填在prompt中，lora_adapter也填写，效果会更好；      
-3、加入diffuser 0.28以上版本的支持 ；    
-
-1. Fix the issue of invalid preset style and fix the issue of invalid preset default style.    
-2. Adding support for Lora allows for the use of style and acceleration for Lora. In addition to filling in the prompt, the keywords for Lora can also be filled in with lora_adapter, resulting in better results;   
-3. Add support for diffuser versions 0.28 and above；  
-
-
---- 既往更新 Previous updates   
-1、修复图生图photomake失效的bug；  
-2、增加预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)    
-3、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
-4、修复图生图unstable无法正确使用的bug，现在编辑config/models.yaml文件，记住用同样的格式，加入你喜欢的基于SDXL的扩散模型。  
-5、示例的playground模型运行，但是无法出图，请勿使用，仅是测试。  
-6、拼图节点分离出来，支持自定义字体和字体大小，增加了双角色的支持   
-7、自定义字体使用方式，把字体文件放在fonts目录下 .fonts/your_font.ttf   
-8、修复了只能使用SDXL的bug，现在列表里所有的模型都可以正常使用  
-9、加入SDXL-flash 加速模型  
-10、已经可以使用单模型模式，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型（无法连外网的可能会报错，解决方法我迟点给出） 
-
-1. Fix the bug that caused the failure of photo making in the image generation process;
-2. Add preprocessing translation text nodes, as shown in the example diagram. (Pay attention to changing fonts)   
-3. Fix the bug where unstable graphics cannot be used correctly. Now edit the config/model.yaml file and remember to use the same format. Add your favorite SDXL based diffusion models.  
-4. The playground model of the example is running, but it cannot be illustrated. Please do not use it, it is only for testing.  
-5. Fixed a bug where only SDXL can be used, and now all models in the list can be used normally  
-6. Add SDXL flash acceleration model   
-7. The single model mode can now be used by selecting "UsesSingle_XL-Model" and then selecting the XL model you want to use from the ckptname menu
-8. The puzzle nodes are separated, supporting custom fonts and font sizes, and adding support for dual characters   
-9. Customize font usage by placing the font file in the fonts directory. fonts/you_font. ttf   
+1. Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);   
+2. By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
+3. Edit the config/models. yaml file and remember to use the same format to include your favorite SDXL based diffusion model.   
+4. The playground model in the example is only for testing purposes, but cannot be illustrated. Please do not use it.   
+5. The jigsaw puzzle node supports custom fonts (placing font files in the fonts directory".fonts/you_font. ttf") and font sizes, and adds support for dual characters (using batch images in comfyUI);    
+6. You can use a single SDXL model by selecting "Use_Single_XL-Model" and then selecting the XL model you want to use from the ckptname menu;   
+7. Add support for Lora. When selecting "none" in the Lora menu, Lora becomes invalid; "Trigger_words" must be filled in with the corresponding trigger_words for the Lora model you have selected, without the need to add them in the prompt. The plugin will automatically add them at the end of each line;   
+8. Supports diffuser versions 0.28 and above;   
+9. The process of generating images using PhotosMaker requires the"img" keyword in the character prompt column. You can use keywords such as a woman img, a man img, etc;    
+10. No characters appear in the image, add [NC] in front of the scene prompt;   
+11. Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
 
 
 1.Installation
@@ -90,51 +72,37 @@ pip install -r requirements.txt
 
 pip install git+https://github.com/tencent-ailab/IP-Adapter.git
 
-2.1如果使用的是秋叶包 提示ip_adapter库找不到，可以尝试以下方法：
-
-在秋叶包的python目录下，打开CMD 然后复制：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "你的路径/python/Lib/site-packages" ，只把你的路径改成你的实际路径，其他不要动   
-
-例如：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "E:/test/ComfyUI_windows/python/Lib/site-packages"   
-
-2.2如果使用的是comfyUI整合包 提示ip_adapter库找不到，可以尝试以下方法：  
+2.1如果使用的是comfyUI整合包 提示ip_adapter库找不到，可以尝试以下方法：  
 
 在整合包的python_embeded目录下，打开CMD 然后python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "你的路径/python_embeded/Lib/site-packages"   ，只把你的路径改成你的实际路径，其他不要动   
 
 例如：python.exe -m pip install git+https://github.com/tencent-ailab/IP-Adapter.git --target= "E:/test/ComfyUI_windows/python_embeded/Lib/site-packages"   
 
-2.3 如果实在装不上，你需要安装python3.10，git，以及pip，然后运行pip install git+https://github.com/tencent-ailab/IP-Adapter.git。   
+2.2 如果实在装不上，你需要安装python3.10，git，以及pip，然后运行pip install git+https://github.com/tencent-ailab/IP-Adapter.git。   
+
+2.3秋叶包建议用manager升级安装
+
  
-   
 3 Need  model 
 ----
-3.1  
+3.1  online  
+在线模式，点击运行，会自动从huggingface 下载所需模型，请确保你的的网络通畅，默认可用的模型有G161222/RealVisXL_V4.0 ，stabilityai/stable-diffusion-xl-base-1.0   ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；  
 
-打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以填写扩散模型的绝对地址，须是“/” .  
+选择'Use_Single_XL_Model',以及你本地的SDXL单体模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），也会下载对应的config文件；  
 
-如果不想下载扩散模型，可以菜单选择Use_Single_XL_Model，然后在ckpt_name菜单选择你想使用的XL模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  ）。   
+In online mode, click run and the required model will be automatically downloaded from the huggingface. Please ensure that your network is unobstructed. The default available models are G161222/RealVisXL_V4.0, stabilityai/stable-diffusion-xl-base-1.0  ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；  
 
-注意：如果使用单模型模式，可能会要求联外网，包括会下载一些config文件，每个人的系统不同，不能一一例举。。
+Select 'Use_Single_XL-Model', as well as your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), and the corresponding config file will also be downloaded;
 
-open ..ComfyUI_StoryDiffusion/config/models.yaml change or using diffusers models default...  
+3.2 offline  
+打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以在“path”一栏：填写扩散模型的绝对地址，须是“/” .  
+Open the models.yaml file of ComfyUI_StoryDiffusion/config/models.yaml. If there is a pre downloaded default diffusion model, it can be left blank. If the address is not in the default C drive category, you can fill in the absolute address of the diffusion model in the "path" column, which must be "/"   
 
-G161222/RealVisXL_V4.0   
-or  
-stabilityai/stable-diffusion-xl-base-1.0   
-or  
-stablediffusionapi/sdxl-unstable-diffusers-y   
-or  
-sd-community/sdxl-flash   
-or 
-
-Menu  choice 'Use_Single_XL_Model', and menu 'ckpt_name' choice any comfyUI or Web UI SDXL model    
----
-example：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors  
-
-3.2  
+3.3 
 在comfyUI的models目录下，确认是否有photomaker 目录，没有会自己新建并下载 photomaker-v1.bin   [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
 如果有预下载，就把模型放进去。  
 
- make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
+make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
 
 4 Example
 ----
