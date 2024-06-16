@@ -101,6 +101,9 @@ def narry_list(list_in):
         list_in[i] = modified_value
     return list_in
 
+def remove_punctuation_from_strings(lst):
+    pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
+    return [re.sub(pattern, '', s) for s in lst]
 
 def tensor_list(list_in):
     for i in range(len(list_in)):
@@ -630,7 +633,7 @@ def process_generation(
         scheduler_choice,
         lora,
         lora_scale,
-        lora_adapter
+        trigger_words
 ):  # Corrected font_choice usage
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
@@ -674,10 +677,11 @@ def process_generation(
         ##### ########################
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
         # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+        if lora !="none":
+            pipe.load_lora_weights(lora, adapter_name=trigger_words)
+            pipe.set_adapters(trigger_words)
+            # pipe._lora_scale=lora_scale
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        pipe.load_lora_weights(lora,adapter_name=lora_adapter)
-        pipe.set_adapters(lora_adapter)
-        #pipe._lora_scale=lora_scale
         cur_model_type = _sd_type + "-" + _model_type
         pipe.enable_vae_slicing()
         if device != "mps":
@@ -689,6 +693,11 @@ def process_generation(
     load_chars = load_character_files_on_running(unet, character_files=_char_files)
 
     prompts = prompt_array.splitlines()
+    add_trigger_words = "," + trigger_words + ";"
+    if lora!="none":
+        prompts=remove_punctuation_from_strings(prompts)
+        prompts = [item + add_trigger_words for item in prompts]
+        #print(prompts)
     global character_dict, character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
 
     character_dict, character_list = character_to_dict(general_prompt)
@@ -713,7 +722,7 @@ def process_generation(
     ]
 
     prompts = [
-        prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
+        prompt.rpartition("#")[0]+add_trigger_words if "#" in prompt else prompt for prompt in prompts
     ]
     # print(prompts)
     # id_prompts = prompts[:id_length]
@@ -764,29 +773,53 @@ def process_generation(
                 style_name, current_prompts, negative_prompt
             )
             if _model_type == "original":
-                id_images = pipe(
-                    cur_positive_prompts,
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    height=height,
-                    width=width,
-                    cross_attention_kwargs={"scale": lora_scale},
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                ).images
+                if lora != "none":
+                    id_images = pipe(
+                        cur_positive_prompts,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        height=height,
+                        width=width,
+                        cross_attention_kwargs={"scale": lora_scale},
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                    ).images
+                else:
+                    id_images = pipe(
+                        cur_positive_prompts,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        height=height,
+                        width=width,
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                    ).images
             elif _model_type == "Photomaker":
-                id_images = pipe(
-                    cur_positive_prompts,
-                    input_id_images=input_id_images_dict[character_key],
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    start_merge_step=start_merge_step,
-                    height=height,
-                    width=width,
-                    cross_attention_kwargs={"scale": lora_scale},
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                ).images
+                if lora != "none":
+                    id_images = pipe(
+                        cur_positive_prompts,
+                        input_id_images=input_id_images_dict[character_key],
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        start_merge_step=start_merge_step,
+                        height=height,
+                        width=width,
+                        cross_attention_kwargs={"scale": lora_scale},
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                    ).images
+                else:
+                    id_images = pipe(
+                        cur_positive_prompts,
+                        input_id_images=input_id_images_dict[character_key],
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        start_merge_step=start_merge_step,
+                        height=height,
+                        width=width,
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                    ).images
             else:
                 raise NotImplementedError(
                     "You should choice between original and Photomaker!",
@@ -821,34 +854,63 @@ def process_generation(
         real_prompt = apply_style_positive(style_name, real_prompt)
         #print(real_prompt)
         if _model_type == "original":
-            results_dict[real_prompts_ind] = pipe(
-                real_prompt,
-                num_inference_steps=_num_steps,
-                guidance_scale=guidance_scale,
-                height=height,
-                width=width,
-                cross_attention_kwargs={"scale": lora_scale},
-                negative_prompt=negative_prompt,
-                generator=generator,
-            ).images[0]
+            if lora != "none":
+                results_dict[real_prompts_ind] = pipe(
+                    real_prompt,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height,
+                    width=width,
+                    cross_attention_kwargs={"scale": lora_scale},
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images[0]
+            else:
+                results_dict[real_prompts_ind] = pipe(
+                    real_prompt,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images[0]
         elif _model_type == "Photomaker":
-            results_dict[real_prompts_ind] = pipe(
-                real_prompt,
-                input_id_images=(
-                    input_id_images_dict[cur_character[0]]
-                    if real_prompts_ind not in nc_indexs
-                    else input_id_images_dict[character_list[0]]
-                ),
-                num_inference_steps=_num_steps,
-                guidance_scale=guidance_scale,
-                start_merge_step=start_merge_step,
-                height=height,
-                width=width,
-                cross_attention_kwargs={"scale": lora_scale},
-                negative_prompt=negative_prompt,
-                generator=generator,
-                nc_flag=True if real_prompts_ind in nc_indexs else False,
-            ).images[0]
+            if lora != "none":
+                results_dict[real_prompts_ind] = pipe(
+                    real_prompt,
+                    input_id_images=(
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else input_id_images_dict[character_list[0]]
+                    ),
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    start_merge_step=start_merge_step,
+                    height=height,
+                    width=width,
+                    cross_attention_kwargs={"scale": lora_scale},
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                    nc_flag=True if real_prompts_ind in nc_indexs else False,
+                ).images[0]
+            else:
+                results_dict[real_prompts_ind] = pipe(
+                    real_prompt,
+                    input_id_images=(
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else input_id_images_dict[character_list[0]]
+                    ),
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    start_merge_step=start_merge_step,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                    nc_flag=True if real_prompts_ind in nc_indexs else False,
+                ).images[0]
         else:
             raise NotImplementedError(
                 "You should choice between original and Photomaker!",
@@ -870,9 +932,9 @@ class Storydiffusion_Text2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                "lora": (folder_paths.get_filename_list("loras"),),
+                "lora": (["none"]+folder_paths.get_filename_list("loras"),),
                 "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
-                "lora_adapter": ("STRING", {"default": ""}),
+                "trigger_words": ("STRING", {"default": "best quality"}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Bob] A man, wearing a black sui,\n"
                                                            "[Alice]a woman, wearing a white shirt."}),
@@ -912,7 +974,7 @@ class Storydiffusion_Text2Img:
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, sd_type, ckpt_name,lora,lora_scale,lora_adapter, steps, img_style, photomake_model, scheduler, cfg, seed,
+    def text2image(self, sd_type, ckpt_name,lora,lora_scale,trigger_words, steps, img_style, photomake_model, scheduler, cfg, seed,
                    sa32_degree,
                    sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
                    img_height, img_width):
@@ -926,10 +988,10 @@ class Storydiffusion_Text2Img:
 
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
+        if lora!="none":
+            lora_path=folder_paths.get_full_path("loras", lora)
+            lora = get_instance_path(lora_path)
 
-        lora_path=folder_paths.get_full_path("loras", lora)
-        lora = get_instance_path(lora_path)
-        # print(ckpt_path)
 
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
@@ -1073,7 +1135,7 @@ class Storydiffusion_Text2Img:
                                  G_width,
                                  _char_files,
                                  photomaker_path,
-                                 scheduler_choice,lora,lora_scale,lora_adapter)
+                                 scheduler_choice,lora,lora_scale,trigger_words)
 
         for value in gen:
             pass_value = value
@@ -1095,9 +1157,9 @@ class Storydiffusion_Img2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                "lora": (folder_paths.get_filename_list("loras"),),
+                "lora": (["none"]+folder_paths.get_filename_list("loras"),),
                 "lora_scale":("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
-                "lora_adapter": ("STRING", {"default": ""}),
+                "trigger_words": ("STRING", {"default": "best quality"}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
                 "scene_prompt": ("STRING", {"multiline": True,
@@ -1133,7 +1195,7 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale,lora_adapter, photomake_model, character_prompt, scene_prompt, character_id_number,
+    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale,trigger_words, photomake_model, character_prompt, scene_prompt, character_id_number,
                   negative_prompt, scheduler, img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
@@ -1161,8 +1223,9 @@ class Storydiffusion_Img2Img:
         ckpt_path = get_instance_path(ckpt_path)
         style_name = img_style
 
-        lora_path = folder_paths.get_full_path("loras", lora)
-        lora = get_instance_path(lora_path)
+        if lora != "none":
+            lora_path = folder_paths.get_full_path("loras", lora)
+            lora = get_instance_path(lora_path)
 
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
@@ -1304,7 +1367,7 @@ class Storydiffusion_Img2Img:
                                  _char_files,
                                  photomaker_path,
                                  scheduler_choice,
-                                 lora,lora_scale,lora_adapter)
+                                 lora,lora_scale,trigger_words)
 
         for value in gen:
             pass_value = value
