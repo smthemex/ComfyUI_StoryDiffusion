@@ -36,7 +36,7 @@ def get_models_dict():
             # 如果在解析过程中发生了错误，打印异常信息
             print(exc)
 
-def load_models(model_info,_sd_type,device,photomaker_path,lora,trigger_words):
+def load_models(model_info,_sd_type,device,photomaker_path,lora,trigger_words,lora_scale):
     path =  model_info["path"]
     single_files =  model_info["single_files"]
     use_safetensors = model_info["use_safetensors"]
@@ -66,10 +66,7 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,trigger_words):
         pipe = pipe.to(device)
         if lora != "none":
             pipe.load_lora_weights(lora, adapter_name=trigger_words)
-            pipe.set_adapters(trigger_words)
-            pipe.fuse_lora()
-            # pipe._lora_scale=lora_scale
-
+            pipe.fuse_lora(adapter_names=[trigger_words,], lora_scale=lora_scale)
     elif model_type == "Photomaker":
         if single_files:
             #print("loading from a single_files")
@@ -91,17 +88,17 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,trigger_words):
                 )
 
         pipe = pipe.to(device)
+        if lora != "none":
+            pipe.load_lora_weights(lora, adapter_name=trigger_words)
+            pipe.fuse_lora(adapter_names=[trigger_words,], lora_scale=lora_scale)
         pipe.load_photomaker_adapter(
             os.path.dirname(photomaker_path),
             subfolder="",
             weight_name=os.path.basename(photomaker_path),
             trigger_word="img"  # define the trigger word
         )
-        if lora != "none":
-            pipe.load_lora_weights(lora, adapter_name=trigger_words)
-            pipe.set_adapters(trigger_words)
-            # pipe._lora_scale=lora_scale
-        pipe.fuse_lora()
+
+
     else:
         raise NotImplementedError("You should choice between original and Photomaker!",f"But you choice {model_type}")
     return pipe
