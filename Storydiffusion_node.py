@@ -33,6 +33,12 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        AutoPipelineForText2Image, StableDiffusionXLControlNetImg2ImgPipeline, KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler, AutoencoderKL,
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
+from transformers import CLIPVisionModelWithProjection
+from transformers import CLIPImageProcessor
+
+from .msdiffusion.models.projection import Resampler
+from .msdiffusion.models.model import MSAdapter
+from .msdiffusion.utils import get_phrase_idx, get_eot_idx
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import torch.nn.functional as F
 from .utils.utils import get_comic
@@ -50,8 +56,9 @@ DEFAULT_STYLE_NAME = "Japanese Anime"
 global models_dict
 models_dict = get_models_dict()  # 获取模型信息
 import diffusers
+
 dif_version = str(diffusers.__version__)
-dif_version_int= int(dif_version.split(".")[1])
+dif_version_int = int(dif_version.split(".")[1])
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -67,7 +74,7 @@ fonts_path = os.path.join(dir_path, "fonts")
 fonts_lists = os.listdir(fonts_path)
 
 yaml_list = list(models_dict.keys())
-#print(yaml_list)
+# print(yaml_list)
 
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
@@ -80,11 +87,18 @@ def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
     return img
 
+
 def get_instance_path(path):
     instance_path = os.path.normpath(path)
     if sys.platform == 'win32':
         instance_path = instance_path.replace('\\', "/")
     return instance_path
+
+
+def add_pil(list, list_add, num):
+    new_list = list[:num] + list_add + list[num:]
+    return new_list
+
 
 def tensor_to_image(tensor):
     # tensor = tensor.cpu()
@@ -92,7 +106,15 @@ def tensor_to_image(tensor):
     image = Image.fromarray(image_np, mode='RGB')
     return image
 
+
 # get fonts list
+def has_parentheses(s):
+    return bool(re.search(r'\(.*?\)', s))
+
+
+def contains_brackets(s):
+    return '[' in s or ']' in s
+
 
 def narry_list(list_in):
     for i in range(len(list_in)):
@@ -101,15 +123,16 @@ def narry_list(list_in):
         list_in[i] = modified_value
     return list_in
 
+
 def remove_punctuation_from_strings(lst):
     pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
     return [re.sub(pattern, '', s) for s in lst]
 
-def tensor_list(list_in):
+
+def phi_list(list_in):
     for i in range(len(list_in)):
         value = list_in[i]
-        modified_value = phi2narry(value)
-        list_in[i] = modified_value
+        list_in[i] = value
     return list_in
 
 
@@ -672,7 +695,8 @@ def process_generation(
         model_info["model_type"] = _model_type
         if _sd_type == "Use_Single_XL_Model":
             model_info["path"] = ckpt_path
-        pipe = load_models(model_info,_sd_type, device=device, photomaker_path=photomaker_path,lora=lora,trigger_words=trigger_words)
+        pipe = load_models(model_info, _sd_type, device=device, photomaker_path=photomaker_path, lora=lora,
+                           trigger_words=trigger_words,lora_scale=lora_scale)
         set_attention_processor(pipe.unet, id_length_, is_ipadapter=False)
         ##### ########################
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
@@ -689,15 +713,17 @@ def process_generation(
 
     load_chars = load_character_files_on_running(unet, character_files=_char_files)
 
-    prompts = prompt_array.splitlines()
-    add_trigger_words = "," + trigger_words + ";"
-    if lora!="none":
-        prompts=remove_punctuation_from_strings(prompts)
+    prompts_origin = prompt_array.splitlines()
+    prompts = [prompt for prompt in prompts_origin if not has_parentheses(prompt)]  # 剔除双角色
+    add_trigger_words = "," + trigger_words+" "+"style"+ ";"
+    if lora != "none":
+        prompts = remove_punctuation_from_strings(prompts)
         prompts = [item + add_trigger_words for item in prompts]
-        #print(prompts)
+        # print(prompts)
+
     global character_dict, character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
 
-    character_dict, character_list = character_to_dict(general_prompt,lora,add_trigger_words)
+    character_dict, character_list = character_to_dict(general_prompt, lora, add_trigger_words)
     # print(character_dict,character_list,general_prompt)
     start_merge_step = int(float(_style_strength_ratio) / 100 * _num_steps)
     if start_merge_step > 30:
@@ -719,7 +745,7 @@ def process_generation(
     ]
 
     prompts = [
-        prompt.rpartition("#")[0]+add_trigger_words if "#" in prompt else prompt for prompt in prompts
+        prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in prompts
     ]
     # print(prompts)
     # id_prompts = prompts[:id_length]
@@ -762,7 +788,7 @@ def process_generation(
             ref_indexs = ref_indexs_dict[character_key]
             # print(character_key, ref_indexs)
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            #print(current_prompts)
+            # print(current_prompts)
             setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
@@ -770,53 +796,28 @@ def process_generation(
                 style_name, current_prompts, negative_prompt
             )
             if _model_type == "original":
-                if lora != "none":
-                    id_images = pipe(
-                        cur_positive_prompts,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance_scale,
-                        height=height,
-                        width=width,
-                        cross_attention_kwargs={"scale": lora_scale},
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images
-                else:
-                    id_images = pipe(
-                        cur_positive_prompts,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance_scale,
-                        height=height,
-                        width=width,
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images
+                id_images = pipe(
+                    cur_positive_prompts,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images
+
             elif _model_type == "Photomaker":
-                if lora != "none":
-                    id_images = pipe(
-                        cur_positive_prompts,
-                        input_id_images=input_id_images_dict[character_key],
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance_scale,
-                        start_merge_step=start_merge_step,
-                        height=height,
-                        width=width,
-                        cross_attention_kwargs={"scale": lora_scale},
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images
-                else:
-                    id_images = pipe(
-                        cur_positive_prompts,
-                        input_id_images=input_id_images_dict[character_key],
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance_scale,
-                        start_merge_step=start_merge_step,
-                        height=height,
-                        width=width,
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images
+                id_images = pipe(
+                    cur_positive_prompts,
+                    input_id_images=input_id_images_dict[character_key],
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    start_merge_step=start_merge_step,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images
             else:
                 raise NotImplementedError(
                     "You should choice between original and Photomaker!",
@@ -849,65 +850,34 @@ def process_generation(
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt = apply_style_positive(style_name, real_prompt)
-        #print(real_prompt)
+        # print(real_prompt)
         if _model_type == "original":
-            if lora != "none":
-                results_dict[real_prompts_ind] = pipe(
-                    real_prompt,
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    height=height,
-                    width=width,
-                    cross_attention_kwargs={"scale": lora_scale},
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                ).images[0]
-            else:
-                results_dict[real_prompts_ind] = pipe(
-                    real_prompt,
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    height=height,
-                    width=width,
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                ).images[0]
+            results_dict[real_prompts_ind] = pipe(
+                real_prompt,
+                num_inference_steps=_num_steps,
+                guidance_scale=guidance_scale,
+                height=height,
+                width=width,
+                negative_prompt=negative_prompt,
+                generator=generator,
+            ).images[0]
         elif _model_type == "Photomaker":
-            if lora != "none":
-                results_dict[real_prompts_ind] = pipe(
-                    real_prompt,
-                    input_id_images=(
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else input_id_images_dict[character_list[0]]
-                    ),
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    start_merge_step=start_merge_step,
-                    height=height,
-                    width=width,
-                    cross_attention_kwargs={"scale": lora_scale},
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                    nc_flag=True if real_prompts_ind in nc_indexs else False,
-                ).images[0]
-            else:
-                results_dict[real_prompts_ind] = pipe(
-                    real_prompt,
-                    input_id_images=(
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else input_id_images_dict[character_list[0]]
-                    ),
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    start_merge_step=start_merge_step,
-                    height=height,
-                    width=width,
-                    negative_prompt=negative_prompt,
-                    generator=generator,
-                    nc_flag=True if real_prompts_ind in nc_indexs else False,
-                ).images[0]
+            results_dict[real_prompts_ind] = pipe(
+                real_prompt,
+                input_id_images=(
+                    input_id_images_dict[cur_character[0]]
+                    if real_prompts_ind not in nc_indexs
+                    else input_id_images_dict[character_list[0]]
+                ),
+                num_inference_steps=_num_steps,
+                guidance_scale=guidance_scale,
+                start_merge_step=start_merge_step,
+                height=height,
+                width=width,
+                negative_prompt=negative_prompt,
+                generator=generator,
+                nc_flag=True if real_prompts_ind in nc_indexs else False,
+            ).images[0]
         else:
             raise NotImplementedError(
                 "You should choice between original and Photomaker!",
@@ -916,6 +886,137 @@ def process_generation(
         yield [results_dict[ind] for ind in results_dict.keys()]
     total_results = [results_dict[ind] for ind in range(len(prompts))]
     yield total_results
+
+
+def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name, negative_prompt,
+                     encoder_repo, _model_type, _sd_type, lora, lora_scale, trigger_words,ckpt_path,original_config_file):
+    def get_phrases_idx(tokenizer, phrases, prompt):
+        res = []
+        phrase_cnt = {}
+        for phrase in phrases:
+            if phrase in phrase_cnt:
+                cur_cnt = phrase_cnt[phrase]
+                phrase_cnt[phrase] += 1
+            else:
+                cur_cnt = 0
+                phrase_cnt[phrase] = 1
+            res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
+        return res
+
+    if _model_type == "Using Ref Images":  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
+        del pipe
+        # load SDXL pipeline
+        if _sd_type == "Use_Single_XL_Model":
+            sd_model_path = ckpt_path
+        else:
+            sd_model_path = models_dict[_sd_type]["path"]  # diffuser models
+        single_files = models_dict[_sd_type]["single_files"]
+
+        if single_files:
+            if dif_version_int >= 28:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16, add_watermarker=False,)
+            else:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16, add_watermarker=False,
+                )
+        else:
+            if _sd_type == "Playground_v2p5":
+                pipe = DiffusionPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
+                )
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
+                )
+
+        pipe.to("cuda")
+        if lora != "none":
+            pipe.load_lora_weights(lora, adapter_name=trigger_words)
+            pipe.fuse_lora(lora_scale=lora_scale,adapter_name=[trigger_words,])
+            # pipe._lora_scale=lora_scale
+
+    device = "cuda"
+    ms_ckpt = get_instance_path(os.path.join(dir_path, "weights", "ms_adapter.bin"))
+    image_processor = CLIPImageProcessor()
+
+    if encoder_repo.count("/") > 1:
+        encoder_repo = get_instance_path(encoder_repo)
+
+    image_encoder_type = "clip"
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo).to(device, dtype=torch.float16)
+    image_encoder_projection_dim = image_encoder.config.projection_dim
+    num_tokens = 16
+    image_proj_type = "resampler"
+    latent_init_mode = "grounding"
+    # latent_init_mode = "random"
+    image_proj_model = Resampler(
+        dim=1280,
+        depth=4,
+        dim_head=64,
+        heads=20,
+        num_queries=num_tokens,
+        embedding_dim=image_encoder.config.hidden_size,
+        output_dim=pipe.unet.config.cross_attention_dim,
+        ff_mult=4,
+        latent_init_mode=latent_init_mode,
+        phrase_embeddings_dim=pipe.text_encoder.config.projection_dim,
+    ).to(device, dtype=torch.float16)
+    ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
+    ms_model.to(device, dtype=torch.float16)
+
+    input_images = [image_1, image_2]
+    input_images = [x.convert("RGB").resize((width, height)) for x in input_images]
+
+    # generation configs
+    num_samples = 1
+    image_ouput = []
+    # get person prompt
+    person = prompts_dual[0]
+    result_a = person.split(")")
+    result_a = result_a[0]
+    result_a = result_a.split("(")[-1]
+    result_a = result_a.split("and")
+    person_a = result_a[0]
+    person_b = result_a[1]
+    # get n p prompt
+    prompts_dual, negative_prompt = apply_style(
+        style_name, prompts_dual, negative_prompt
+    )
+    # 添加Lora trigger
+    add_trigger_words = "," + trigger_words+" "+"style" + ";"
+    if lora != "none":
+        prompts = remove_punctuation_from_strings(prompts_dual)
+        prompts_dual = [item + add_trigger_words for item in prompts]
+
+    for i, prompt in enumerate(prompts_dual):
+        print(i, prompt)
+        prompt = prompt.replace("(", "").replace(")", "")
+        #boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
+        phrases = [[person_a, person_b]]
+        drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
+
+        # used to get the attention map, return zero if the phrase is not in the prompt
+        phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
+        eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
+        print(phrase_idxes, eot_idxes)
+        # if lora != "none":
+        #     cross_attention_kwargs = {"scale": lora_scale} # using?
+
+        images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                                   num_inference_steps=steps,
+                                   seed=seed,
+                                   prompt=[prompt], negative_prompt=negative_prompt, scale=0.6,
+                                   image_encoder=image_encoder,
+                                   image_processor=image_processor, boxes=boxes,mask_threshold=0.5, start_step=5,
+                                   image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
+                                   phrases=phrases,
+                                   drop_grounding_tokens=drop_grounding_tokens,
+                                   phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width)
+
+        image_ouput += images
+    return image_ouput
 
 
 class Storydiffusion_Text2Img:
@@ -929,7 +1030,8 @@ class Storydiffusion_Text2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                "lora": (["none"]+folder_paths.get_filename_list("loras"),),
+                "lora": (["none"] + folder_paths.get_filename_list("loras"),),
+                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
                 "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
                 "trigger_words": ("STRING", {"default": "best quality"}),
                 "character_prompt": ("STRING", {"multiline": True,
@@ -952,8 +1054,9 @@ class Storydiffusion_Text2Img:
                                                           "animate, amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
                 "img_style": (
-                    ["No_style", "Realistic","Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character", "Photographic", "Comic_book",
-                     "Line_art","Black_and_White_Film_Noir","Isometric_Rooms"],),
+                    ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
+                     "Photographic", "Comic_book",
+                     "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -971,7 +1074,8 @@ class Storydiffusion_Text2Img:
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, sd_type, ckpt_name,lora,lora_scale,trigger_words, steps, img_style, photomake_model, scheduler, cfg, seed,
+    def text2image(self, sd_type, ckpt_name, lora, encoder_repo, lora_scale, trigger_words, steps, img_style,
+                   photomake_model, scheduler, cfg, seed,
                    sa32_degree,
                    sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
                    img_height, img_width):
@@ -985,10 +1089,9 @@ class Storydiffusion_Text2Img:
 
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
-        if lora!="none":
-            lora_path=folder_paths.get_full_path("loras", lora)
+        if lora != "none":
+            lora_path = folder_paths.get_full_path("loras", lora)
             lora = get_instance_path(lora_path)
-
 
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
@@ -1006,7 +1109,21 @@ class Storydiffusion_Text2Img:
         global height, width
         global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
 
-        #
+        # 从角色列表获取角色方括号信息
+        char_origin = character_prompt.splitlines()
+        char_origin = [char.split("]")[0] + "]" for char in char_origin]
+
+        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
+        prompts_origin = scene_prompt.splitlines()
+        positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
+        prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
+
+        if len(char_origin) == 2:
+            positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
+            positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
+        class_tokens_mask = None
         # assert (
         #         len(character_prompt.strip()) > 0
         # ), "Please provide the description of the character."
@@ -1055,7 +1172,7 @@ class Storydiffusion_Text2Img:
         single_files = models_dict[sd_type]["single_files"]
         ### LOAD Stable Diffusion Pipeline
         if single_files:
-            if dif_version_int>=28:
+            if dif_version_int >= 28:
                 pipe = StableDiffusionXLPipeline.from_single_file(
                     sd_model_path, original_config=original_config_file, torch_dtype=torch.float16)
             else:
@@ -1132,14 +1249,33 @@ class Storydiffusion_Text2Img:
                                  G_width,
                                  _char_files,
                                  photomaker_path,
-                                 scheduler_choice,lora,lora_scale,trigger_words)
+                                 scheduler_choice, lora, lora_scale, trigger_words)
 
         for value in gen:
             pass_value = value
-        image = narry_list(value)
-        image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
+            del pass_value
+        image_pil_list = phi_list(value)
+
+        if prompts_dual:
+            image_1 = image_pil_list[positions_char_1]
+            image_2 = image_pil_list[positions_char_2]
+            # del pipe
+            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, img_width, img_height, steps, seed,
+                                          style_name, negative_prompt, encoder_repo, _model_type, _sd_type, lora,
+                                          lora_scale, trigger_words,ckpt_path,original_config_file)
+            j = 0
+            for i in positions_dual:
+                img = image_dual[j]
+                image_pil_list.insert(int(i), img)
+                j += 1
+            image_list = narry_list(image_pil_list)
+        else:
+            image_list = narry_list(image_pil_list)
+        image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
         prompt_array = scene_prompt
-        return (image, prompt_array)
+        del pipe
+        del gen
+        return (image, prompt_array,)
 
 
 class Storydiffusion_Img2Img:
@@ -1154,8 +1290,9 @@ class Storydiffusion_Img2Img:
                 "sd_type": (yaml_list,),
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                "lora": (["none"]+folder_paths.get_filename_list("loras"),),
-                "lora_scale":("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
+                "lora": (["none"] + folder_paths.get_filename_list("loras"),),
+                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
+                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
                 "trigger_words": ("STRING", {"default": "best quality"}),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
@@ -1171,8 +1308,9 @@ class Storydiffusion_Img2Img:
                                                           " amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
                 "img_style": (
-                    ["No_style", "Realistic","Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character", "Photographic", "Comic_book",
-                     "Line_art","Black_and_White_Film_Noir","Isometric_Rooms"],),
+                    ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
+                     "Photographic", "Comic_book",
+                     "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
@@ -1192,7 +1330,8 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type, ckpt_name,lora,lora_scale,trigger_words, photomake_model, character_prompt, scene_prompt, character_id_number,
+    def img2image(self, image, sd_type, ckpt_name, lora, encoder_repo, lora_scale, trigger_words, photomake_model,
+                  character_prompt, scene_prompt, character_id_number,
                   negative_prompt, scheduler, img_style,
                   sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
                   img_width, ):
@@ -1239,6 +1378,21 @@ class Storydiffusion_Img2Img:
         global write
         global height, width
         global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
+
+        # 从角色列表获取角色方括号信息
+        char_origin = character_prompt.splitlines()
+        char_origin = [char.split("]")[0] + "]" for char in char_origin]
+
+        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
+        prompts_origin = scene_prompt.splitlines()
+        positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
+        prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
+
+        if len(char_origin) == 2:
+            positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
+            positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
 
         height = img_height
         width = img_width
@@ -1293,7 +1447,7 @@ class Storydiffusion_Img2Img:
                     sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
                 )
         else:
-            if sd_type=="Playground_v2p5":
+            if sd_type == "Playground_v2p5":
                 pipe = DiffusionPipeline.from_pretrained(
                     sd_model_path, torch_dtype=torch.float16
                 )
@@ -1364,14 +1518,31 @@ class Storydiffusion_Img2Img:
                                  _char_files,
                                  photomaker_path,
                                  scheduler_choice,
-                                 lora,lora_scale,trigger_words)
+                                 lora, lora_scale, trigger_words)
 
         for value in gen:
             pass_value = value
             del pass_value
-        image = narry_list(value)
-        image = torch.from_numpy(np.fromiter(image, np.dtype((np.float32, (height, width, 3)))))
+        image_pil_list = phi_list(value)
+
+        if prompts_dual:
+            image_1 = image_pil_list[positions_char_1]
+            image_2 = image_pil_list[positions_char_2]
+            # del pipe
+            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, img_width, img_height, steps, seed,
+                                          style_name, negative_prompt, encoder_repo, _model_type, _sd_type, lora,
+                                          lora_scale, trigger_words,ckpt_path,original_config_file)
+            j = 0
+            for i in positions_dual:
+                img = image_dual[j]
+                image_pil_list.insert(int(i), img)
+                j += 1
+            image_list = narry_list(image_pil_list)
+        else:
+            image_list = narry_list(image_pil_list)
+        image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
         prompt_array = scene_prompt
+        del pipe
         del gen
         return (image, prompt_array,)
 
@@ -1392,19 +1563,22 @@ class Comic_Type:
     FUNCTION = "comic_gen"
     CATEGORY = "Storydiffusion"
 
-    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type,split_lines):
+    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type, split_lines):
         result = [item for index, item in enumerate(image)]
         total_results = narry_list_pil(result)
         font_choice = os.path.join(dir_path, "fonts", fonts_list)
         captions = prompt_array.splitlines()
-        if len(captions)>1:
+        if len(captions) > 1:
+            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
+                        for caption in captions]  # del ()
             captions = [caption.replace("[NC]", "") for caption in captions]
+            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
             captions = [
                 caption.split("#")[-1] if "#" in caption else caption
                 for caption in captions
             ]
         else:
-            prompt_array=prompt_array.replace(split_lines,"\n")
+            prompt_array = prompt_array.replace(split_lines, "\n")
             captions = prompt_array.splitlines()
         font = ImageFont.truetype(font_choice, text_size)
         images = (
@@ -1414,31 +1588,39 @@ class Comic_Type:
         images = phi2narry(images[0])
         return (images,)
 
+
 class Pre_Translate_prompt:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"prompt_array": ("STRING", {"forceInput": True, "default": ""}),
                              "keep_character_name": ("BOOLEAN", {"default": False},)
                              }}
+
     RETURN_TYPES = ("STRING",)
     ETURN_NAMES = ("prompt_array",)
     FUNCTION = "translate_prompt"
     CATEGORY = "Storydiffusion"
 
-    def translate_prompt(self, prompt_array,keep_character_name):
+    def translate_prompt(self, prompt_array, keep_character_name):
         captions = prompt_array.splitlines()
+        if not keep_character_name:
+            captions = [caption.split(")", 1)[-1] if  ")" in caption else caption
+                    for caption in captions] # del character
+        else:
+            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
+                        for caption in captions]  # del ()
         captions = [caption.replace("[NC]", "") for caption in captions]
         if not keep_character_name:
             captions = [caption.split("]", 1)[-1] for caption in captions]
         else:
-            captions = [caption.replace("]", "") for caption in captions]
-            captions = [caption.replace("[", "") for caption in captions]
+            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
         captions = [
             caption.split("#")[-1] if "#" in caption else caption
             for caption in captions
         ]
         prompt_array = ''.join(captions)
         return (prompt_array,)
+
 
 class Character_Batch:
 
@@ -1491,7 +1673,7 @@ class Character_Batch:
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Text2Img": Storydiffusion_Text2Img,
     "Storydiffusion_Img2Img": Storydiffusion_Img2Img,
-    "Pre_Translate_prompt":Pre_Translate_prompt,
+    "Pre_Translate_prompt": Pre_Translate_prompt,
     "Comic_Type": Comic_Type,
     "Character_Batch": Character_Batch
 }
@@ -1499,7 +1681,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Text2Img": "Storydiffusion_Text2Img",
     "Storydiffusion_Img2Img": "Storydiffusion_Img2Img",
-    "Pre_Translate_prompt":"Pre_Translate_prompt",
+    "Pre_Translate_prompt": "Pre_Translate_prompt",
     "Comic_Type": "Comic_Type",
     "Character_Batch": "Character_Batch"
 }
