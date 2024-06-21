@@ -933,7 +933,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         pipe.to("cuda")
         if lora != "none":
             pipe.load_lora_weights(lora, adapter_name=trigger_words)
-            pipe.fuse_lora(lora_scale=lora_scale,adapter_name=[trigger_words,])
+            pipe.fuse_lora(lora_scale=lora_scale,adapter_names=[trigger_words,])
             # pipe._lora_scale=lora_scale
 
     device = "cuda"
