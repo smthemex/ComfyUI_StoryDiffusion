@@ -155,7 +155,7 @@ img2img 图生图
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img.png)
 
 two character  双角色及同框   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img2c%EF%BC%8C.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img2.png)
 
 use single model  使用单模型  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/use_single_model.png)
