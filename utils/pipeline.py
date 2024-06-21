@@ -11,7 +11,14 @@ from safetensors import safe_open
 from huggingface_hub.utils import validate_hf_hub_args
 from transformers import CLIPImageProcessor, CLIPTokenizer
 from diffusers import StableDiffusionXLPipeline
-from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
+import diffusers
+dif_version = str(diffusers.__version__)
+dif_version_int= int(dif_version.split(".")[1])
+if dif_version_int>28:
+    from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput
+else:
+    from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
+
 from diffusers.utils import (
     _get_model_file,
     is_transformers_available,
