@@ -386,7 +386,7 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                 if not nc_flag:
                     tokens_text_only.remove(trigger_word_token)
                 prompt_text_only = self.tokenizer.decode(tokens_text_only, add_special_tokens=False)
-                print(prompt_text_only)
+                #print(prompt_text_only)
                 (
                     prompt_embeds_text_only,
                     negative_prompt_embeds,
