@@ -7,6 +7,8 @@ import gc
 import copy
 import os
 import random
+
+import yaml
 from PIL import ImageFont
 from ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
@@ -43,7 +45,7 @@ from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import torch.nn.functional as F
 from .utils.utils import get_comic
 from .utils.style_template import styles
-from .utils.load_models_utils import get_models_dict, load_models, get_instance_path
+from .utils.load_models_utils import get_models_dict, load_models, get_instance_path, get_lora_dict
 import folder_paths
 from comfy.utils import common_upscale
 
@@ -52,7 +54,7 @@ global sa32, sa64
 global write
 global height, width
 STYLE_NAMES = list(styles.keys())
-DEFAULT_STYLE_NAME = "Japanese Anime"
+
 global models_dict
 models_dict = get_models_dict()  # 获取模型信息
 import diffusers
@@ -64,7 +66,7 @@ device = (
     if torch.cuda.is_available()
     else "mps" if torch.backends.mps.is_available() else "cpu"
 )
-# print(f"@@device:{device}") 自动选择GPU或CPU
+
 MAX_SEED = np.iinfo(np.int32).max
 dir_path = os.path.dirname(os.path.abspath(__file__))
 path_dir = os.path.dirname(dir_path)
@@ -74,7 +76,11 @@ fonts_path = os.path.join(dir_path, "fonts")
 fonts_lists = os.listdir(fonts_path)
 
 yaml_list = list(models_dict.keys())
-# print(yaml_list)
+
+global lora_get
+lora_get = get_lora_dict()
+lora_lightning_list = lora_get["lightning_xl_lora"]
+# print(lora_lightning_list)
 
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
@@ -127,6 +133,11 @@ def narry_list(list_in):
 def remove_punctuation_from_strings(lst):
     pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
     return [re.sub(pattern, '', s) for s in lst]
+
+
+def format_punctuation_from_strings(lst):
+    pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
+    return [re.sub(pattern, ';', s) for s in lst]
 
 
 def phi_list(list_in):
@@ -512,12 +523,12 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
                     # img_nums = total_batch_size // 2
                     # encoder_hidden_states = encoder_hidden_states.reshape(-1,img_nums,nums_token,channel)
                     hidden_states = hidden_states.reshape(2, -1, nums_token, channel)
-                    # print(len(indices))
+
                     # encoder_arr = [encoder_hidden_states[:,img_ind,indices[img_ind],:].reshape(2,-1,channel) for img_ind in range(img_nums)]
                     encoder_hidden_states_tmp = torch.cat(
                         encoder_arr + [hidden_states[:, 0, :, :]], dim=1
                     )
-                    # print(len(encoder_arr),encoder_hidden_states_tmp.shape)
+
                     hidden_states[:, 0, :, :] = self.__call2__(
                         attn,
                         hidden_states[:, 0, :, :],
@@ -569,7 +580,7 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
             ).transpose(1, 2)
 
         batch_size, sequence_length, channel = hidden_states.shape
-        # print(hidden_states.shape)
+
         if attention_mask is not None:
             attention_mask = attn.prepare_attention_mask(
                 attention_mask, sequence_length, batch_size
@@ -633,105 +644,56 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
 
 
 def process_generation(
-        _sd_type,
-        ckpt_path,
-        _model_type,
-        _upload_images,
+        pipe,
+        upload_images,
+        model_type,
         _num_steps,
         style_name,
         _Ip_Adapter_Strength,
         _style_strength_ratio,
         guidance_scale,
         seed_,
-        sa32_,
-        sa64_,
-        id_length_,
+        id_length,
         general_prompt,
         negative_prompt,
         prompt_array,
-        G_height,
-        G_width,
+        height,
+        width,
         _char_files,
-        photomaker_path,
-        scheduler_choice,
         lora,
-        lora_scale,
         trigger_words
 ):  # Corrected font_choice usage
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
-    _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
-    if _model_type == "Photomaker" and "img" not in general_prompt:
+    # _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
+    if model_type == "Photomaker" and "img" not in general_prompt:
         raise 'Please add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
-    if _upload_images is None and _model_type != "original":
-        raise "Cannot find any input face image!"
-    global sa32, sa64, id_length, total_length, attn_procs, unet, cur_model_type
+
+    global total_length, attn_procs, unet, cur_model_type
     global write
     global cur_step, attn_count
-    global height, width
-    height = G_height
-    width = G_width
-    global pipe
-    global sd_model_path, models_dict
-    sd_model_path = models_dict[_sd_type]
-    use_safe_tensor = True
-    for attn_processor in pipe.unet.attn_processors.values():
-        if isinstance(attn_processor, SpatialAttnProcessor2_0):
-            for values in attn_processor.id_bank.values():
-                del values
-            attn_processor.id_bank = {}
-            attn_processor.id_length = id_length
-            attn_processor.total_length = id_length + 1
-    gc.collect()
-    torch.cuda.empty_cache()
-    if cur_model_type != _sd_type + "-" + _model_type:  # load stable model
-        # apply the style template
-        ##### load pipe
-        del pipe
-        gc.collect()
-        if device == "cuda":
-            torch.cuda.empty_cache()
-        model_info = models_dict[_sd_type]
-        model_info["model_type"] = _model_type
-        if _sd_type == "Use_Single_XL_Model":
-            model_info["path"] = ckpt_path
-        pipe = load_models(model_info, _sd_type, device=device, photomaker_path=photomaker_path, lora=lora,
-                           trigger_words=trigger_words,lora_scale=lora_scale)
-        set_attention_processor(pipe.unet, id_length_, is_ipadapter=False)
-        ##### ########################
-        pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-        # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
-
-        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        cur_model_type = _sd_type + "-" + _model_type
-        pipe.enable_vae_slicing()
-        if device != "mps":
-            pipe.enable_model_cpu_offload()
-    else:
-        unet = pipe.unet
-        # unet.set_attn_processor(copy.deepcopy(attn_procs))
 
     load_chars = load_character_files_on_running(unet, character_files=_char_files)
 
     prompts_origin = prompt_array.splitlines()
     prompts = [prompt for prompt in prompts_origin if not has_parentheses(prompt)]  # 剔除双角色
-    add_trigger_words = "," + trigger_words+" "+"style"+ ";"
+    add_trigger_words = "," + trigger_words + " " + "style" + ";"
     if lora != "none":
-        prompts = remove_punctuation_from_strings(prompts)
-        prompts = [item + add_trigger_words for item in prompts]
-        # print(prompts)
+        if lora in lora_lightning_list:
+            prompts = remove_punctuation_from_strings(prompts)
+        else:
+            prompts = remove_punctuation_from_strings(prompts)
+            prompts = [item + add_trigger_words for item in prompts]
 
     global character_dict, character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
 
     character_dict, character_list = character_to_dict(general_prompt, lora, add_trigger_words)
-    # print(character_dict,character_list,general_prompt)
     start_merge_step = int(float(_style_strength_ratio) / 100 * _num_steps)
     if start_merge_step > 30:
         start_merge_step = 30
     print(f"start_merge_step:{start_merge_step}")
     generator = torch.Generator(device=device).manual_seed(seed_)
-    sa32, sa64 = sa32_, sa64_
-    id_length = id_length_
+    # sa32, sa64 = sa32_, sa64_
     clipped_prompts = prompts[:]
     nc_indexs = []
     for ind, prompt in enumerate(clipped_prompts):
@@ -743,11 +705,20 @@ def process_generation(
         prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
         for prompt in clipped_prompts
     ]
+    if lora != "none":
+        if lora in lora_lightning_list:
+            prompts = [
+                prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
+            ]
+        else:
+            prompts = [
+                prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in prompts
+            ]
+    else:
+        prompts = [
+            prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
+        ]
 
-    prompts = [
-        prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in prompts
-    ]
-    # print(prompts)
     # id_prompts = prompts[:id_length]
     (
         character_index_dict,
@@ -756,27 +727,21 @@ def process_generation(
         ref_indexs_dict,
         ref_totals,
     ) = process_original_prompt(character_dict, prompts.copy(), id_length)
-    if _model_type != "original":
+    if model_type != "original":
         # _upload_images = [_upload_images]
-        # print( len(_upload_images))
         input_id_images_dict = {}
-        if len(_upload_images) != len(character_dict.keys()):
-            raise f"You upload images({len(_upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
-        for ind, img in enumerate(_upload_images):
+        if len(upload_images) != len(character_dict.keys()):
+            raise f"You upload images({len(upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
+        for ind, img in enumerate(upload_images):
             input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load
             # input_id_images_dict[character_list[ind]] = [load_image(img)]
-    # print(character_dict)
-    # print(character_index_dict)
-    # print(invert_character_index_dict)
     # real_prompts = prompts[id_length:]
     if device == "cuda":
         torch.cuda.empty_cache()
     write = True
     cur_step = 0
-
     attn_count = 0
     # id_prompts, negative_prompt = apply_style(style_name, id_prompts, negative_prompt)
-    # print(id_prompts)
     setup_seed(seed_)
     total_results = []
     id_images = []
@@ -786,16 +751,14 @@ def process_generation(
         for character_key in character_dict.keys():
             cur_character = [character_key]
             ref_indexs = ref_indexs_dict[character_key]
-            # print(character_key, ref_indexs)
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            # print(current_prompts)
             setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            if _model_type == "original":
+            if model_type == "original":
                 id_images = pipe(
                     cur_positive_prompts,
                     num_inference_steps=_num_steps,
@@ -806,7 +769,7 @@ def process_generation(
                     generator=generator,
                 ).images
 
-            elif _model_type == "Photomaker":
+            elif model_type == "Photomaker":
                 id_images = pipe(
                     cur_positive_prompts,
                     input_id_images=input_id_images_dict[character_key],
@@ -821,12 +784,11 @@ def process_generation(
             else:
                 raise NotImplementedError(
                     "You should choice between original and Photomaker!",
-                    f"But you choice {_model_type}",
+                    f"But you choice {model_type}",
                 )
 
             # total_results = id_images + total_results
             # yield total_results
-            # print(id_images)
             for ind, img in enumerate(id_images):
                 results_dict[ref_indexs[ind]] = img
             # real_images = []
@@ -838,20 +800,16 @@ def process_generation(
         ]
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
-    # print(real_prompts_inds)
-
-    for real_prompts_ind in real_prompts_inds:
+    for real_prompts_ind in real_prompts_inds:  # 非角色流程
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
-        print(cur_character, real_prompt)
         setup_seed(seed_)
-        if len(cur_character) > 1 and _model_type == "Photomaker":
+        if len(cur_character) > 1 and model_type == "Photomaker":
             raise "Temporarily Not Support Multiple character in Ref Image Mode!"
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt = apply_style_positive(style_name, real_prompt)
-        # print(real_prompt)
-        if _model_type == "original":
+        if model_type == "original":
             results_dict[real_prompts_ind] = pipe(
                 real_prompt,
                 num_inference_steps=_num_steps,
@@ -861,7 +819,7 @@ def process_generation(
                 negative_prompt=negative_prompt,
                 generator=generator,
             ).images[0]
-        elif _model_type == "Photomaker":
+        elif model_type == "Photomaker":
             results_dict[real_prompts_ind] = pipe(
                 real_prompt,
                 input_id_images=(
@@ -881,7 +839,7 @@ def process_generation(
         else:
             raise NotImplementedError(
                 "You should choice between original and Photomaker!",
-                f"But you choice {_model_type}",
+                f"But you choice {model_type}",
             )
         yield [results_dict[ind] for ind in results_dict.keys()]
     total_results = [results_dict[ind] for ind in range(len(prompts))]
@@ -889,7 +847,8 @@ def process_generation(
 
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name, negative_prompt,
-                     encoder_repo, _model_type, _sd_type, lora, lora_scale, trigger_words,ckpt_path,original_config_file):
+                     encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
+                     original_config_file, role_scale, mask_threshold, start_step):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
         phrase_cnt = {}
@@ -915,26 +874,26 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         if single_files:
             if dif_version_int >= 28:
                 pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16, add_watermarker=False,)
+                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16,
+                    add_watermarker=False, )
             else:
                 pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16, add_watermarker=False,
+                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
+                    add_watermarker=False,
                 )
         else:
-            if _sd_type == "Playground_v2p5":
-                pipe = DiffusionPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
-                )
-            else:
-                pipe = StableDiffusionXLPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
-                )
+            pipe = StableDiffusionXLPipeline.from_pretrained(
+                sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
+            )
 
         pipe.to("cuda")
         if lora != "none":
-            pipe.load_lora_weights(lora, adapter_name=trigger_words)
-            pipe.fuse_lora(lora_scale=lora_scale,adapter_names=[trigger_words,])
-            # pipe._lora_scale=lora_scale
+            if lora in lora_lightning_list:
+                pipe.load_lora_weights(lora_path)
+                pipe.fuse_lora()
+            else:
+                pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
 
     device = "cuda"
     ms_ckpt = get_instance_path(os.path.join(dir_path, "weights", "ms_adapter.bin"))
@@ -971,45 +930,44 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     # generation configs
     num_samples = 1
     image_ouput = []
-    # get person prompt
-    person = prompts_dual[0]
-    result_a = person.split(")")
-    result_a = result_a[0]
-    result_a = result_a.split("(")[-1]
-    result_a = result_a.split("and")
-    person_a = result_a[0]
-    person_b = result_a[1]
+    # get role name
+    role_name = prompts_dual[0]
+    role_name = role_name.split(")")[0]
+    role_name = role_name.split("(")[-1]
+    role_name = role_name.split("and")
+    role_a = role_name[0]
+    role_b = role_name[1]
     # get n p prompt
     prompts_dual, negative_prompt = apply_style(
         style_name, prompts_dual, negative_prompt
     )
     # 添加Lora trigger
-    add_trigger_words = "," + trigger_words+" "+"style" + ";"
+    add_trigger_words = "," + trigger_words + " " + "style" + ";"
     if lora != "none":
-        prompts = remove_punctuation_from_strings(prompts_dual)
-        prompts_dual = [item + add_trigger_words for item in prompts]
+        prompts_dual = remove_punctuation_from_strings(prompts_dual)
+        if lora not in lora_lightning_list:  # 加速lora不需要trigger
+            prompts_dual = [item + add_trigger_words for item in prompts_dual]
 
     for i, prompt in enumerate(prompts_dual):
-        print(i, prompt)
+        # print(i, prompt)
         prompt = prompt.replace("(", "").replace(")", "")
-        #boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+        # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
         boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
-        phrases = [[person_a, person_b]]
+        phrases = [[role_a, role_b]]
         drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
 
         # used to get the attention map, return zero if the phrase is not in the prompt
         phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
         eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
-        print(phrase_idxes, eot_idxes)
-        # if lora != "none":
-        #     cross_attention_kwargs = {"scale": lora_scale} # using?
+        # print(phrase_idxes, eot_idxes)
 
         images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
                                    num_inference_steps=steps,
                                    seed=seed,
-                                   prompt=[prompt], negative_prompt=negative_prompt, scale=0.6,
+                                   prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
                                    image_encoder=image_encoder,
-                                   image_processor=image_processor, boxes=boxes,mask_threshold=0.5, start_step=5,
+                                   image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
+                                   start_step=start_step,
                                    image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
                                    phrases=phrases,
                                    drop_grounding_tokens=drop_grounding_tokens,
@@ -1019,7 +977,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     return image_ouput
 
 
-class Storydiffusion_Text2Img:
+class Storydiffusion_Model_Loader:
     def __init__(self):
         pass
 
@@ -1031,68 +989,34 @@ class Storydiffusion_Text2Img:
                 "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
                 "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
                 "lora": (["none"] + folder_paths.get_filename_list("loras"),),
-                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
-                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
+                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
                 "trigger_words": ("STRING", {"default": "best quality"}),
-                "character_prompt": ("STRING", {"multiline": True,
-                                                "default": "[Bob] A man, wearing a black sui,\n"
-                                                           "[Alice]a woman, wearing a white shirt."}),
-                "scene_prompt": ("STRING", {"multiline": True,
-                                            "default": "[Bob] at home, read new paper #at home, The newspaper says "
-                                                       "there is a treasure house in the forest;\n[Bob] on the road, "
-                                                       "near the forest;\n[Alice] is make a call at home;\n[NC]A tiger "
-                                                       "appeared in the forest, at night;\n[NC] The car on the road, "
-                                                       "near the forest #They drives to the forest in search of "
-                                                       "treasure house;\n[Bob]at night #He is overjoyed inside the house;\n[Alice] very frightened, open mouth, in the forest, at night."}),
-                "character_id_number": ("INT", {"default": 2, "min": 1, "max": 4, "step": 1, "display": "number"}),
-                "negative_prompt": ("STRING", {"multiline": True,
-                                               "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
-                                                          "three hands, three legs, bad arms, missing legs, "
-                                                          "missing arms, poorly drawn face, bad face, fused face, "
-                                                          "cloned face, three crus, fused feet, fused thigh, "
-                                                          "extra crus, ugly fingers, horn,"
-                                                          "animate, amputation, disconnected limbs"}),
                 "scheduler": (scheduler_list,),
-                "img_style": (
-                    ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
-                     "Photographic", "Comic_book",
-                     "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
+                "model_type": (["Photomaker", "original"],),
+                "id_number": ("INT", {"default": 2, "min": 1, "max": 2, "step": 1, "display": "number"}),
                 "sa32_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED}),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
-                "cfg": ("FLOAT", {"default": 7, "min": 0.1, "max": 10.0, "step": 0.1, "round": 0.01}),
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-                "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"})
+                "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "STRING",)
-    RETURN_NAMES = ("image", "prompt_array",)
-    FUNCTION = "text2image"
+    RETURN_TYPES = ("MODEL", "STRING",)
+    RETURN_NAMES = ("pipe", "info",)
+    FUNCTION = "story_model_loader"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, sd_type, ckpt_name, lora, encoder_repo, lora_scale, trigger_words, steps, img_style,
-                   photomake_model, scheduler, cfg, seed,
-                   sa32_degree,
-                   sa64_degree, character_id_number, character_prompt, negative_prompt, scene_prompt,
-                   img_height, img_width):
-
-        # Automatically select the device
-        scheduler_choice = get_scheduler(scheduler)
-        local_dir = os.path.join(file_path, "models", "photomaker")
-        photomaker_local_path = os.path.join(local_dir, photomake_model)
-        photomaker_local_path = get_instance_path(photomaker_local_path)
-        style_name = img_style
+    def story_model_loader(self, sd_type, ckpt_name, photomake_model, lora, lora_scale, scheduler, trigger_words,
+                           model_type, sa32_degree, sa64_degree, id_number, img_width, img_height):
 
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         ckpt_path = get_instance_path(ckpt_path)
-        if lora != "none":
-            lora_path = folder_paths.get_full_path("loras", lora)
-            lora = get_instance_path(lora_path)
+        scheduler_choice = get_scheduler(scheduler)
 
+        local_dir = os.path.join(file_path, "models", "photomaker")
+        photomaker_local_path = get_instance_path(os.path.join(local_dir, photomake_model))
         if photomake_model == "none":
             photomaker_path = hf_hub_download(
                 repo_id="TencentARC/PhotoMaker",
@@ -1103,68 +1027,37 @@ class Storydiffusion_Text2Img:
         else:
             photomaker_path = photomaker_local_path
 
-        global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
-        global sa32, sa64
-        global write
-        global height, width
+        if lora != "none":
+            lora_path = folder_paths.get_full_path("loras", lora)
+            lora_path = get_instance_path(lora_path)
+        else:
+            lora_path = ""
+        if "/" in lora:
+            lora = lora.split("/")[-1]
+        if "\\" in lora:
+            lora = lora.split("\\")[-1]
+
+        # global
+        global mask1024, mask4096, attn_procs, unet, pipe
+        global sa32, sa64, write, height, width, sd_model_path
         global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
 
-        # 从角色列表获取角色方括号信息
-        char_origin = character_prompt.splitlines()
-        char_origin = [char.split("]")[0] + "]" for char in char_origin]
-
-        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
-        prompts_origin = scene_prompt.splitlines()
-        positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
-        prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
-
-        if len(char_origin) == 2:
-            positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
-                0]  # 获取角色出现的索引列表，并获取首次出现的位置
-            positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
-                0]  # 获取角色出现的索引列表，并获取首次出现的位置
-        class_tokens_mask = None
-        # assert (
-        #         len(character_prompt.strip()) > 0
-        # ), "Please provide the description of the character."
-
-        height = img_height
-        width = img_width
-        id_length = character_id_number
-        id_length_ = character_id_number
         sa32 = sa32_degree
         sa64 = sa64_degree
-        seed_ = seed
-        _model_type = "not Using Ref Images"
-        _sd_type = sd_type
-        _upload_images = None
-        _num_steps = steps
-        guidance_scale = cfg
-        general_prompt = character_prompt
-        prompt_array = scene_prompt
-        G_height = height
-        G_width = width
-        _char_files = ""
-        img_output_pass = None
-        _Ip_Adapter_Strength = 0.5
-        _style_strength_ratio = 20
-        sa32_ = sa32
-        sa64_ = sa64
         attn_count = 0
         total_count = 0
         cur_step = 0
-        # id_length = 4
+        id_length = id_number
         total_length = 5
-        cur_model_type = ""
-        global attn_procs, unet
+        cur_model_type = "Unstable" + "-" + "original"
         attn_procs = {}
         write = False
-        global pipe
-        global sd_model_path
-        pipe = None
+        height = img_height
+        width = img_width
+
+        # load model
         original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
         original_config_file = get_instance_path(original_config_file)
-        # print(original_config_file)
         if sd_type == "Use_Single_XL_Model":
             sd_model_path = ckpt_path
         else:
@@ -1196,7 +1089,7 @@ class Storydiffusion_Text2Img:
         if device != "mps":
             pipe.enable_model_cpu_offload()
         unet = pipe.unet
-        cur_model_type = "Unstable" + "-" + "original"
+
         ### Insert PairedAttention
         for name in unet.attn_processors.keys():
             cross_attention_dim = (
@@ -1218,7 +1111,6 @@ class Storydiffusion_Text2Img:
         print("successsfully load paired self-attention")
         print(f"number of the processor : {total_count}")
         unet.set_attn_processor(copy.deepcopy(attn_procs))
-        global mask1024, mask4096
         mask1024, mask4096 = cal_attn_mask_xl(
             total_length,
             id_length,
@@ -1230,26 +1122,148 @@ class Storydiffusion_Text2Img:
             dtype=torch.float16,
         )
 
-        gen = process_generation(_sd_type, ckpt_path,
-                                 _model_type,
-                                 _upload_images,
-                                 _num_steps,
-                                 style_name,
-                                 _Ip_Adapter_Strength,
-                                 _style_strength_ratio,
-                                 guidance_scale,
-                                 seed_,
-                                 sa32_,
-                                 sa64_,
-                                 id_length_,
-                                 general_prompt,
+        # pipe
+        use_safe_tensor = True
+        for attn_processor in pipe.unet.attn_processors.values():
+            if isinstance(attn_processor, SpatialAttnProcessor2_0):
+                for values in attn_processor.id_bank.values():
+                    del values
+                attn_processor.id_bank = {}
+                attn_processor.id_length = id_length
+                attn_processor.total_length = id_length + 1
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        if sd_type == "Playground_v2p5":
+            cur_model_type = "Playground_v2p5" + "-" + model_type
+        if sd_type == "Unstable":
+            cur_model_type = "Unstable" + "-" + model_type
+
+        if cur_model_type != sd_type + "-" + model_type:  # load stable model
+            # apply the style template
+            ##### load pipe
+            del pipe
+            gc.collect()
+            if device == "cuda":
+                torch.cuda.empty_cache()
+            model_info = models_dict[sd_type]
+            model_info["model_type"] = model_type
+            if sd_type == "Use_Single_XL_Model":
+                model_info["path"] = ckpt_path
+            pipe = load_models(model_info, sd_type, device=device, photomaker_path=photomaker_path, lora=lora,
+                               lora_path=lora_path,
+                               trigger_words=trigger_words, lora_scale=lora_scale)
+            set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            ##### ########################
+            pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
+            # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+
+            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+            cur_model_type = sd_type + "-" + model_type
+            pipe.enable_vae_slicing()
+            if device != "mps":
+                pipe.enable_model_cpu_offload()
+        else:  # add  lora
+            if lora != "none":
+                if lora in lora_lightning_list:
+                    pipe.load_lora_weights(lora_path)
+                    pipe.fuse_lora()
+                else:
+                    pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                    pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
+            unet = pipe.unet
+            # unet.set_attn_processor(copy.deepcopy(attn_procs))
+        info = str(";".join(
+            [model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, str(lora_scale)]))
+        return (pipe, info,)
+
+
+class Storydiffusion_Text2Img:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "pipe": ("MODEL",),
+                "info": ("STRING", {"forceInput": True, "default": ""}),
+                "character_prompt": ("STRING", {"multiline": True,
+                                                "default": "[Bob] A man, wearing a black sui,\n"
+                                                           "[Alice]a woman, wearing a white shirt."}),
+                "scene_prompts": ("STRING", {"multiline": True,
+                                             "default": "[Bob] at home, read new paper #at home, The newspaper says "
+                                                        "there is a treasure house in the forest;\n[Bob] on the road, "
+                                                        "near the forest;\n[Alice] is make a call at home;\n[NC]A tiger "
+                                                        "appeared in the forest, at night;\n[NC] The car on the road, "
+                                                        "near the forest #They drives to the forest in search of "
+                                                        "treasure house;\n[Bob]at night #He is overjoyed inside the house;\n[Alice] very frightened, open mouth, in the forest, at night."}),
+                "negative_prompt": ("STRING", {"multiline": True,
+                                               "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
+                                                          "three hands, three legs, bad arms, missing legs, "
+                                                          "missing arms, poorly drawn face, bad face, fused face, "
+                                                          "cloned face, three crus, fused feet, fused thigh, "
+                                                          "extra crus, ugly fingers, horn,"
+                                                          "animate, amputation, disconnected limbs"}),
+                "img_style": (
+                    ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
+                     "Photographic", "Comic_book",
+                     "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
+                "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED}),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
+                "cfg": ("FLOAT", {"default": 7, "min": 0.1, "max": 10.0, "step": 0.1, "round": 0.01}),
+                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
+                "role_scale": (
+                    "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "mask_threshold": (
+                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "start_step": ("INT", {"default": 5, "min": 1, "max": 1024}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING",)
+    RETURN_NAMES = ("image", "scene_prompts",)
+    FUNCTION = "text2image"
+    CATEGORY = "Storydiffusion"
+
+    def text2image(self, pipe, info, character_prompt, negative_prompt, scene_prompts, img_style, seed, steps, cfg,
+                   encoder_repo,
+                   role_scale, mask_threshold, start_step):
+        model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale = info.split(
+            ";")
+        lora_scale = float(lora_scale)
+
+        # 从角色列表获取角色方括号信息
+        char_origin = character_prompt.splitlines()
+        char_origin = [char.split("]")[0] + "]" for char in char_origin]
+
+        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
+        prompts_origin = scene_prompts.splitlines()
+        positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
+        prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
+
+        if len(char_origin) == 2:
+            positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
+            positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
+                0]  # 获取角色出现的索引列表，并获取首次出现的位置
+
+        upload_images = None
+        _Ip_Adapter_Strength = 0.5
+        _style_strength_ratio = 20
+        char_files = ""
+
+        gen = process_generation(pipe, upload_images, model_type, steps, img_style, _Ip_Adapter_Strength,
+                                 _style_strength_ratio, cfg,
+                                 seed, id_length,
+                                 character_prompt,
                                  negative_prompt,
-                                 prompt_array,
-                                 G_height,
-                                 G_width,
-                                 _char_files,
-                                 photomaker_path,
-                                 scheduler_choice, lora, lora_scale, trigger_words)
+                                 scene_prompts,
+                                 width,
+                                 height,
+                                 char_files,
+                                 lora,
+                                 trigger_words, )
 
         for value in gen:
             pass_value = value
@@ -1260,9 +1274,11 @@ class Storydiffusion_Text2Img:
             image_1 = image_pil_list[positions_char_1]
             image_2 = image_pil_list[positions_char_2]
             # del pipe
-            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, img_width, img_height, steps, seed,
-                                          style_name, negative_prompt, encoder_repo, _model_type, _sd_type, lora,
-                                          lora_scale, trigger_words,ckpt_path,original_config_file)
+            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed,
+                                          img_style, negative_prompt, encoder_repo, model_type, sd_type, lora,
+                                          lora_path,
+                                          lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
+                                          mask_threshold, start_step)
             j = 0
             for i in positions_dual:
                 img = image_dual[j]
@@ -1272,10 +1288,9 @@ class Storydiffusion_Text2Img:
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
-        prompt_array = scene_prompt
         del pipe
         del gen
-        return (image, prompt_array,)
+        return (image, scene_prompts,)
 
 
 class Storydiffusion_Img2Img:
@@ -1287,41 +1302,35 @@ class Storydiffusion_Img2Img:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "sd_type": (yaml_list,),
-                "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
-                "photomake_model": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                "lora": (["none"] + folder_paths.get_filename_list("loras"),),
-                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
-                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 5.0, "step": 0.1}),
-                "trigger_words": ("STRING", {"default": "best quality"}),
+                "pipe": ("MODEL",),
+                "info": ("STRING", {"forceInput": True, "default": ""}),
                 "character_prompt": ("STRING", {"multiline": True,
-                                                "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair,"}),
-                "scene_prompt": ("STRING", {"multiline": True,
-                                            "default": "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Taylor]is walking on the road, go to company;\n[Taylor]work in the company."}),
-                "character_id_number": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1, "display": "number"}),
+                                                "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair.\n"
+                                                           "[Lecun] a man img,wearing a suit,black hair."}),
+                "scene_prompts": ("STRING", {"multiline": True,
+                                             "default": "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Lecun]is walking on the road, go to company;\n[Lecun]work in the company."}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
                                                           "three hands, three legs, bad arms, missing legs, "
                                                           "missing arms, poorly drawn face, bad face, fused face, "
                                                           "cloned face, three crus, fused feet, fused thigh, "
-                                                          "extra crus, ugly fingers, horn"
-                                                          " amputation, disconnected limbs"}),
-                "scheduler": (scheduler_list,),
+                                                          "extra crus, ugly fingers, horn,"
+                                                          "animate, amputation, disconnected limbs"}),
                 "img_style": (
                     ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
                      "Photographic", "Comic_book",
                      "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
-                "sa32_degree": (
-                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "sa64_degree": (
-                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED}),
                 "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
                 "cfg": ("FLOAT", {"default": 7, "min": 0.1, "max": 10.0, "step": 0.1, "round": 0.01}),
                 "ip_adapter_strength": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "style_strength_ratio": ("INT", {"default": 20, "min": 10, "max": 50, "step": 1, "display": "number"}),
-                "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-                "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"})
+                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
+                "role_scale": (
+                    "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "mask_threshold": (
+                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "start_step": ("INT", {"default": 5, "min": 1, "max": 1024}),
             }
         }
 
@@ -1330,11 +1339,12 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, sd_type, ckpt_name, lora, encoder_repo, lora_scale, trigger_words, photomake_model,
-                  character_prompt, scene_prompt, character_id_number,
-                  negative_prompt, scheduler, img_style,
-                  sa32_degree, sa64_degree, seed, steps, cfg, ip_adapter_strength, style_strength_ratio, img_height,
-                  img_width, ):
+    def img2image(self, image, pipe, info, character_prompt, negative_prompt, scene_prompts, img_style, seed, steps,
+                  cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
+                  role_scale, mask_threshold, start_step):
+        model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale = info.split(
+            ";")
+        lora_scale = float(lora_scale)
         d1, _, _, _ = image.size()
         if d1 == 2:
             image_1, image_2 = torch.chunk(image, chunks=2)
@@ -1350,41 +1360,13 @@ class Storydiffusion_Img2Img:
         else:
             image = tensor_to_image(image)
             image_load = [image]
-        # Automatically select the device
-        scheduler_choice = get_scheduler(scheduler)
-        local_dir = os.path.join(file_path, "models", "photomaker")
-        photomaker_local_path = os.path.join(local_dir, photomake_model)
-        photomaker_local_path = get_instance_path(photomaker_local_path)
-        ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        ckpt_path = get_instance_path(ckpt_path)
-        style_name = img_style
-
-        if lora != "none":
-            lora_path = folder_paths.get_full_path("loras", lora)
-            lora = get_instance_path(lora_path)
-
-        if photomake_model == "none":
-            photomaker_path = hf_hub_download(
-                repo_id="TencentARC/PhotoMaker",
-                filename="photomaker-v1.bin",
-                repo_type="model",
-                local_dir=local_dir,
-            )
-        else:
-            photomaker_path = photomaker_local_path
-
-        global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
-        global sa32, sa64
-        global write
-        global height, width
-        global attn_count, total_count, id_length, total_length, cur_step, cur_model_type
 
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
         char_origin = [char.split("]")[0] + "]" for char in char_origin]
 
         # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
-        prompts_origin = scene_prompt.splitlines()
+        prompts_origin = scene_prompts.splitlines()
         positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
         prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
 
@@ -1394,131 +1376,19 @@ class Storydiffusion_Img2Img:
             positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
 
-        height = img_height
-        width = img_width
-        id_length = character_id_number
-        id_length_ = character_id_number
-        sa32 = sa32_degree
-        sa64 = sa64_degree
-        seed_ = seed
-        _model_type = "Using Ref Images"
-        _sd_type = sd_type
-        _upload_images = image_load
-        _num_steps = steps
-        guidance_scale = cfg
-        general_prompt = character_prompt
-        prompt_array = scene_prompt
-        G_height = height
-        G_width = width
-        _char_files = ""
-        img_output_pass = None
-        _Ip_Adapter_Strength = ip_adapter_strength
-        _style_strength_ratio = style_strength_ratio
-        sa32_ = sa32
-        sa64_ = sa64
-        attn_count = 0
-        total_count = 0
-        cur_step = 0
-        # id_length = 4
-        total_length = 5
-        cur_model_type = ""
-        global attn_procs, unet
-        attn_procs = {}
+        char_files = ""
 
-        write = False
-        global pipe
-        global sd_model_path
-        pipe = None
-        if sd_type == "Use_Single_XL_Model":
-            sd_model_path = ckpt_path
-        else:
-            sd_model_path = models_dict[sd_type]["path"]  # diffuser models
-        single_files = models_dict[sd_type]["single_files"]
-
-        original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-        original_config_file = get_instance_path(original_config_file)
-        ### LOAD Stable Diffusion Pipeline
-        if single_files:
-            if dif_version_int >= 28:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16)
-            else:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16
-                )
-        else:
-            if sd_type == "Playground_v2p5":
-                pipe = DiffusionPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16
-                )
-            else:
-                pipe = StableDiffusionXLPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16
-                )
-        pipe = pipe.to(device)
-        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        # pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
-        pipe.scheduler.set_timesteps(50)
-        pipe.enable_vae_slicing()
-        if device != "mps":
-            pipe.enable_model_cpu_offload()
-        unet = pipe.unet
-        cur_model_type = "Unstable" + "-" + "original"
-        ### Insert PairedAttention
-        for name in unet.attn_processors.keys():
-            cross_attention_dim = (
-                None if name.endswith("attn1.processor") else unet.config.cross_attention_dim
-            )
-            if name.startswith("mid_block"):
-                hidden_size = unet.config.block_out_channels[-1]
-            elif name.startswith("up_blocks"):
-                block_id = int(name[len("up_blocks.")])
-                hidden_size = list(reversed(unet.config.block_out_channels))[block_id]
-            elif name.startswith("down_blocks"):
-                block_id = int(name[len("down_blocks.")])
-                hidden_size = unet.config.block_out_channels[block_id]
-            if cross_attention_dim is None and (name.startswith("up_blocks")):
-                attn_procs[name] = SpatialAttnProcessor2_0(id_length=id_length)
-                total_count += 1
-            else:
-                attn_procs[name] = AttnProcessor()
-        print("successsfully load paired self-attention")
-        print(f"number of the processor : {total_count}")
-        unet.set_attn_processor(copy.deepcopy(attn_procs))
-        global mask1024, mask4096
-        mask1024, mask4096 = cal_attn_mask_xl(
-            total_length,
-            id_length,
-            sa32,
-            sa64,
-            height,
-            width,
-            device=device,
-            dtype=torch.float16,
-        )
-
-        gen = process_generation(_sd_type,
-                                 ckpt_path,
-                                 _model_type,
-                                 _upload_images,
-                                 _num_steps,
-                                 style_name,
-                                 _Ip_Adapter_Strength,
-                                 _style_strength_ratio,
-                                 guidance_scale,
-                                 seed_,
-                                 sa32_,
-                                 sa64_,
-                                 id_length_,
-                                 general_prompt,
+        gen = process_generation(pipe, image_load, model_type, steps, img_style, ip_adapter_strength,
+                                 style_strength_ratio, cfg,
+                                 seed, id_length,
+                                 character_prompt,
                                  negative_prompt,
-                                 prompt_array,
-                                 G_height,
-                                 G_width,
-                                 _char_files,
-                                 photomaker_path,
-                                 scheduler_choice,
-                                 lora, lora_scale, trigger_words)
+                                 scene_prompts,
+                                 width,
+                                 height,
+                                 char_files,
+                                 lora,
+                                 trigger_words, )
 
         for value in gen:
             pass_value = value
@@ -1529,9 +1399,11 @@ class Storydiffusion_Img2Img:
             image_1 = image_pil_list[positions_char_1]
             image_2 = image_pil_list[positions_char_2]
             # del pipe
-            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, img_width, img_height, steps, seed,
-                                          style_name, negative_prompt, encoder_repo, _model_type, _sd_type, lora,
-                                          lora_scale, trigger_words,ckpt_path,original_config_file)
+            image_dual = msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed,
+                                          img_style, negative_prompt, encoder_repo, model_type, sd_type, lora,
+                                          lora_path,
+                                          lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
+                                          mask_threshold, start_step)
             j = 0
             for i in positions_dual:
                 img = image_dual[j]
@@ -1541,17 +1413,16 @@ class Storydiffusion_Img2Img:
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
-        prompt_array = scene_prompt
         del pipe
         del gen
-        return (image, prompt_array,)
+        return (image, scene_prompts,)
 
 
 class Comic_Type:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"image": ("IMAGE",),
-                             "prompt_array": ("STRING", {"multiline": True, "forceInput": True, "default": ""}),
+                             "scene_prompts": ("STRING", {"multiline": True, "forceInput": True, "default": ""}),
                              "fonts_list": (fonts_lists,),
                              "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
                              "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
@@ -1563,11 +1434,11 @@ class Comic_Type:
     FUNCTION = "comic_gen"
     CATEGORY = "Storydiffusion"
 
-    def comic_gen(self, image, prompt_array, fonts_list, text_size, comic_type, split_lines):
+    def comic_gen(self, image, scene_prompts, fonts_list, text_size, comic_type, split_lines):
         result = [item for index, item in enumerate(image)]
         total_results = narry_list_pil(result)
         font_choice = os.path.join(dir_path, "fonts", fonts_list)
-        captions = prompt_array.splitlines()
+        captions = scene_prompts.splitlines()
         if len(captions) > 1:
             captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
                         for caption in captions]  # del ()
@@ -1578,7 +1449,7 @@ class Comic_Type:
                 for caption in captions
             ]
         else:
-            prompt_array = prompt_array.replace(split_lines, "\n")
+            prompt_array = scene_prompts.replace(split_lines, "\n")
             captions = prompt_array.splitlines()
         font = ImageFont.truetype(font_choice, text_size)
         images = (
@@ -1592,7 +1463,7 @@ class Comic_Type:
 class Pre_Translate_prompt:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"prompt_array": ("STRING", {"forceInput": True, "default": ""}),
+        return {"required": {"scene_prompts": ("STRING", {"forceInput": True, "default": ""}),
                              "keep_character_name": ("BOOLEAN", {"default": False},)
                              }}
 
@@ -1601,11 +1472,11 @@ class Pre_Translate_prompt:
     FUNCTION = "translate_prompt"
     CATEGORY = "Storydiffusion"
 
-    def translate_prompt(self, prompt_array, keep_character_name):
-        captions = prompt_array.splitlines()
+    def translate_prompt(self, scene_prompts, keep_character_name):
+        captions = scene_prompts.splitlines()
         if not keep_character_name:
-            captions = [caption.split(")", 1)[-1] if  ")" in caption else caption
-                    for caption in captions] # del character
+            captions = [caption.split(")", 1)[-1] if ")" in caption else caption
+                        for caption in captions]  # del character
         else:
             captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
                         for caption in captions]  # del ()
@@ -1618,70 +1489,23 @@ class Pre_Translate_prompt:
             caption.split("#")[-1] if "#" in caption else caption
             for caption in captions
         ]
-        prompt_array = ''.join(captions)
-        return (prompt_array,)
-
-
-class Character_Batch:
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {"image1": ("IMAGE",), "image2": ("IMAGE",), "image3": ("IMAGE",)}}
-
-    RETURN_TYPES = ("IMAGE",)
-    ETURN_NAMES = ("image",)
-    FUNCTION = "character_batch"
-    CATEGORY = "Storydiffusion"
-
-    def get_image_hash(self, pil_image):
-        image_bytes = pil_image.tobytes()
-        return hashlib.md5(image_bytes).hexdigest()
-
-    def character_batch(self, image1, image2, image3):
-        pil_image1 = tensor_to_image(image1)
-        pil_image2 = tensor_to_image(image2)
-        pil_image3 = tensor_to_image(image3)
-        hash_img1 = self.get_image_hash(pil_image1)
-        hash_img2 = self.get_image_hash(pil_image2)
-        hash_img3 = self.get_image_hash(pil_image3)
-        if hash_img1 == hash_img2 and hash_img1 == hash_img3:
-            character_batch = image1
-            # print("32222", character_batch, type(character_batch))
-        elif hash_img2 == hash_img3 and hash_img2 != hash_img1 or hash_img1 == hash_img2 and hash_img1 != hash_img3:
-            image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
-                                    "center").movedim(1, -1)
-            character_batch = torch.cat((image1, image3), dim=0)
-        elif hash_img1 != hash_img2 and hash_img1 != hash_img3 and hash_img2 != hash_img3:
-            image2 = common_upscale(image2.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
-                                    "center").movedim(1, -1)
-            image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
-                                    "center").movedim(1, -1)
-            character_batch = torch.cat((image1, image2, image3), dim=0)
-        elif hash_img1 != hash_img2 and hash_img1 == hash_img3:
-            image2 = common_upscale(image2.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
-                                    "center").movedim(1, -1)
-            character_batch = torch.cat((image1, image2), dim=0)
-        # elif image1.shape[1:] != image2.shape[1:] or image1.shape[1:] != image3.shape[1:]:
-        #     image2 = common_upscale(image2.movedim(-1,1), image1.shape[2], image1.shape[1], "bilinear", "center").movedim(1,-1)
-        #     image3 = common_upscale(image3.movedim(-1, 1), image1.shape[2], image1.shape[1], "bilinear",
-        #                             "center").movedim(1, -1)
-        #     character_batch=torch.cat((image1, image2, image3), dim=0)
-        # print(image2.shape, "1234", character_batch, character_batch.shape)
-        return (character_batch,)
+        scene_prompts = ''.join(captions)
+        return (scene_prompts,)
 
 
 NODE_CLASS_MAPPINGS = {
+    "Storydiffusion_Model_Loader": Storydiffusion_Model_Loader,
     "Storydiffusion_Text2Img": Storydiffusion_Text2Img,
     "Storydiffusion_Img2Img": Storydiffusion_Img2Img,
     "Pre_Translate_prompt": Pre_Translate_prompt,
-    "Comic_Type": Comic_Type,
-    "Character_Batch": Character_Batch
+    "Comic_Type": Comic_Type
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "Storydiffusion_Model_Loader": "Storydiffusion_Model_Loader",
     "Storydiffusion_Text2Img": "Storydiffusion_Text2Img",
     "Storydiffusion_Img2Img": "Storydiffusion_Img2Img",
     "Pre_Translate_prompt": "Pre_Translate_prompt",
-    "Comic_Type": "Comic_Type",
-    "Character_Batch": "Character_Batch"
+    "Comic_Type": "Comic_Type"
+
 }
