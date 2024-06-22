@@ -1,0 +1,866 @@
+{
+  "last_node_id": 54,
+  "last_link_id": 81,
+  "nodes": [
+    {
+      "id": 7,
+      "type": "SaveImage",
+      "pos": [
+        2863,
+        418
+      ],
+      "size": {
+        "0": 664.7562866210938,
+        "1": 678.5906372070312
+      },
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7,
+          "label": "images"
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "ImageBatch",
+      "pos": [
+        1601,
+        141
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 9,
+          "label": "image1",
+          "slot_index": 0
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 10,
+          "label": "image2",
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            8
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      }
+    },
+    {
+      "id": 13,
+      "type": "LoadImage",
+      "pos": [
+        1455,
+        248
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ],
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "gakki.png",
+        "image"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "LoadImage",
+      "pos": [
+        1456,
+        683
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            10
+          ],
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "lecun.png",
+        "image"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "Comic_Type",
+      "pos": [
+        2490,
+        126
+      ],
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 5,
+          "label": "image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            7
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Comic_Type"
+      },
+      "widgets_values": [
+        "",
+        "Inkfree.ttf",
+        40,
+        "Four_Pannel",
+        ";"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "Storydiffusion_Img2Img",
+      "pos": [
+        1900,
+        153
+      ],
+      "size": {
+        "0": 520.8131103515625,
+        "1": 840.9295654296875
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 8,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": null,
+          "label": "pipe"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": [],
+          "shape": 3,
+          "label": "prompt_array",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Img2Img"
+      },
+      "widgets_values": [
+        "SDXL",
+        "0SDXL\\Hyper-SDXL-1step-Unet-Comfyui.fp16.safetensors",
+        "photomaker-v1.bin",
+        "0sdxl\\stonetoss_xl.safetensors",
+        "No_style",
+        1,
+        "stonetoss",
+        "[Gakki]a woman img, wearing a white T-shirt, blue loose hair;\n[Lecun]a man img, wearing a blue suit,black hair;\n",
+        "[Gakki]wake up in the bed;\n[Gakki]have breakfast by the window;\n[Lecun]is walking on the road, go to company;\n(Lecun and Gakki)have lunch;\n[Lecun]work in the company.",
+        2,
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn amputation, disconnected limbs",
+        "Euler",
+        "No_style",
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "id": 49,
+      "type": "ImageBatch",
+      "pos": [
+        4867,
+        319
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 64,
+          "label": "image1",
+          "slot_index": 0
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 65,
+          "label": "image2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            74
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      }
+    },
+    {
+      "id": 51,
+      "type": "Storydiffusion_Img2Img",
+      "pos": [
+        5210,
+        436
+      ],
+      "size": {
+        "0": 387.51373291015625,
+        "1": 613.2374267578125
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 74,
+          "label": "image"
+        },
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": 75,
+          "label": "pipe",
+          "slot_index": 1
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 76,
+          "widget": {
+            "name": "info"
+          },
+          "slot_index": 2,
+          "label": "info"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            77
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": [
+            79
+          ],
+          "shape": 3,
+          "label": "prompt_array",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Img2Img"
+      },
+      "widgets_values": [
+        "",
+        "[Taylor]a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Lecun]is walking on the road, go to company;\n[Lecun]work in the company.",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,animate, amputation, disconnected limbs",
+        "No_style",
+        140298986,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5
+      ]
+    },
+    {
+      "id": 54,
+      "type": "Pre_Translate_prompt",
+      "pos": [
+        5642,
+        563
+      ],
+      "size": [
+        315,
+        82
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "scene_prompts",
+          "type": "STRING",
+          "link": 79,
+          "widget": {
+            "name": "scene_prompts"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            80
+          ],
+          "shape": 3,
+          "label": "STRING",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Pre_Translate_prompt"
+      },
+      "widgets_values": [
+        "",
+        false
+      ]
+    },
+    {
+      "id": 53,
+      "type": "ZhipuaiApi_Txt",
+      "pos": [
+        5648,
+        728
+      ],
+      "size": [
+        400,
+        236.00003051757812
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "link": 80,
+          "widget": {
+            "name": "prompt"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            81
+          ],
+          "shape": 3,
+          "label": "text",
+          "slot_index": 0
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "shape": 3,
+          "label": "image"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ZhipuaiApi_Txt"
+      },
+      "widgets_values": [
+        "",
+        "glm-3-turbo",
+        1024,
+        0.95,
+        "english",
+        "chinese"
+      ]
+    },
+    {
+      "id": 44,
+      "type": "SaveImage",
+      "pos": [
+        6107,
+        692
+      ],
+      "size": {
+        "0": 424.1771545410156,
+        "1": 319.6163635253906
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 52,
+          "label": "images"
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 41,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        4773,
+        651
+      ],
+      "size": {
+        "0": 416.109619140625,
+        "1": 393.12432861328125
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "links": [
+            75
+          ],
+          "shape": 3,
+          "label": "pipe",
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            76
+          ],
+          "shape": 3,
+          "label": "info",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "Use_Single_XL_Model",
+        "0SDXL\\juggernautXL_v8Rundiffusion.safetensors",
+        "none",
+        "0sdxl\\Hyper-SDXL-8steps-CFG-lora.safetensors",
+        0.8,
+        "Pop",
+        "Euler",
+        "Photomaker",
+        2,
+        0.5,
+        0.5,
+        768,
+        768
+      ]
+    },
+    {
+      "id": 48,
+      "type": "LoadImage",
+      "pos": [
+        4419,
+        692
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            65
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "lecun.png",
+        "image"
+      ]
+    },
+    {
+      "id": 46,
+      "type": "LoadImage",
+      "pos": [
+        4419,
+        320
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            64
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "gakki.png",
+        "image"
+      ]
+    },
+    {
+      "id": 43,
+      "type": "Comic_Type",
+      "pos": [
+        6038,
+        450
+      ],
+      "size": {
+        "0": 249.27609252929688,
+        "1": 188.86729431152344
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 77,
+          "label": "image"
+        },
+        {
+          "name": "scene_prompts",
+          "type": "STRING",
+          "link": 81,
+          "widget": {
+            "name": "scene_prompts"
+          },
+          "slot_index": 1,
+          "label": "scene_prompts"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            52
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Comic_Type"
+      },
+      "widgets_values": [
+        "",
+        "kuzhanhei.ttf",
+        40,
+        "Four_Pannel",
+        ";"
+      ]
+    }
+  ],
+  "links": [
+    [
+      5,
+      10,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      11,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      12,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      13,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ],
+    [
+      10,
+      14,
+      0,
+      12,
+      1,
+      "IMAGE"
+    ],
+    [
+      52,
+      43,
+      0,
+      44,
+      0,
+      "IMAGE"
+    ],
+    [
+      64,
+      46,
+      0,
+      49,
+      0,
+      "IMAGE"
+    ],
+    [
+      65,
+      48,
+      0,
+      49,
+      1,
+      "IMAGE"
+    ],
+    [
+      74,
+      49,
+      0,
+      51,
+      0,
+      "IMAGE"
+    ],
+    [
+      75,
+      41,
+      0,
+      51,
+      1,
+      "MODEL"
+    ],
+    [
+      76,
+      41,
+      1,
+      51,
+      2,
+      "STRING"
+    ],
+    [
+      77,
+      51,
+      0,
+      43,
+      0,
+      "IMAGE"
+    ],
+    [
+      79,
+      51,
+      1,
+      54,
+      0,
+      "STRING"
+    ],
+    [
+      80,
+      54,
+      0,
+      53,
+      0,
+      "STRING"
+    ],
+    [
+      81,
+      53,
+      0,
+      43,
+      1,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "Group",
+      "bounding": [
+        1426,
+        -54,
+        2135,
+        1225
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.92295998177067,
+      "offset": [
+        -4341.890115847335,
+        -89.70596655918423
+      ]
+    }
+  },
+  "version": 0.4
+}
