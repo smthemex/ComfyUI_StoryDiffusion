@@ -1,0 +1,32 @@
+lightning_unet:
+      - sdxl_lightning_1step_unet_x0.safetensors     #repo    ByteDance/SDXL-Lightning
+      - sdxl_lightning_2step_unet.safetensors        #repo    ByteDance/SDXL-Lightning
+      - sdxl_lightning_4step_unet.safetensors
+      - sdxl_lightning_8step_unet.safetensors
+      - Hyper-SDXL-1step-Unet.safetensors            #repo    ByteDance/Hyper-SD
+      - lcm-sdxl-base-1.0.safetensors                #repo    ckpt/lcm-sdxl-unet    you can change model name like example
+      - dmd2_sdxl_1step_unet_fp16.bin                #repo    tianweiy/DMD2
+      - dmd2_sdxl_4step_unet_fp16.bin
+lightning_xl_lora:
+      - Hyper-SDXL-12steps-CFG-lora.safetensors
+      - Hyper-SDXL-1step-lora.safetensors
+      - Hyper-SDXL-2step-lora.safetensors
+      - Hyper-SDXL-4step-lora.safetensors
+      - Hyper-SDXL-8step-lora.safetensors
+      - Hyper-SDXL-8steps-CFG-lora.safetensors
+      - sdxl_lightning_2step_lora.safetensors
+      - sdxl_lightning_4step_lora.safetensors
+      - sdxl_lightning_8step_lora.safetensors
+      - pcm_sdxl_lcmlike_lora_converted.safetensors
+      - pcm_sdxl_normalcfg_16step_converted.safetensors
+      - pcm_sdxl_normalcfg_4step_converted.safetensors
+      - pcm_sdxl_normalcfg_8step_converted.safetensors
+      - pcm_sdxl_smallcfg_16step_converted.safetensors
+      - pcm_sdxl_smallcfg_2step_converted.safetensors
+      - pcm_sdxl_smallcfg_4step_converted.safetensors
+      - pcm_sdxl_smallcfg_8step_converted.safetensors
+      - lcm-lora-sdxl.safetensors
+      - dmd2_sdxl_4step_lora.safetensors
+      - dmd2_sdxl_4step_lora_fp16.safetensors
+      - TCD-SDXL-LoRA.safetensors                         #need rename and TCD
+
