@@ -24,12 +24,19 @@ NEW Update
 ---
 1、添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！   
 2、因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；  
-3、更改lora的代码，现在lora_scale应该正常生效了。
+3、优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；  
+4、Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;    
+5、因为可调参数太多，特意分出模型加载节点，并删除无用的3角色节点；    
+6、role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；    
+7、ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；    
 
 1. Add dual role same frame function, usage method: (A and B) have lunch...., where A and B are role names, and the middle "and" parentheses cannot be removed，The parentheses represent the effective conditions!!!   
-2. Because the" MS diffusion" function is called, in order to use dual role same frame, it is necessary to add an encoder model (laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,which cannot be replaced with others) and an ip adapet fine-tuning model (ms_adapter.bin,which cannot be replaced);   
-3. Change Lora's code, "Lora_scale" should now take effect normally.   
-
+2. Because the" MS diffusion" function is called, in order to use dual role same frame, it is necessary to add an encoder model (laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,which cannot be replaced with others) and an ip adapet fine-tuning model (ms_adapter.bin,which cannot be replaced);      
+3. Optimize the loading of Lora's code, and when using accelerated Lora, trigger_words will no longer be added to the prompt list;    
+4. Playground v2.5 can be effective on txt2img, and there is no Playground v2.5 style Lora available when accelerated Lora can be used;     
+5. Due to too many adjustable parameters, the model loading node was deliberately separated and the useless 3 role nodes were deleted;     
+6. Role-scale, mask_threshold, and start_step mainly regulate the randomness and style consistency of two characters in the same frame;     
+7. The consistency of style can be adjusted between ip-adapter_strength and style_strength'ratio in img2img;     
 
 Notice（节点的特殊功能说明 Special Function Description of Nodes）  
 ---   
@@ -145,23 +152,17 @@ make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co
 4 Example
 ----
 
-Dual role same frame and lora  txt2img  双角色同框并加入Lora，文生图示例
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgloraand2char.png)
+txt2img lora and Dual role same fram  双角色同框并加入Lora，文生图示例
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imglora2role.png)
 
-txt2img 文生图
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img.png)
+1img2img and lora 图生图加风格lora
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/1imgtoimglora.png)
 
-img2img 图生图
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img.png)
+two character lighting lora  双角色及闪电lora  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2imgtoimglightinglora.png)
 
-two character  双角色及同框   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img2.png)
-
-use single model  使用单模型  
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/use_single_model.png)
-
-using other language    使用其他语言的文本    
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/example_tran.png)
+using other language    使用其他语言的文本,翻译节点请换成你有的。      
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans.png)
 
 
 
