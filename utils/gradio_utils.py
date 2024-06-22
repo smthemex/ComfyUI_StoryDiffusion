@@ -6,8 +6,11 @@ import random
 import torch.nn as nn
 import torch.nn.functional as F
 import re
+from .load_models_utils import get_lora_dict
 
-
+global lora_get
+lora_get=get_lora_dict()
+lora_lightning_list = lora_get["lightning_xl_lora"]
 class SpatialAttnProcessor2_0(torch.nn.Module):
     r"""
     Attention processor for IP-Adapater for PyTorch 2.0.
@@ -430,17 +433,17 @@ class AttnProcessor2_0(torch.nn.Module):
 
 def is_torch2_available():
     return hasattr(F, "scaled_dot_product_attention")
-def remove_punctuation_from_strings(lst):
-    pattern = r"[\W]+$"  # 匹配字符串末尾的所有非单词字符
-    return [re.sub(pattern, '', s) for s in lst]
+
 
 # 将列表转换为字典的函数
 def character_to_dict(general_prompt,lora,add_trigger_words):
     character_dict = {}
     generate_prompt_arr = general_prompt.splitlines()
     if lora!="none":
-        generate_prompt_arr=remove_punctuation_from_strings(generate_prompt_arr)
-        generate_prompt_arr = [item + add_trigger_words for item in generate_prompt_arr]
+        if lora in lora_lightning_list:
+            pass
+        else:
+            generate_prompt_arr = [item + add_trigger_words for item in generate_prompt_arr]
         #print(prompts)
     character_index_dict = {}
     invert_character_index_dict = {}
@@ -505,12 +508,13 @@ def process_original_prompt(character_dict,prompts,id_length):
                 replace_prompts.append(cur_prompt)
     ref_index_dict = {}
     ref_totals = []
-    print(character_index_dict)
+    # print(character_index_dict,66666)
     for character_key in character_index_dict.keys():
         if character_key not in character_index_dict:
-            raise "{character_key} not have prompt description, please remove it"
+            raise f"{character_key} not have prompt description, please remove it"
         index_list = character_index_dict[character_key]
         index_list = [index for index in index_list if len(invert_character_index_dict[index]) == 1]
+        # print(index_list,55555)
         if len(index_list) < id_length:
             raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
         ref_index_dict[character_key] = index_list[:id_length]
