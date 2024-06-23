@@ -657,8 +657,8 @@ def process_generation(
         general_prompt,
         negative_prompt,
         prompt_array,
-        height,
         width,
+        height,
         _char_files,
         lora,
         trigger_words
