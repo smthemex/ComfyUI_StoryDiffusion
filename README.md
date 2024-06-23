@@ -22,6 +22,12 @@ My ComfyUI node list：
 
 NEW Update
 ---
+1、增加 Split_prompt参数，默认是空，如果填入分割标点，推荐用";"，会规范化角色prompt和场景prompt（主要是加入换行符），方便规范化复制或者从其他节点引入的prompts； 翻译节点的切分符号默认值改成中文的“；”  
+1、Add the Split prompt parameter, which is empty by default. If you fill in the split punctuation, it is recommended to use ";". This will standardize the character prompt and scene prompt (mainly by adding line breaks), making it easier to standardize copying or introducing prompts from other nodes;   
+
+
+Notice（节点的特殊功能说明 Special Function Description of Nodes）  
+---   
 1、添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！   
 2、因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；  
 3、优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；  
@@ -29,6 +35,18 @@ NEW Update
 5、因为可调参数太多，特意分出模型加载节点，并删除无用的3角色节点；    
 6、role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；    
 7、ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；    
+8、预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；       
+9、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
+10、编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。  
+11、示例的playground模型仅是测试，但是无法出图，请勿使用。  
+12、拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）和字体大小，增加了双角色的支持（使用comfyUI的batch image）；    
+13、可以使用单体SDXL模型，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型；
+14、加入Lora的支持，lora菜单选择"none"时，Lora无效；“trigger_words”须填入你选择的Lora模型的对应的trigger_words，无须在prompt中加入，插件会自动在每行的末尾加入；
+15、支持diffuser 0.28以上版本；      
+16、图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；       
+17、图片不出现角色，场景prompt前面加入[NC] ；  
+18、分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB
+
 
 1. Add dual role same frame function, usage method: (A and B) have lunch...., where A and B are role names, and the middle "and" parentheses cannot be removed，The parentheses represent the effective conditions!!!   
 2. Because the" MS diffusion" function is called, in order to use dual role same frame, it is necessary to add an encoder model (laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,which cannot be replaced with others) and an ip adapet fine-tuning model (ms_adapter.bin,which cannot be replaced);      
@@ -37,32 +55,17 @@ NEW Update
 5. Due to too many adjustable parameters, the model loading node was deliberately separated and the useless 3 role nodes were deleted;     
 6. Role-scale, mask_threshold, and start_step mainly regulate the randomness and style consistency of two characters in the same frame;     
 7. The consistency of style can be adjusted between ip-adapter_strength and style_strength'ratio in img2img;     
-
-Notice（节点的特殊功能说明 Special Function Description of Nodes）  
----   
-1、预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；       
-2、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
-3、编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。  
-4、示例的playground模型仅是测试，但是无法出图，请勿使用。  
-5、拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）和字体大小，增加了双角色的支持（使用comfyUI的batch image）；    
-6、可以使用单体SDXL模型，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型；
-7、加入Lora的支持，lora菜单选择"none"时，Lora无效；“trigger_words”须填入你选择的Lora模型的对应的trigger_words，无须在prompt中加入，插件会自动在每行的末尾加入；
-8、支持diffuser 0.28以上版本；      
-9、图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；       
-10、图片不出现角色，场景prompt前面加入[NC] ；  
-11、分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB
-
-1. Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);   
-2. By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
-3. Edit the config/models. yaml file and remember to use the same format to include your favorite SDXL based diffusion model.   
-4. The playground model in the example is only for testing purposes, but cannot be illustrated. Please do not use it.   
-5. The jigsaw puzzle node supports custom fonts (placing font files in the fonts directory".fonts/you_font. ttf") and font sizes, and adds support for dual characters (using batch images in comfyUI);    
-6. You can use a single SDXL model by selecting "Use_Single_XL-Model" and then selecting the XL model you want to use from the ckptname menu;   
-7. Add support for Lora. When selecting "none" in the Lora menu, Lora becomes invalid; "Trigger_words" must be filled in with the corresponding trigger_words for the Lora model you have selected, without the need to add them in the prompt. The plugin will automatically add them at the end of each line;   
-8. Supports diffuser versions 0.28 and above;   
-9. The process of generating images using PhotosMaker requires the"img" keyword in the character prompt column. You can use keywords such as a woman img, a man img, etc;    
-10. No characters appear in the image, add [NC] in front of the scene prompt;   
-11. Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
+8. Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);   
+9. By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
+10. Edit the config/models. yaml file and remember to use the same format to include your favorite SDXL based diffusion model.   
+11. The playground model in the example is only for testing purposes, but cannot be illustrated. Please do not use it.   
+12. The jigsaw puzzle node supports custom fonts (placing font files in the fonts directory".fonts/you_font. ttf") and font sizes, and adds support for dual characters (using batch images in comfyUI);    
+13. You can use a single SDXL model by selecting "Use_Single_XL-Model" and then selecting the XL model you want to use from the ckptname menu;   
+14. Add support for Lora. When selecting "none" in the Lora menu, Lora becomes invalid; "Trigger_words" must be filled in with the corresponding trigger_words for the Lora model you have selected, without the need to add them in the prompt. The plugin will automatically add them at the end of each line;   
+15. Supports diffuser versions 0.28 and above;   
+16. The process of generating images using PhotosMaker requires the"img" keyword in the character prompt column. You can use keywords such as a woman img, a man img, etc;    
+17. No characters appear in the image, add [NC] in front of the scene prompt;   
+18. Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
 
 
 1.Installation
