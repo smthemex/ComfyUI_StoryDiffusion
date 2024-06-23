@@ -998,8 +998,8 @@ class Storydiffusion_Model_Loader:
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "sa64_degree": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
+                "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
             }
         }
 
