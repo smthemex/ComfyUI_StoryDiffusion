@@ -1198,6 +1198,7 @@ class Storydiffusion_Text2Img:
                                                         "appeared in the forest, at night;\n[NC] The car on the road, "
                                                         "near the forest #They drives to the forest in search of "
                                                         "treasure house;\n[Bob]at night #He is overjoyed inside the house;\n[Alice] very frightened, open mouth, in the forest, at night."}),
+                "split_prompt":("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
                                                           "three hands, three legs, bad arms, missing legs, "
@@ -1226,19 +1227,35 @@ class Storydiffusion_Text2Img:
     FUNCTION = "text2image"
     CATEGORY = "Storydiffusion"
 
-    def text2image(self, pipe, info, character_prompt, negative_prompt, scene_prompts, img_style, seed, steps, cfg,
+    def text2image(self, pipe, info, character_prompt, negative_prompt, scene_prompts, split_prompt,img_style, seed, steps, cfg,
                    encoder_repo,
                    role_scale, mask_threshold, start_step):
         model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale = info.split(
             ";")
         lora_scale = float(lora_scale)
 
+        #格式化文字内容
+        if split_prompt:
+            scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
+            character_prompt.replace("\n", "").replace(split_prompt, ";\n").strip()
+        else:
+            scene_prompts.strip()
+            character_prompt.strip()
+            if "\n" not in scene_prompts:
+                scene_prompts.replace(";", ";\n").strip()
+            if "\n" in character_prompt:
+                if character_prompt.count("\n")>1:
+                    character_prompt.replace("\n", "").replace("[", "\n[").strip()
+                    if character_prompt.count("\n") > 1:
+                        character_prompt.replace("\n", "").replace("[", "\n[",2).strip()# 多行角色在这里强行转为双角色
+
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
         char_origin = [char.split("]")[0] + "]" for char in char_origin]
 
-        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         prompts_origin = scene_prompts.splitlines()
+
+        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
         prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
 
@@ -1309,6 +1326,7 @@ class Storydiffusion_Img2Img:
                                                            "[Lecun] a man img,wearing a suit,black hair."}),
                 "scene_prompts": ("STRING", {"multiline": True,
                                              "default": "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Lecun]is walking on the road, go to company;\n[Lecun]work in the company."}),
+                "split_prompt": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
                                                           "three hands, three legs, bad arms, missing legs, "
@@ -1339,7 +1357,7 @@ class Storydiffusion_Img2Img:
     FUNCTION = "img2image"
     CATEGORY = "Storydiffusion"
 
-    def img2image(self, image, pipe, info, character_prompt, negative_prompt, scene_prompts, img_style, seed, steps,
+    def img2image(self, image, pipe, info, character_prompt, negative_prompt, scene_prompts, split_prompt,img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step):
         model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale = info.split(
@@ -1361,9 +1379,25 @@ class Storydiffusion_Img2Img:
             image = tensor_to_image(image)
             image_load = [image]
 
+        #格式化文字内容
+        if split_prompt:
+            scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
+            character_prompt.replace("\n", "").replace(split_prompt, ";\n").strip()
+        else:
+            scene_prompts.strip()
+            character_prompt.strip()
+            if "\n" not in scene_prompts:
+                scene_prompts.replace(";", ";\n").strip()
+            if "\n" in character_prompt:
+                if character_prompt.count("\n")>1:
+                    character_prompt.replace("\n", "").replace("[", "\n[").strip()
+                    if character_prompt.count("\n") > 1:
+                        character_prompt.replace("\n", "").replace("[", "\n[",2).strip()# 多行角色在这里强行转为双角色
+
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
         char_origin = [char.split("]")[0] + "]" for char in char_origin]
+
 
         # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         prompts_origin = scene_prompts.splitlines()
@@ -1426,7 +1460,7 @@ class Comic_Type:
                              "fonts_list": (fonts_lists,),
                              "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
                              "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
-                             "split_lines": ("STRING", {"default": ";"}),
+                             "split_lines": ("STRING", {"default": "；"}),
                              }}
 
     RETURN_TYPES = ("IMAGE",)
