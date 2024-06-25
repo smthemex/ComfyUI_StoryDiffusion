@@ -862,7 +862,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
         return res
 
-    if _model_type == "Using Ref Images":  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
+    if _model_type == "Photomaker":  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
         # load SDXL pipeline
         if _sd_type == "Use_Single_XL_Model":
