@@ -60,7 +60,7 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigge
     use_safetensors = model_info["use_safetensors"]
     model_type = model_info["model_type"]
 
-    if model_type == "original":
+    if model_type == "txt2img":
         if single_files:
             if dif_version_int>=28:
                 pipe = StableDiffusionXLPipeline.from_single_file(
@@ -85,7 +85,7 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigge
                 pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
 
-    elif model_type == "Photomaker":
+    elif model_type == "img2img":
         if single_files:
             #print("loading from a single_files")
             if dif_version_int>=28:
@@ -117,6 +117,6 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigge
 
 
     else:
-        raise NotImplementedError("You should choice between original and Photomaker!",f"But you choice {model_type}")
+        raise f"using{model_type}node,must choice{model_type}type in model_loader node"
     return pipe
 
