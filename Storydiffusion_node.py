@@ -914,8 +914,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     device = "cuda"
 
     ms_dir = os.path.join(dir_path, "weights")
-    photomaker_local_path = get_instance_path(os.path.join(ms_dir, "ms_adapter.bin"))
-
+    photomaker_local_path = os.path.join(ms_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
         ms_path = hf_hub_download(
             repo_id="doge1516/MS-Diffusion",
@@ -925,6 +924,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         )
     else:
         ms_path = photomaker_local_path
+    
 
     ms_ckpt = get_instance_path(ms_path)
     image_processor = CLIPImageProcessor()
