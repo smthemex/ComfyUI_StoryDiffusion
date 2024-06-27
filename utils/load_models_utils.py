@@ -102,9 +102,9 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigge
 
         pipe = pipe.to(device)
         pipe.load_photomaker_adapter(
-            os.path.dirname(photomaker_path),
+            photomaker_path,
             subfolder="",
-            weight_name=os.path.basename(photomaker_path),
+            weight_name="photomaker-v1.bin",
             trigger_word="img"  # define the trigger word
         )
         if lora != "none":
