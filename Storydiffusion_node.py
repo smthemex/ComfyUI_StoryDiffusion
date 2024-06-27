@@ -862,7 +862,7 @@ def process_generation(
     yield total_results
 
 
-def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
+def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
                      original_config_file, role_scale, mask_threshold, start_step):
     def get_phrases_idx(tokenizer, phrases, prompt):
@@ -879,7 +879,7 @@ def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps
         return res
 
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
-        del modle
+        del pipe
         # load SDXL pipeline
         if _sd_type == "Use_Single_XL_Model":
             sd_model_path = ckpt_path
@@ -889,27 +889,27 @@ def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps
 
         if single_files:
             if dif_version_int >= 28:
-                modle = StableDiffusionXLPipeline.from_single_file(
+                pipe = StableDiffusionXLPipeline.from_single_file(
                     sd_model_path, original_config=original_config_file, torch_dtype=torch.float16,
                     add_watermarker=False, )
             else:
-                modle = StableDiffusionXLPipeline.from_single_file(
+                pipe = StableDiffusionXLPipeline.from_single_file(
                     sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
                     add_watermarker=False,
                 )
         else:
-            modle = StableDiffusionXLPipeline.from_pretrained(
+            pipe = StableDiffusionXLPipeline.from_pretrained(
                 sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
             )
 
-        modle.to("cuda")
+        pipe.to("cuda")
         if lora != "none":
             if lora in lora_lightning_list:
-                modle.load_lora_weights(lora_path)
-                modle.fuse_lora()
+                pipe.load_lora_weights(lora_path)
+                pipe.fuse_lora()
             else:
-                modle.load_lora_weights(lora_path, adapter_name=trigger_words)
-                modle.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
+                pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
 
     device = "cuda"
 
@@ -946,12 +946,12 @@ def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps
         heads=20,
         num_queries=num_tokens,
         embedding_dim=image_encoder.config.hidden_size,
-        output_dim=modle.unet.config.cross_attention_dim,
+        output_dim=pipe.unet.config.cross_attention_dim,
         ff_mult=4,
         latent_init_mode=latent_init_mode,
-        phrase_embeddings_dim=modle.text_encoder.config.projection_dim,
+        phrase_embeddings_dim=pipe.text_encoder.config.projection_dim,
     ).to(device, dtype=torch.float16)
-    ms_model = MSAdapter(modle.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
+    ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
     ms_model.to(device, dtype=torch.float16)
 
     input_images = [image_1, image_2]
@@ -984,7 +984,7 @@ def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps
 
     torch.cuda.empty_cache()
     for i, prompt in enumerate(prompts_dual):
-        print(i, prompt)
+        #print(i, prompt)
         #prompt = prompt.replace("(", "").replace(")", "")
         # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
         boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
@@ -992,10 +992,10 @@ def msdiffusion_main(modle, image_1, image_2, prompts_dual, width, height, steps
         drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
 
         # used to get the attention map, return zero if the phrase is not in the prompt
-        phrase_idxes = [get_phrases_idx(modle.tokenizer, phrases[0], prompt)]
-        eot_idxes = [[get_eot_idx(modle.tokenizer, prompt)] * len(phrases[0])]
+        phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
+        eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
         # print(phrase_idxes, eot_idxes)
-        images = ms_model.generate(pipe=modle, pil_images=[input_images], num_samples=num_samples,
+        images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
                                    num_inference_steps=steps,
                                    seed=seed,
                                    prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
@@ -1311,23 +1311,14 @@ class Storydiffusion_Sampler:
             save_results(unet)
 
         if prompts_dual:
-            model = pipe
-            # filename_prefix = ''.join(random.choice("0123456789") for _ in range(4))
-            # image_re_a = image_pil_list[positions_char_1]
-            # image_re_a.save(get_instance_path(os.path.join(file_path, "output", f"{filename_prefix}_a.png")))
-            # image_re_b = image_pil_list[positions_char_2]
-            # image_re_b.save(get_instance_path(os.path.join(file_path, "output", f"{filename_prefix}_b.png")))
-
             if model_type=="txt2img":
-                    # image_a=Image.open(get_instance_path(os.path.join(file_path, "output", f"{filename_prefix}_a.png")))
-                    # image_b =Image.open(get_instance_path(os.path.join(file_path, "output", f"{filename_prefix}_b.png")))
                 image_a=image_pil_list[positions_char_1]
                 image_b = image_pil_list[positions_char_2]
             else:
                 image_a= image_1
                 image_b = image_2
             # del pipe
-            image_dual = msdiffusion_main(model, image_a, image_b, prompts_dual, width, height, steps, seed,
+            image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
                                           lora_path,
                                           lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
