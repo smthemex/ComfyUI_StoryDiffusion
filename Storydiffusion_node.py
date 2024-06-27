@@ -1062,17 +1062,16 @@ class Storydiffusion_Model_Loader:
         photomaker_dir = os.path.join(dir_path, "weights")
         photomaker_local_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
 
-        if model_type == "img2img":
-            if not os.path.exists(photomaker_local_path):
-                photomaker_path = hf_hub_download(
-                    repo_id="TencentARC/PhotoMaker",
-                    filename="photomaker-v1.bin",
-                    repo_type="model",
-                    local_dir=photomaker_dir,
-                )
-            else:
-                photomaker_path = photomaker_local_path
-            photomaker_path=get_instance_path(photomaker_path)
+        if not os.path.exists(photomaker_local_path):
+            photomaker_path = hf_hub_download(
+                repo_id="TencentARC/PhotoMaker",
+                filename="photomaker-v1.bin",
+                repo_type="model",
+                local_dir=photomaker_dir,
+            )
+        else:
+            photomaker_path = get_instance_path(photomaker_local_path)
+
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
