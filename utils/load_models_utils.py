@@ -1,6 +1,6 @@
 import yaml
 import torch
-from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+from diffusers import StableDiffusionXLPipeline, DiffusionPipeline, AutoPipelineForText2Image
 from .pipeline import PhotoMakerStableDiffusionXLPipeline
 import os
 import sys
@@ -63,18 +63,28 @@ def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigge
     if model_type == "txt2img":
         if single_files:
             if dif_version_int>=28:
-                pipe = StableDiffusionXLPipeline.from_single_file(
+                pipe = AutoPipelineForText2Image.from_single_file(
                     pretrained_model_link_or_path=path, original_config=original_config_file, torch_dtype=torch.float16)
+                #
+                # pipe = StableDiffusionXLPipeline.from_single_file(
+                #     pretrained_model_link_or_path=path, original_config=original_config_file, torch_dtype=torch.float16)
 
             else:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    pretrained_model_link_or_path=path, original_config_file=original_config_file, torch_dtype=torch.float16
+                pipe = AutoPipelineForText2Image.from_single_file(
+                    pretrained_model_link_or_path=path, original_config_file=original_config_file,
+                    torch_dtype=torch.float16
                 )
+                # pipe = StableDiffusionXLPipeline.from_single_file(
+                #     pretrained_model_link_or_path=path, original_config_file=original_config_file, torch_dtype=torch.float16
+                # )
 
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(
-                path, torch_dtype=torch.float16,use_safetensors=use_safetensors
+            pipe = AutoPipelineForText2Image.from_pretrained(
+                path, torch_dtype=torch.float16, use_safetensors=use_safetensors
             )
+            # pipe = StableDiffusionXLPipeline.from_pretrained(
+            #     path, torch_dtype=torch.float16,use_safetensors=use_safetensors
+            # )
 
         pipe = pipe.to(device)
         if lora != "none":
