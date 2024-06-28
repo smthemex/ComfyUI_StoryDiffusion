@@ -22,11 +22,11 @@ My ComfyUI node list：
 
 NEW Update
 ---
---加入角色模型保存和加载功能   
---优化模型加载逻辑    
+--为双角色同图引入controlnet，目前仅支持1张或2张controlnet图片引入，主要是考虑数量多了，很多人的显存不一定够用。   
+--加入角色模型保存和加载功能      
 --已知文生图加双角色同图时，只能跑一次，再次跑，需要改一下模型加载的采样器或者别的选项的bug，暂时没时间修复；   
+--Introducing ControlNet for dual character sharing, currently only one or two ControlNet images are supported. This is mainly due to the large number of images, and many people may not have enough graphics memory.  
 --Add the function of saving and loading character models   
---Optimize model loading logic   
 --It is known that when adding dual characters to the Wensheng diagram, it can only be run once. If you run it again, you need to fix the bug in the sampler or other options loaded on the model. There is currently no time to fix it;   
 
 Notice（节点的菜单功能说明 Special Function Description of Nodes Menu）  
@@ -223,9 +223,35 @@ Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-1
 
 make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
 
+3.4 双角色controlnet的模型文件示例如下，仅支持SDXL controlnet(The model file example for dual role controllnet is as follows, which only supports SDXL controllnet) 
+```
+├── ComfyUI/models/diffusers/   
+|     ├──xinsir/controlnet-openpose-sdxl-1.0    
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──xinsir/controlnet-scribble-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──diffusers/controlnet-canny-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──diffusers/controlnet-depth-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──TheMistoAI/MistoLine 
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors    
+```
+control_img图片的预处理，请使用其他节点(Control_img image preprocessing, please use other nodes)  
+
 4 Example
 ----
-img2img 图生图最新的流程
+txt2img and 2role in 1img  文生图双角色同框加双controlnet最新的流程
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img2controlnetimg.png)
+
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgcontronet.png)
+
+img2img 图生图
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img.png)
 
 
