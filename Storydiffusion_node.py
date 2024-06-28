@@ -51,6 +51,7 @@ from .utils.pipeline import PhotoMakerStableDiffusionXLPipeline
 import folder_paths
 from comfy.utils import common_upscale
 
+
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
 global write
@@ -83,6 +84,26 @@ global lora_get
 lora_get = get_lora_dict()
 lora_lightning_list = lora_get["lightning_xl_lora"]
 # print(lora_lightning_list)
+
+control_paths = []
+paths_a = []
+for search_path in folder_paths.get_folder_paths("diffusers"):
+    if os.path.exists(search_path):
+        for root, subdir, files in os.walk(search_path, followlinks=True):
+            if "model_index.json" in files:
+                control_paths.append(os.path.relpath(root, start=search_path))
+            if "config.json" in files:
+                paths_a.append(os.path.relpath(root, start=search_path))
+                paths_a = ([z for z in paths_a if "controlnet-canny-sdxl-1.0" in z]
+                           + [p for p in paths_a if "MistoLine" in p]
+                           + [o for o in paths_a if "lcm-sdxl" in o]
+                           + [Q for Q in paths_a if "controlnet-openpose-sdxl-1.0" in Q]
+                           + [Z for Z in paths_a if "controlnet-scribble-sdxl-1.0" in Z])
+
+if control_paths != [] or paths_a != []:
+    control_paths = ["none"] + [x for x in control_paths if x] + [y for y in paths_a if y]
+else:
+    control_paths = ["none", ]
 
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
@@ -862,9 +883,16 @@ def process_generation(
     yield total_results
 
 
+def nomarl_upscale(img, width, height):
+    samples = img.movedim(-1, 1)
+    img = common_upscale(samples, width, height, "nearest-exact", "center")
+    samples = img.movedim(1, -1)
+    img = tensor_to_image(samples)
+    return img
+
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
-                     original_config_file, role_scale, mask_threshold, start_step):
+                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
         phrase_cnt = {}
@@ -877,7 +905,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                 phrase_cnt[phrase] = 1
             res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
         return res
-
+    #device = "cuda"
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
         # load SDXL pipeline
@@ -886,23 +914,39 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         else:
             sd_model_path = models_dict[_sd_type]["path"]  # diffuser models
         single_files = models_dict[_sd_type]["single_files"]
-
-        if single_files:
-            if dif_version_int >= 28:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config=original_config_file, torch_dtype=torch.float16,
-                    add_watermarker=False, )
+        if controlnet_model_path!="none":
+            controlnet_model_path=get_instance_path(get_local_path(file_path, controlnet_model_path))
+            controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
+                                                         torch_dtype=torch.float16).to(device)
+            if single_files:
+                if dif_version_int >= 28:
+                    pipe = StableDiffusionXLControlNetPipeline.from_single_file(
+                        sd_model_path, original_config=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
+                        add_watermarker=False, ).to(device)
+                else:
+                    pipe = StableDiffusionXLControlNetPipeline.from_single_file(
+                        sd_model_path, original_config_file=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
+                        add_watermarker=False,
+                    ).to(device)
             else:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
-                    add_watermarker=False,
-                )
+                pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,controlnet = controlnet,
+                ).to(device)
         else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(
-                sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
-            )
-
-        pipe.to("cuda")
+            if single_files:
+                if dif_version_int >= 28:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                        sd_model_path, original_config=original_config_file, torch_dtype=torch.float16,
+                        add_watermarker=False, ).to(device)
+                else:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                        sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
+                        add_watermarker=False,
+                    ).to(device)
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
+                ).to(device)
         if lora != "none":
             if lora in lora_lightning_list:
                 pipe.load_lora_weights(lora_path)
@@ -910,9 +954,12 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             else:
                 pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-
-    device = "cuda"
-
+    else:
+        if controlnet_model_path != "none":
+            controlnet_model_path = get_instance_path(get_local_path(file_path, controlnet_model_path))
+            controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
+                                                         torch_dtype=torch.float16).to(device)
+            pipe=StableDiffusionXLControlNetPipeline.from_pipe(pipe,controlnet = controlnet).to(device)
     ms_dir = os.path.join(dir_path, "weights")
     photomaker_local_path = os.path.join(ms_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
@@ -924,14 +971,10 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         )
     else:
         ms_path = photomaker_local_path
-    
-
     ms_ckpt = get_instance_path(ms_path)
     image_processor = CLIPImageProcessor()
-
     if encoder_repo.count("/") > 1:
         encoder_repo = get_instance_path(encoder_repo)
-
     image_encoder_type = "clip"
     image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo).to(device, dtype=torch.float16)
     image_encoder_projection_dim = image_encoder.config.projection_dim
@@ -983,31 +1026,71 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     #print(prompts_dual)
 
     torch.cuda.empty_cache()
-    for i, prompt in enumerate(prompts_dual):
-        #print(i, prompt)
-        #prompt = prompt.replace("(", "").replace(")", "")
-        # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
-        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
-        phrases = [[role_a, role_b]]
-        drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
+    if controlnet_model_path!="none":
+        d1, _, _, _ = control_image.size()
+        if d1 == 2:
+            image_1, image_2 = torch.chunk(control_image, chunks=2)
+            control_img_list = [image_1] + [image_2]
+            control_img_list=[nomarl_upscale(img, width, height) for img in control_img_list]
+        elif d1==1:
+            control_img_list = [nomarl_upscale(control_image, width, height)]
+        else:
+            raise "1 or 2 control net img input"
+        j=0
+        #control_image.save("asdasd.png")
+        for i, prompt in enumerate(prompts_dual):
+            control_image=control_img_list[j]
+            j+=1
+            # print(i, prompt)
+            # prompt = prompt.replace("(", "").replace(")", "")
+            # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+            boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
+            phrases = [[role_a, role_b]]
+            drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
 
-        # used to get the attention map, return zero if the phrase is not in the prompt
-        phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
-        eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
-        # print(phrase_idxes, eot_idxes)
-        images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
-                                   num_inference_steps=steps,
-                                   seed=seed,
-                                   prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
-                                   image_encoder=image_encoder,
-                                   image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
-                                   start_step=start_step,
-                                   image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
-                                   phrases=phrases,
-                                   drop_grounding_tokens=drop_grounding_tokens,
-                                   phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width)
+            # used to get the attention map, return zero if the phrase is not in the prompt
+            phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
+            eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
+            # print(phrase_idxes, eot_idxes)
+            images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                                       num_inference_steps=steps,
+                                       seed=seed,
+                                       prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
+                                       image_encoder=image_encoder,
+                                       image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
+                                       start_step=start_step,
+                                       image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
+                                       phrases=phrases,
+                                       drop_grounding_tokens=drop_grounding_tokens,
+                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width,image=control_image,ontrolnet_conditioning_scale=controlnet_scale)
 
-        image_ouput += images
+            image_ouput += images
+    else:
+        for i, prompt in enumerate(prompts_dual):
+            # print(i, prompt)
+            # prompt = prompt.replace("(", "").replace(")", "")
+            # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+            boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
+            phrases = [[role_a, role_b]]
+            drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
+
+            # used to get the attention map, return zero if the phrase is not in the prompt
+            phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
+            eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
+            # print(phrase_idxes, eot_idxes)
+            images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                                       num_inference_steps=steps,
+                                       seed=seed,
+                                       prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
+                                       image_encoder=image_encoder,
+                                       image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
+                                       start_step=start_step,
+                                       image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
+                                       phrases=phrases,
+                                       drop_grounding_tokens=drop_grounding_tokens,
+                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width)
+
+            image_ouput += images
     return image_ouput
 
 
@@ -1059,9 +1142,8 @@ class Storydiffusion_Model_Loader:
         ckpt_path = get_instance_path(ckpt_path)
         scheduler_choice = get_scheduler(scheduler)
 
-        photomaker_dir = os.path.join(dir_path, "weights")
+        photomaker_dir = get_instance_path(os.path.join(dir_path, "weights"))
         photomaker_local_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
-
         if not os.path.exists(photomaker_local_path):
             photomaker_path = hf_hub_download(
                 repo_id="TencentARC/PhotoMaker",
@@ -1071,7 +1153,6 @@ class Storydiffusion_Model_Loader:
             )
         else:
             photomaker_path = get_instance_path(photomaker_local_path)
-
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
@@ -1122,9 +1203,9 @@ class Storydiffusion_Model_Loader:
                 pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
                     sd_model_path, torch_dtype=torch.float16)
                 pipe.load_photomaker_adapter(
-                    os.path.dirname(photomaker_path),
+                   photomaker_path,
                     subfolder="",
-                    weight_name=os.path.basename(photomaker_path),
+                    weight_name="photomaker-v1.bin",
                     trigger_word="img",  # define the trigger word
                 )
             else:
@@ -1203,9 +1284,13 @@ class Storydiffusion_Sampler:
                 "mask_threshold": (
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "start_step": ("INT", {"default": 5, "min": 1, "max": 1024}),
-                "save_character": ("BOOLEAN", {"default": False},)
+                "save_character": ("BOOLEAN", {"default": False},),
+                "controlnet_model_path": (control_paths,),
+                "controlnet_scale": (
+                    "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
             },
-            "optional": {"image": ("IMAGE",),}
+            "optional": {"image": ("IMAGE",),
+            "control_image": ("IMAGE",),}
         }
 
     RETURN_TYPES = ("IMAGE", "STRING",)
@@ -1215,11 +1300,12 @@ class Storydiffusion_Sampler:
 
     def story_sampler(self, info,pipe, character_prompt, negative_prompt, scene_prompts, split_prompt,img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
-                  role_scale, mask_threshold, start_step,save_character,**kwargs):
+                  role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,**kwargs):
         unet = pipe.unet
         model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale,char_files = info.split(
             ";")
         lora_scale = float(lora_scale)
+
         if char_files=="none":
             load_chars=False
         else:
@@ -1312,25 +1398,30 @@ class Storydiffusion_Sampler:
             save_results(unet)
 
         if prompts_dual:
-            if model_type=="txt2img":
-                image_a=image_pil_list[positions_char_1]
-                image_b = image_pil_list[positions_char_2]
-            else:
-                image_a= image_1
-                image_b = image_2
+            control_image = None
+            if controlnet_model_path!="none":
+                control_image = kwargs["control_image"]
+            # if model_type=="txt2img":
+            #     image_a=image_pil_list[positions_char_1]
+            #     image_b = image_pil_list[positions_char_2]
+            # else:
+            #     image_a= image_1
+            #     image_b = image_2
+            image_a = image_pil_list[positions_char_1]
+            image_b = image_pil_list[positions_char_2]
             # del pipe
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
                                           lora_path,
                                           lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
-                                          mask_threshold, start_step)
+                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale)
             j = 0
             for i in positions_dual:
                 img = image_dual[j]
                 image_pil_list.insert(int(i), img)
                 j += 1
             image_list = narry_list(image_pil_list)
-            #del image_dual
+            del image_dual
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
