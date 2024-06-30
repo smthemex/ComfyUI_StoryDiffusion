@@ -11,6 +11,7 @@ import random
 
 import yaml
 from PIL import ImageFont
+from diffusers.image_processor import IPAdapterMaskProcessor
 from ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 import re
@@ -205,11 +206,13 @@ def get_image_path_list(folder_name):
 
 def apply_style_positive(style_name: str, positive: str):
     p, n = styles.get(style_name, styles[style_name])
+    #print(p, "test0", n)
     return p.replace("{prompt}", positive)
 
 
 def apply_style(style_name: str, positives: list, negative: str = ""):
     p, n = styles.get(style_name, styles[style_name])
+    #print(p,"test1",n)
     return [
         p.replace("{prompt}", positive) for positive in positives
     ], n + " " + negative
@@ -693,7 +696,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words
+        trigger_words,
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -779,6 +782,7 @@ def process_generation(
     total_results = []
     id_images = []
     results_dict = {}
+    p_num=0
     global cur_character
     if not load_chars:
         for character_key in character_dict.keys():
@@ -791,6 +795,8 @@ def process_generation(
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
+            #print("test2",cur_positive_prompts,"test2",negative_prompt,"test2")
+            #print("21",cur_positive_prompts[p_num],"21")
             if model_type == "txt2img":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -799,9 +805,8 @@ def process_generation(
                     height=height,
                     width=width,
                     negative_prompt=negative_prompt,
-                    generator=generator,
+                    generator=generator
                 ).images
-
             elif model_type == "img2img":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -812,14 +817,14 @@ def process_generation(
                     height=height,
                     width=width,
                     negative_prompt=negative_prompt,
-                    generator=generator,
+                    generator=generator
                 ).images
             else:
                 raise NotImplementedError(
                     "You should choice between original and Photomaker!",
                     f"But you choice {model_type}",
                 )
-
+            #p_num+=1
             # total_results = id_images + total_results
             # yield total_results
             for ind, img in enumerate(id_images):
@@ -892,7 +897,7 @@ def nomarl_upscale(img, width, height):
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
-                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale):
+                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
         phrase_cnt = {}
@@ -905,7 +910,6 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                 phrase_cnt[phrase] = 1
             res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
         return res
-    #device = "cuda"
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
         # load SDXL pipeline
@@ -1022,24 +1026,20 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     for x in char_describe:
         item_x+=x
     prompts_dual = [item_x+item for item in prompts_dual ]
-
-    #print(prompts_dual)
+    prompts_dual = [item.replace("("," ",1).replace(")"," ",1) for item in prompts_dual]
 
     torch.cuda.empty_cache()
     if controlnet_model_path!="none":
         d1, _, _, _ = control_image.size()
-        if d1 == 2:
-            image_1, image_2 = torch.chunk(control_image, chunks=2)
-            control_img_list = [image_1] + [image_2]
-            control_img_list=[nomarl_upscale(img, width, height) for img in control_img_list]
-        elif d1==1:
-            control_img_list = [nomarl_upscale(control_image, width, height)]
+        if d1==1:
+            control_img_list = [control_image]
         else:
-            raise "1 or 2 control net img input"
+            control_img_list = torch.chunk(control_image, chunks=d1)
         j=0
-        #control_image.save("asdasd.png")
+
         for i, prompt in enumerate(prompts_dual):
             control_image=control_img_list[j]
+            control_image=nomarl_upscale(control_image, width, height)
             j+=1
             # print(i, prompt)
             # prompt = prompt.replace("(", "").replace(")", "")
@@ -1257,10 +1257,10 @@ class Storydiffusion_Sampler:
                 "info": ("STRING", {"forceInput": True, "default": ""}),
                 "pipe": ("MODEL",),
                 "character_prompt": ("STRING", {"multiline": True,
-                                                "default": "[Taylor]a woman img, wearing a white T-shirt, blue loose hair.\n"
+                                                "default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n"
                                                            "[Lecun] a man img,wearing a suit,black hair."}),
                 "scene_prompts": ("STRING", {"multiline": True,
-                                             "default": "[Taylor]wake up in the bed;\n[Taylor]have breakfast by the window;\n[Lecun]is walking on the road, go to company;\n[Lecun]work in the company."}),
+                                             "default": "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;\n[Lecun] drving on the road,medium shot;\n[Lecun]work in the company."}),
                 "split_prompt": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
@@ -1268,7 +1268,7 @@ class Storydiffusion_Sampler:
                                                           "missing arms, poorly drawn face, bad face, fused face, "
                                                           "cloned face, three crus, fused feet, fused thigh, "
                                                           "extra crus, ugly fingers, horn,"
-                                                          "animate, amputation, disconnected limbs"}),
+                                                          "amputation, disconnected limbs"}),
                 "img_style": (
                     ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
                      "Photographic", "Comic_book",
@@ -1301,11 +1301,10 @@ class Storydiffusion_Sampler:
     def story_sampler(self, info,pipe, character_prompt, negative_prompt, scene_prompts, split_prompt,img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,**kwargs):
-        unet = pipe.unet
+
         model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale,char_files = info.split(
             ";")
         lora_scale = float(lora_scale)
-
         if char_files=="none":
             load_chars=False
         else:
@@ -1344,20 +1343,11 @@ class Storydiffusion_Sampler:
         if model_type=="img2img":
             image=kwargs["image"]
             d1, _, _, _ = image.size()
-            if d1 == 2:
-                image_1, image_2 = torch.chunk(image, chunks=2)
-                image_1 = tensor_to_image(image_1)
-                image_2 = tensor_to_image(image_2)
-                image_load = [image_1] + [image_2]
-            elif d1 == 3:
-                image_1, image_2, image_3 = torch.chunk(image, chunks=3)
-                image_1 = tensor_to_image(image_1)
-                image_2 = tensor_to_image(image_2)
-                image_3 = tensor_to_image(image_3)
-                image_load = [image_1] + [image_2] + [image_3]
+            if d1 == 1:
+                image_load = [nomarl_upscale(image, width, height)]
             else:
-                image = tensor_to_image(image)
-                image_load = [image]
+                img_list = list(torch.chunk(image, chunks=d1))
+                image_load = [nomarl_upscale(img, width, height) for img in img_list]
 
             gen = process_generation(pipe, image_load, model_type, steps, img_style, ip_adapter_strength,
                                      style_strength_ratio, cfg,
@@ -1369,7 +1359,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words, )
+                                     trigger_words,)
 
         else:
             upload_images = None
@@ -1385,7 +1375,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words, )
+                                     trigger_words,)
 
 
         for value in gen:
@@ -1395,21 +1385,14 @@ class Storydiffusion_Sampler:
 
         if save_character:
             print("saving character...")
-            save_results(unet)
+            save_results(pipe.unet)
 
         if prompts_dual:
             control_image = None
             if controlnet_model_path!="none":
                 control_image = kwargs["control_image"]
-            # if model_type=="txt2img":
-            #     image_a=image_pil_list[positions_char_1]
-            #     image_b = image_pil_list[positions_char_2]
-            # else:
-            #     image_a= image_1
-            #     image_b = image_2
             image_a = image_pil_list[positions_char_1]
             image_b = image_pil_list[positions_char_2]
-            # del pipe
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
                                           lora_path,
