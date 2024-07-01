@@ -99,7 +99,11 @@ for search_path in folder_paths.get_folder_paths("diffusers"):
                            + [p for p in paths_a if "MistoLine" in p]
                            + [o for o in paths_a if "lcm-sdxl" in o]
                            + [Q for Q in paths_a if "controlnet-openpose-sdxl-1.0" in Q]
-                           + [Z for Z in paths_a if "controlnet-scribble-sdxl-1.0" in Z])
+                           + [Z for Z in paths_a if "controlnet-scribble-sdxl-1.0" in Z]
+                           + [a for a in paths_a if "controlnet-depth-sdxl-1.0" in a]
+                           +[b for b in paths_a if "controlnet-tile-sdxl-1.0" in b]
+                           +[c for c in paths_a if "controlnet-zoe-depth-sdxl-1.0" in c]
+                           +[d for d in paths_a if "sdxl-controlnet-seg " in d])
 
 if control_paths != [] or paths_a != []:
     control_paths = ["none"] + [x for x in control_paths if x] + [y for y in paths_a if y]
@@ -111,7 +115,6 @@ scheduler_list = [
     "DPM++ SDE", "DPM++ SDE Karras", "DPM2",
     "DPM2 Karras", "DPM2 a", "DPM2 a Karras", "Heun", "LCM", "LMS", "LMS Karras", "UniPC"
 ]
-
 
 def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
@@ -458,7 +461,8 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
         global sa32, sa64
         global write
         global height, width
-        global character_dict, character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, cur_character
+        global character_dict
+        global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, cur_character
         if attn_count == 0 and cur_step == 0:
             indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
                 self.total_length,
@@ -721,15 +725,16 @@ def process_generation(
             prompts = remove_punctuation_from_strings(prompts)
             prompts = [item + add_trigger_words for item in prompts]
 
-    global character_dict, character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
+    global  character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
+    global character_dict
 
     character_dict, character_list = character_to_dict(general_prompt, lora, add_trigger_words)
+    #print(character_dict)
     start_merge_step = int(float(_style_strength_ratio) / 100 * _num_steps)
     if start_merge_step > 30:
         start_merge_step = 30
     print(f"start_merge_step:{start_merge_step}")
     generator = torch.Generator(device=device).manual_seed(seed_)
-    # sa32, sa64 = sa32_, sa64_
     clipped_prompts = prompts[:]
     nc_indexs = []
     for ind, prompt in enumerate(clipped_prompts):
@@ -762,7 +767,8 @@ def process_generation(
         replace_prompts,
         ref_indexs_dict,
         ref_totals,
-    ) = process_original_prompt(character_dict, prompts.copy(), id_length)
+    ) = process_original_prompt(character_dict, prompts, id_length)
+
     if model_type == "img2img":
         # _upload_images = [_upload_images]
         input_id_images_dict = {}
@@ -795,8 +801,8 @@ def process_generation(
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            #print("test2",cur_positive_prompts,"test2",negative_prompt,"test2")
-            #print("21",cur_positive_prompts[p_num],"21")
+            # print("test2",cur_positive_prompts,"test2",negative_prompt,"test2")
+            # print("21",cur_positive_prompts[p_num],"21")
             if model_type == "txt2img":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -894,23 +900,11 @@ def nomarl_upscale(img, width, height):
     samples = img.movedim(1, -1)
     img = tensor_to_image(samples)
     return img
-def input_size_adaptation_output(img_tensor,base_in, width, height):
-    #basein=512
-    if width == height:
-        img_pil = nomarl_upscale(img_tensor, base_in, base_in)  # 2pil
-    else:
-        if min(1,width/ height)==1: #高
-            r=height/base_in
-            img_pil = nomarl_upscale(img_tensor, round(width/r), base_in)  # 2pil
-        else: #宽
-            r=width/base_in
-            img_pil = nomarl_upscale(img_tensor, base_in, round(height/r))  # 2pil
-        img_pil.resize((width,height))
-    return img_pil
+
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
-                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,):
+                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
         phrase_cnt = {}
@@ -1015,7 +1009,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     ms_model.to(device, dtype=torch.float16)
 
     input_images = [image_1, image_2]
-    #input_images = [x.convert("RGB").resize((width, height)) for x in input_images]
+    input_images = [x.resize((width, height)) for x in input_images]
     # generation configs
     num_samples = 1
     image_ouput = []
@@ -1039,8 +1033,15 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         item_x+=x
     prompts_dual = [item_x+item for item in prompts_dual ]
     prompts_dual = [item.replace("("," ",1).replace(")"," ",1) for item in prompts_dual]
-
+    print(prompts_dual)
     torch.cuda.empty_cache()
+    if layout_guidance:
+        boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+    else:
+        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
+    phrases = [[role_a, role_b]]
+    drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
+
     if controlnet_model_path!="none":
         d1, _, _, _ = control_image.size()
         if d1==1:
@@ -1048,18 +1049,10 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         else:
             control_img_list = torch.chunk(control_image, chunks=d1)
         j=0
-
         for i, prompt in enumerate(prompts_dual):
             control_image=control_img_list[j]
-            control_image=input_size_adaptation_output(control_image, 512, width, height)
+            control_image=nomarl_upscale(control_image, width, height)
             j+=1
-            # print(i, prompt)
-            # prompt = prompt.replace("(", "").replace(")", "")
-            # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
-            boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
-            phrases = [[role_a, role_b]]
-            drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
-
             # used to get the attention map, return zero if the phrase is not in the prompt
             phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
             eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
@@ -1079,13 +1072,6 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             image_ouput += images
     else:
         for i, prompt in enumerate(prompts_dual):
-            # print(i, prompt)
-            # prompt = prompt.replace("(", "").replace(")", "")
-            # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
-            boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
-            phrases = [[role_a, role_b]]
-            drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
-
             # used to get the attention map, return zero if the phrase is not in the prompt
             phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
             eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
@@ -1200,7 +1186,6 @@ class Storydiffusion_Model_Loader:
             sd_model_path = ckpt_path
         else:
             sd_model_path = models_dict[sd_type]["path"]  # diffuser models
-        single_files = models_dict[sd_type]["single_files"]
         if sd_type != "Playground_v2p5" or sd_type != "Playground_v2p5":  # load stable model
             model_info = models_dict[sd_type]
             model_info["model_type"] = model_type
@@ -1300,6 +1285,7 @@ class Storydiffusion_Sampler:
                 "controlnet_model_path": (control_paths,),
                 "controlnet_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "layout_guidance": ("BOOLEAN", {"default": True},),
             },
             "optional": {"image": ("IMAGE",),
             "control_image": ("IMAGE",),}
@@ -1312,7 +1298,7 @@ class Storydiffusion_Sampler:
 
     def story_sampler(self, info,pipe, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
-                  role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,**kwargs):
+                  role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
 
         model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale,char_files = info.split(
             ";")
@@ -1408,9 +1394,9 @@ class Storydiffusion_Sampler:
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
                                           lora_path,lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
-                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale)
+                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance)
             j = 0
-            for i in positions_dual:
+            for i in positions_dual: #重新将双人场景插入原序列
                 img = image_dual[j]
                 image_pil_list.insert(int(i), img)
                 j += 1
