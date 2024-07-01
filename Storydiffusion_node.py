@@ -1137,8 +1137,8 @@ class Storydiffusion_Model_Loader:
     FUNCTION = "story_model_loader"
     CATEGORY = "Storydiffusion"
 
-    def story_model_loader(self, sd_type, ckpt_name, character_weights, lora, lora_scale, scheduler, trigger_words,
-                           model_type, sa32_degree, sa64_degree, id_number, img_width, img_height):
+    def story_model_loader(self, sd_type, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height):
 
         if character_weights!="none":
             character_weights_path = get_instance_path(os.path.join(base_pt, character_weights))
@@ -1310,7 +1310,7 @@ class Storydiffusion_Sampler:
     FUNCTION = "story_sampler"
     CATEGORY = "Storydiffusion"
 
-    def story_sampler(self, info,pipe, character_prompt, negative_prompt, scene_prompts, split_prompt,img_style, seed, steps,
+    def story_sampler(self, info,pipe, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,**kwargs):
 
@@ -1407,8 +1407,7 @@ class Storydiffusion_Sampler:
             image_b = image_pil_list[positions_char_2]
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
-                                          lora_path,
-                                          lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
+                                          lora_path,lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
                                           mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale)
             j = 0
             for i in positions_dual:
