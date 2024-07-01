@@ -22,10 +22,10 @@ My ComfyUI node list：
 
 NEW Update
 ---
---为双角色同图引入controlnet，目前仅支持1张或2张controlnet图片引入，主要是考虑数量多了，很多人的显存不一定够用。   
+--为双角色同图引入controlnet，支持多图引入，但是计划剥离MS-diffusion，2个方法在一起不好玩。 
 --加入角色模型保存和加载功能      
 --已知文生图加双角色同图时，只能跑一次，再次跑，需要改一下模型加载的采样器或者别的选项的bug，暂时没时间修复；   
---Introducing ControlNet for dual character sharing, currently only one or two ControlNet images are supported. This is mainly due to the large number of images, and many people may not have enough graphics memory.  
+--Introducing Controlnet for dual character co image, supporting multi image introduction, but planning to split MS diffusion, combining the two methods is not fun.  
 --Add the function of saving and loading character models   
 --It is known that when adding dual characters to the Wensheng diagram, it can only be run once. If you run it again, you need to fix the bug in the sampler or other options loaded on the model. There is currently no time to fix it;   
 
