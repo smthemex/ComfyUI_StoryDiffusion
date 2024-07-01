@@ -22,10 +22,11 @@ My ComfyUI node list：
 
 NEW Update
 ---
---为双角色同图引入controlnet，支持多图引入，但是计划剥离MS-diffusion，2个方法在一起不好玩。 
+--修复controlnet加载菜单的bug；   
+--为双角色同图引入controlnet，并支持多图引入（MS还是保留吧，剔除了有些人又不想装2个插件。 ）  
 --加入角色模型保存和加载功能      
---已知文生图加双角色同图时，只能跑一次，再次跑，需要改一下模型加载的采样器或者别的选项的bug，暂时没时间修复；   
---Introducing Controlnet for dual character co image, supporting multi image introduction, but planning to split MS diffusion, combining the two methods is not fun.  
+--已知文生图加双角色同图时，只能跑一次，再次跑如果报错，只需切换一下模型加载的采样器或者别的选项的，这个bug暂时没时间修复；   
+--Introducing Controlnet for dual character co image, supporting multi image introduction, 
 --Add the function of saving and loading character models   
 --It is known that when adding dual characters to the Wensheng diagram, it can only be run once. If you run it again, you need to fix the bug in the sampler or other options loaded on the model. There is currently no time to fix it;   
 
@@ -238,14 +239,25 @@ make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co
 |     ├──diffusers/controlnet-depth-sdxl-1.0   
 |         ├── config.json   
 |         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──/controlnet-zoe-depth-sdxl-1.0  
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──TheMistoAI/MistoLine 
 |         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors    
+|         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──xinsir/controlnet-tile-sdxl-1.0
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+   
 ```
 control_img图片的预处理，请使用其他节点(Control_img image preprocessing, please use other nodes)  
 
 4 Example
 ----
+
+txt2img and 2role in 1img using 4 controlnet   文生图双角色同框加多controlnet控制，跑多少张看你的配置了。
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png)
+
 txt2img and 2role in 1img  文生图双角色同框加双controlnet最新的流程
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img2controlnetimg.png)
 
