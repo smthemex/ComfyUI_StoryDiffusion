@@ -60,6 +60,9 @@ Notice（节点的菜单功能说明 Special Function Description of Nodes Menu�
 --mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
 -- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
 --save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
+--controlnet_model_path: controlnet的模型加载，这是需要config文件的加载方式，无法兼容comfyUI常规的单模型（比起单模型，只需要多下一个几K的config文件而已）；  
+--controlnet_scale:  controlne权重；   
+--layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
 
 --<Comic_Type>    
 --fonts_list： 拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）；
@@ -97,7 +100,10 @@ Notice（节点的菜单功能说明 Special Function Description of Nodes Menu�
 --Role-scale: only effective when two characters are in the same image, controlling the weight of the characters in the image;   
 --Mask_threshold: It is only effective when two roles are in the same picture, and controls the position of the role in the picture (MS system automatically assigns the role position according to prompt, so appropriate role position information description can be added to prompt);   
 --Start_step: Only effective when two characters are in the same image, controlling the number of starting steps for the character's position in the image   
---Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;   
+--Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;  
+--Controlnet_modelpath: Controlnet's model loading requires a configuration file, which is not compatible with the conventional single model of comfyUI (compared to a single model, only a few K more configuration files need to be added);   
+--Controllet_scale: control ne weight;   
+--Layout_guidance: Is automatic layout enabled? (If automatic layout is enabled, it is best to have clear location information in the prompt, such as on the left and where...)..., For example, up and down, etc;    
 
 --<Comic_Type>      
 --Fonts list: The puzzle node supports custom fonts (place the font file in the fonts directory. fonts/you_font. ttf);   
