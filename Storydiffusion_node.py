@@ -894,6 +894,19 @@ def nomarl_upscale(img, width, height):
     samples = img.movedim(1, -1)
     img = tensor_to_image(samples)
     return img
+def input_size_adaptation_output(img_tensor,base_in, width, height):
+    #basein=512
+    if width == height:
+        img_pil = nomarl_upscale(img_tensor, base_in, base_in)  # 2pil
+    else:
+        if min(1,width/ height)==1: #高
+            r=height/base_in
+            img_pil = nomarl_upscale(img_tensor, round(width/r), base_in)  # 2pil
+        else: #宽
+            r=width/base_in
+            img_pil = nomarl_upscale(img_tensor, base_in, round(height/r))  # 2pil
+        img_pil.resize((width,height))
+    return img_pil
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
@@ -1002,8 +1015,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     ms_model.to(device, dtype=torch.float16)
 
     input_images = [image_1, image_2]
-    input_images = [x.convert("RGB").resize((width, height)) for x in input_images]
-
+    #input_images = [x.convert("RGB").resize((width, height)) for x in input_images]
     # generation configs
     num_samples = 1
     image_ouput = []
@@ -1039,7 +1051,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
 
         for i, prompt in enumerate(prompts_dual):
             control_image=control_img_list[j]
-            control_image=nomarl_upscale(control_image, width, height)
+            control_image=input_size_adaptation_output(control_image, 512, width, height)
             j+=1
             # print(i, prompt)
             # prompt = prompt.replace("(", "").replace(")", "")
