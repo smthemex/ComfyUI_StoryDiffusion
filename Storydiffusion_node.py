@@ -1285,7 +1285,7 @@ class Storydiffusion_Sampler:
                 "controlnet_model_path": (control_paths,),
                 "controlnet_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "layout_guidance": ("BOOLEAN", {"default": True},),
+                "layout_guidance": ("BOOLEAN", {"default": False},),
             },
             "optional": {"image": ("IMAGE",),
             "control_image": ("IMAGE",),}
