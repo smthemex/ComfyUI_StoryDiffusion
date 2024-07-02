@@ -1,0 +1,334 @@
+{
+  "last_node_id": 6,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 5,
+      "type": "SaveImage",
+      "pos": [
+        1471,
+        523
+      ],
+      "size": [
+        437.18388429752076,
+        435.6611570247934
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5,
+          "label": "images"
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "Comic_Type",
+      "pos": [
+        1475,
+        267
+      ],
+      "size": [
+        431.68388429752076,
+        203.1611570247934
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 3,
+          "label": "image"
+        },
+        {
+          "name": "scene_prompts",
+          "type": "STRING",
+          "link": 4,
+          "widget": {
+            "name": "scene_prompts"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Comic_Type"
+      },
+      "widgets_values": [
+        "",
+        "Inkfree.ttf",
+        40,
+        "Four_Pannel",
+        "；"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        968,
+        179
+      ],
+      "size": [
+        475.57934908817697,
+        730.8343863124103
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": 1,
+          "label": "pipe"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 6,
+          "label": "image",
+          "slot_index": 1
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 2,
+          "widget": {
+            "name": "info"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            3
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": [
+            4
+          ],
+          "shape": 3,
+          "label": "prompt_array",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "",
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.",
+        "[Taylor]wake up in the bed,medium shot;\n[NC] a panda in the bed;\n[NC] a cat is walking# a wooden house in the farmer.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "Japanese_Anime",
+        1770693015,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        false
+      ]
+    },
+    {
+      "id": 1,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        569,
+        212
+      ],
+      "size": {
+        "0": 315,
+        "1": 366
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "links": [
+            1
+          ],
+          "shape": 3,
+          "label": "pipe",
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            2
+          ],
+          "shape": 3,
+          "label": "info",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "SDXL",
+        "0SDXL\\juggernautXL_v8Rundiffusion.safetensors",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler",
+        "img2img",
+        1,
+        0.5,
+        0.5,
+        768,
+        768
+      ]
+    },
+    {
+      "id": 6,
+      "type": "LoadImage",
+      "pos": [
+        585,
+        636
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ],
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "gakki.png",
+        "image"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      3,
+      "STRING"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      2,
+      1,
+      4,
+      1,
+      "STRING"
+    ],
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      6,
+      0,
+      2,
+      1,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.2100000000000002,
+      "offset": [
+        -423.0026324241741,
+        -64.17297513323041
+      ]
+    }
+  },
+  "version": 0.4
+}
