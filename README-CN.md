@@ -1,83 +1,110 @@
 # ComfyUI_StoryDiffusion
-You can using StoryDiffusion in ComfyUI 
+本节点主要方法来源于StoryDiffusion，部分内容也来源于MS-Diffusion，感谢他们的开源！
 
-StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)   
-MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
+StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)   
+MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 ----
-My ComfyUI node list：
+我的其他comfyUI插件：
 -----
 
-1、ParlerTTS node:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
-2、Llama3_8B node:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
-3、HiDiffusion node：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
-4、ID_Animator node： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
-5、StoryDiffusion node：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
-6、Pops node：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
-7、stable-audio-open-1.0 node ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
-8、GLM4 node：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
-9、CustomNet node：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
-10、Pipeline_Tool node :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
-11、Pic2Story node :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
-12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)   
+1、ParlerTTS node （ParlerTTS英文的音频节点）:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
+2、Llama3_8B node（羊驼3的节点，也兼容了其他基于羊驼3的模型）:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
+3、HiDiffusion node（高清放大节点）：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
+4、ID_Animator node（零样本单图制作视频）： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
+5、StoryDiffusion node（故事绘本节点）：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
+6、Pops node（材质、融合类节点，基于pops方法）：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
+7、stable-audio-open-1.0 node（SD官方的音频节点的简单实现） ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
+8、GLM4 node（基于智普AI的api节点，涵盖智普的本地大模型）：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
+9、CustomNet node（基于腾讯的CustomNet做的角度控制节点）：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
+10、Pipeline_Tool node（方便玩家调用镜像抱脸下载） :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
+11、Pic2Story node（基于模型的图像识别） :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
+12、PBR_Maker node（生成式PBR贴图，即将上线）:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)   
+13、ComfyUI_Streamv2v_Plus node（视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
+14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本，即将上线）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
 
-NEW Update
+更新
 ---
-1、增加 Split_prompt参数，默认是空，如果填入分割标点，推荐用";"，会规范化角色prompt和场景prompt（主要是加入换行符），方便规范化复制或者从其他节点引入的prompts； 翻译节点的切分符号默认值改成中文的“；”  
-1、Add the Split prompt parameter, which is empty by default. If you fill in the split punctuation, it is recommended to use ";". This will standardize the character prompt and scene prompt (mainly by adding line breaks), making it easier to standardize copying or introducing prompts from other nodes;   
+--新增controlnet布局控制按钮，默认是否，为程序自动。
+--修复controlnet加载菜单的bug；   
+--为双角色同图引入controlnet，并支持多图引入（MS还是保留吧，剔除了有些人又不想装2个插件。 ）  
+--加入角色模型保存和加载功能      
+--已知文生图加双角色同图时，只能跑一次，再次跑如果报错，只需切换一下模型加载的采样器或者别的选项的，这个bug暂时没时间修复；
 
-
-Notice（节点的特殊功能说明 Special Function Description of Nodes）  
+节点的功能说明
 ---   
-1、添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！   
-2、因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；  
-3、优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；  
-4、Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;    
-5、因为可调参数太多，特意分出模型加载节点，并删除无用的3角色节点；    
-6、role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；    
-7、ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；    
-8、预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；       
-9、默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。   
-10、编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。  
-11、示例的playground模型仅是测试，但是无法出图，请勿使用。  
-12、拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）和字体大小，增加了双角色的支持（使用comfyUI的batch image）；    
-13、可以使用单体SDXL模型，方法是 选择“Use_Single_XL_Model”，然后在ckpt_name菜单选择你想使用的XL模型；
-14、加入Lora的支持，lora菜单选择"none"时，Lora无效；“trigger_words”须填入你选择的Lora模型的对应的trigger_words，无须在prompt中加入，插件会自动在每行的末尾加入；
-15、支持diffuser 0.28以上版本；      
-16、图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；       
-17、图片不出现角色，场景prompt前面加入[NC] ；  
-18、分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB
+--<Storydiffusion_Model_Loader>  
+---
+-- sd_type：选择“Use_Single_XL_Model”时，可以使用社区SDXL模型，其他选项均为扩散模型；   
+-- ckpt_name：使用“Use_Single_XL_Model”时生效，社区SDLX模型选择；   
+-- character_weights：使用sampler节点的save_character 功能保存的角色权重。选择为“none/无”时不生效！（注意，保存的角色权重不能马上被识别，需要重启comfyUI）；   
+-- lora：选择SDXL lora，为“none”时不生效；   
+-- lora_scale： lora的权重，Lora生效时启用；   
+-- trigger_words： lora的关键词，会自动添加到prompt里，启用Lora时，请填写Lora对应的trigger_words；  
+-- scheduler： 采样器选择，文生图加角色同框时，如果连续跑，会报错，这时候，改一个采样器，就能继续跑，这个bug暂时没修复；  
+-- model_type： 选择txt2img 或者img2img模式，使用txt2img模式时采样器可以不接入图片；   
+-- id_number： 使用多少个角色，目前仅支持1个或者2个；  
+-- sa32_degree/sa64_degree： 注意力层的可调参数；  
+--img_width/img_height： 出图的高宽尺寸。
+
+--<Storydiffusion_Sampler>   
+---
+-- pipe/info： 必须链接的接口；  
+--image： 图生图才必须链接的接口，双角色请按示例，用comfyUI内置的image batch 节点；   
+--character_prompt： 角色的prompt，[角色名] 必须在开头，如果使用图生图模式，必须加入“img”关键词，例如 a man img；    
+--scene_prompts： 场景描述的prompt，[角色名] 必须在开头，2个角色最好在前两行各自出现一次，[NC]在开头时，角色不出现（适合无角色场景），(角色A and 角色B) 时开启MS-diffusion的双角色模式，and 和其前后空格不能忽略； #用于分段prompt，渲染整段，但是将只输出#后面的prompt；    
+--split_prompt： 切分prompt的符号,为空时不生效，用于prompt为外置时的规范化段落。比如你传入10行的文字时，分段符不一定正确，但是用切分符号，比如“；”就能很好的区分每一行。    
+--negative_prompt： 只在img_style为No_style时生效；     
+--seed/steps/cfg： 适用于comfyUI常用功能；    
+--ip_adapter_strength： img2img 图生图的ip_adapter权重控制；  
+--style_strength_ratio： 风格权重控制，控制风格从哪一步开始生效，风格一致性不好时，可以试着调高或者调低此参数；  
+--encoder_repo： 仅在双角色同图时有效，如果要使用本地模型，务必使用X:/XXX/XXX/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k  必须是“/”；   
+--role_scale： 仅在双角色同图时有效，控制角色在图片中的权重；    
+--mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
+-- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
+--save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
+--controlnet_model_path: controlnet的模型加载，这是需要config文件的加载方式，无法兼容comfyUI常规的单模型（比起单模型，只需要多下一个几K的config文件而已）；  
+--controlnet_scale:  controlne权重；   
+--layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
+
+--<Comic_Type>  
+---
+--fonts_list： 拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）；
+--text_size： 拼图文字的大小；    
+--comic_type： 拼图的风格展示；  
+--split_lines： 适用于非英语文字被其他翻译节点翻译后，换行符被删除，此时使用切分符号，可以正确地重新赋予prompt换行符，确保文字描述在正确的图片上显示；     
+
+--<Pre_Translate_prompt> ： 翻译节点的前置处理   
+---
+--keep_character_name： 是否保留角色名在后续文字拼图上显示。    
+
+特别提醒：  
+
+--添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！     
+--因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；    
+--优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；    
+--Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;          
+--role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；      
+--ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；      
+--预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；         
+--默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。    
+--编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。         
+--支持diffuser 0.28以上版本；         
+--图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；         
+--图片不出现角色，场景prompt前面加入[NC] ；     
+--分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
 
 
-1. Add dual role same frame function, usage method: (A and B) have lunch...., where A and B are role names, and the middle "and" parentheses cannot be removed，The parentheses represent the effective conditions!!!   
-2. Because the" MS diffusion" function is called, in order to use dual role same frame, it is necessary to add an encoder model (laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,which cannot be replaced with others) and an ip adapet fine-tuning model (ms_adapter.bin,which cannot be replaced);      
-3. Optimize the loading of Lora's code, and when using accelerated Lora, trigger_words will no longer be added to the prompt list;    
-4. Playground v2.5 can be effective on txt2img, and there is no Playground v2.5 style Lora available when accelerated Lora can be used;     
-5. Due to too many adjustable parameters, the model loading node was deliberately separated and the useless 3 role nodes were deleted;     
-6. Role-scale, mask_threshold, and start_step mainly regulate the randomness and style consistency of two characters in the same frame;     
-7. The consistency of style can be adjusted between ip-adapter_strength and style_strength'ratio in img2img;     
-8. Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);   
-9. By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
-10. Edit the config/models. yaml file and remember to use the same format to include your favorite SDXL based diffusion model.   
-11. The playground model in the example is only for testing purposes, but cannot be illustrated. Please do not use it.   
-12. The jigsaw puzzle node supports custom fonts (placing font files in the fonts directory".fonts/you_font. ttf") and font sizes, and adds support for dual characters (using batch images in comfyUI);    
-13. You can use a single SDXL model by selecting "Use_Single_XL-Model" and then selecting the XL model you want to use from the ckptname menu;   
-14. Add support for Lora. When selecting "none" in the Lora menu, Lora becomes invalid; "Trigger_words" must be filled in with the corresponding trigger_words for the Lora model you have selected, without the need to add them in the prompt. The plugin will automatically add them at the end of each line;   
-15. Supports diffuser versions 0.28 and above;   
-16. The process of generating images using PhotosMaker requires the"img" keyword in the character prompt column. You can use keywords such as a woman img, a man img, etc;    
-17. No characters appear in the image, add [NC] in front of the scene prompt;   
-18. Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
-
-
-1.Installation
+1.安装
 -----
-  In the ./ComfyUI /custom_node directory, run the following:   
+  在/ComfyUI /custom_node的目录下：   
   
   ``` python 
   git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
   
   ```
-
-2.requirements  
+或者用manage 安装。。   
+ 
+2.需求文件   
 ----
 ```
 pip install -r requirements.txt
@@ -86,8 +113,6 @@ pip install -r requirements.txt
 pip install git+https://github.com/tencent-ailab/IP-Adapter.git   
 ```
 如果缺失模块，请单独pip install    
-If the module is missing, please pip install   
-
 2.1如果使用的是comfyUI整合包 提示ip_adapter库找不到，可以尝试以下方法：  
 
 在整合包的python_embeded目录下，复制插件的requirements.txt文件到这个目录，去掉这个文件里ip-adapter前面的#号，保存，再打开CMD，然后运行pip install -r requirements.txt --target= "你的路径/python_embeded/Lib/site-packages"   ，只把你的路径改成你的实际路径，其他不要动   
@@ -101,18 +126,15 @@ If the module is missing, please pip install
  
 3 Need  model 
 ----
-3.1  online  在线模式   
+3.1 在线模式   
 点击运行，会自动从huggingface 下载所需模型，请确保你的的网络通畅，默认可用的模型有G161222/RealVisXL_V4.0 ，stabilityai/stable-diffusion-xl-base-1.0   ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；  
 选择'Use_Single_XL_Model',以及你本地的SDXL单体模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），也会下载对应的config文件；  
 
-In online mode, click run and the required model will be automatically downloaded from the huggingface. Please ensure that your network is unobstructed. The default available models are G161222/RealVisXL_V4.0, stabilityai/stable-diffusion-xl-base-1.0  ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；    
-Select 'Use_Single_XL-Model', as well as your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), and the corresponding config file will also be downloaded;    
-
---using dual role same frame function(使用双角色功能时):      
-
-Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main) 
-Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
-
+--(使用双角色功能时):       
+你用全局外网，会自动下载，但是一般是去C盘。  
+需要下载 "ms_adapter.bin" : [下载](https://huggingface.co/doge1516/MS-Diffusion/tree/main) 
+需要下载 "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[下载地址](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
+文件存放的结构如下：  
 ```
 ├── ComfyUI/custom_nodes/ComfyUI_Pops/
 |      ├──weights/
@@ -121,13 +143,13 @@ Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://hug
 
 ```
 
-3.2 offline  
+3.2 离线模式 
 打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以在“path”一栏：填写扩散模型的绝对地址，须是“/” .  
-Open the models.yaml file of ComfyUI_StoryDiffusion/config/models.yaml. If there is a pre downloaded default diffusion model, it can be left blank. If the address is not in the default C drive category, you can fill in the absolute address of the diffusion model in the "path" column, which must be "/"   
 
---using dual role same frame function(使用双角色功能时):     
+--(使用双角色功能时):     
 在“laion/CLIP-ViT-bigG-14-laion2B-39B-b160k” 一栏里填写你的本地clip模型的绝对路径，使用“/”，需求的文件看下面的文件结构演示。      
-Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-14-laion2B-39B-b160k" column, using "/". Please refer to the file structure demonstration below for the required files.        
+
+以下是双角色功能，离线版的模型文件结构：   
 ```
 ├── ComfyUI/custom_nodes/ComfyUI_Pops/
 |      ├──weights/
@@ -147,27 +169,57 @@ Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-1
 ```
 
 3.3 
-在comfyUI的models目录下，确认是否有photomaker 目录，没有会自己新建并下载 photomaker-v1.bin   [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
-如果有预下载，就把模型放进去。  
 
-make sure ..models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
+在comfyUI/ComfyUI_Pops/weights目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
+
+3.4 双角色controlnet的模型文件示例如下，仅支持SDXL controlnet   
+```
+├── ComfyUI/models/diffusers/   
+|     ├──xinsir/controlnet-openpose-sdxl-1.0    
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──xinsir/controlnet-scribble-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──diffusers/controlnet-canny-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors   
+|     ├──diffusers/controlnet-depth-sdxl-1.0   
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──/controlnet-zoe-depth-sdxl-1.0  
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──TheMistoAI/MistoLine 
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+|     ├──xinsir/controlnet-tile-sdxl-1.0
+|         ├── config.json   
+|         ├── diffusion_pytorch_model.fp16.safetensors
+   
+```
+control_img图片的预处理，请使用其他节点   
 
 4 Example
 ----
 
-txt2img lora and Dual role same fram  双角色同框并加入Lora，文生图示例
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imglora2role.png)
+文生图模式，模型使用的单体社区SDXL模型，首次使用会连外网下载config文件。
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2txt.png)
 
-1img2img and lora 图生图加风格lora
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/1imgtoimglora.png)
+图生图模式,提示词引入了[NC]和# 参考示例文件夹下的同名的json
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png)
 
-two character lighting lora  双角色及闪电lora  
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2imgtoimglightinglora.png)
+图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img_lora_controlnet_2rolein1img.png)
 
-using other language    使用其他语言的文本,翻译节点请换成你有的。      
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans.png)
+文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
 
+多controlnet加入双角色同框（角色1 and 角色2）
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png)
 
+文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 Citation
 ------
