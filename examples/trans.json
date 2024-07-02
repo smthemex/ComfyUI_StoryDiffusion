@@ -1,0 +1,500 @@
+{
+  "last_node_id": 16,
+  "last_link_id": 21,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        553,
+        49
+      ],
+      "size": {
+        "0": 315,
+        "1": 366
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "links": [
+            9
+          ],
+          "shape": 3,
+          "label": "pipe",
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            17
+          ],
+          "shape": 3,
+          "label": "info",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "SDXL",
+        "0SDXL\\juggernautXL_v8Rundiffusion.safetensors",
+        "none",
+        "0sdxl\\Hyper-SDXL-8steps-CFG-lora.safetensors",
+        0.8,
+        "best quality",
+        "Euler",
+        "txt2img",
+        1,
+        0.5,
+        0.5,
+        768,
+        768
+      ]
+    },
+    {
+      "id": 14,
+      "type": "Canny",
+      "pos": [
+        640,
+        478
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 15,
+          "label": "image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            16
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Canny"
+      },
+      "widgets_values": [
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "id": 11,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        1000,
+        136
+      ],
+      "size": [
+        468.0777836929253,
+        762.0888835211127
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": 9,
+          "label": "pipe"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": 16,
+          "label": "control_image",
+          "slot_index": 2
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 17,
+          "widget": {
+            "name": "info"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            11
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": [
+            19
+          ],
+          "shape": 3,
+          "label": "prompt_array",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "",
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;\n[Lecun] drving on the road,medium shot;\n(Taylor and Lecun) have lunch,medium shot;\n[Lecun]work in the company.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        671636072,
+        "randomize",
+        12,
+        7,
+        0.5,
+        20,
+        "F:/test/ComfyUI/models/clip_vision/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5,
+        false,
+        "diffusers\\controlnet-canny-sdxl-1.0",
+        0.8,
+        false
+      ]
+    },
+    {
+      "id": 4,
+      "type": "Comic_Type",
+      "pos": [
+        1555,
+        89
+      ],
+      "size": [
+        431.68388429752076,
+        203.1611570247934
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 11,
+          "label": "image"
+        },
+        {
+          "name": "scene_prompts",
+          "type": "STRING",
+          "link": 21,
+          "widget": {
+            "name": "scene_prompts"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Comic_Type"
+      },
+      "widgets_values": [
+        "",
+        "Inkfree.ttf",
+        40,
+        "Four_Pannel",
+        "；"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveImage",
+      "pos": [
+        2019,
+        185
+      ],
+      "size": [
+        437.18388429752076,
+        435.6611570247934
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5,
+          "label": "images"
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 16,
+      "type": "ZhipuaiApi_Txt",
+      "pos": [
+        1577,
+        341
+      ],
+      "size": [
+        400,
+        215.99996948242188
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "link": 20,
+          "widget": {
+            "name": "prompt"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            21
+          ],
+          "shape": 3,
+          "label": "text",
+          "slot_index": 0
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "shape": 3,
+          "label": "image"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ZhipuaiApi_Txt"
+      },
+      "widgets_values": [
+        "",
+        "glm-4",
+        1024,
+        0.95,
+        "english",
+        "chinese"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "Pre_Translate_prompt",
+      "pos": [
+        1579,
+        630
+      ],
+      "size": [
+        315,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "scene_prompts",
+          "type": "STRING",
+          "link": 19,
+          "widget": {
+            "name": "scene_prompts"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            20
+          ],
+          "shape": 3,
+          "label": "STRING",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Pre_Translate_prompt"
+      },
+      "widgets_values": [
+        "",
+        false
+      ]
+    },
+    {
+      "id": 13,
+      "type": "LoadImage",
+      "pos": [
+        635,
+        622
+      ],
+      "size": [
+        315,
+        314.0000228881836
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            15
+          ],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "12332.png",
+        "image"
+      ]
+    }
+  ],
+  "links": [
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      1,
+      0,
+      11,
+      0,
+      "MODEL"
+    ],
+    [
+      11,
+      11,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      15,
+      13,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      16,
+      14,
+      0,
+      11,
+      2,
+      "IMAGE"
+    ],
+    [
+      17,
+      1,
+      1,
+      11,
+      3,
+      "STRING"
+    ],
+    [
+      19,
+      11,
+      1,
+      15,
+      0,
+      "STRING"
+    ],
+    [
+      20,
+      15,
+      0,
+      16,
+      0,
+      "STRING"
+    ],
+    [
+      21,
+      16,
+      0,
+      4,
+      1,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9090909090909091,
+      "offset": [
+        -351.24038734021815,
+        170.00370578289665
+      ]
+    }
+  },
+  "version": 0.4
+}
