@@ -30,70 +30,6 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 --加入角色模型保存和加载功能      
 --已知文生图加双角色同图时，只能跑一次，再次跑如果报错，只需切换一下模型加载的采样器或者别的选项的，这个bug暂时没时间修复；
 
-节点的功能说明
----   
---<Storydiffusion_Model_Loader>  
----
--- sd_type：选择“Use_Single_XL_Model”时，可以使用社区SDXL模型，其他选项均为扩散模型；   
--- ckpt_name：使用“Use_Single_XL_Model”时生效，社区SDLX模型选择；   
--- character_weights：使用sampler节点的save_character 功能保存的角色权重。选择为“none/无”时不生效！（注意，保存的角色权重不能马上被识别，需要重启comfyUI）；   
--- lora：选择SDXL lora，为“none”时不生效；   
--- lora_scale： lora的权重，Lora生效时启用；   
--- trigger_words： lora的关键词，会自动添加到prompt里，启用Lora时，请填写Lora对应的trigger_words；  
--- scheduler： 采样器选择，文生图加角色同框时，如果连续跑，会报错，这时候，改一个采样器，就能继续跑，这个bug暂时没修复；  
--- model_type： 选择txt2img 或者img2img模式，使用txt2img模式时采样器可以不接入图片；   
--- id_number： 使用多少个角色，目前仅支持1个或者2个；  
--- sa32_degree/sa64_degree： 注意力层的可调参数；  
---img_width/img_height： 出图的高宽尺寸。
-
---<Storydiffusion_Sampler>   
----
--- pipe/info： 必须链接的接口；  
---image： 图生图才必须链接的接口，双角色请按示例，用comfyUI内置的image batch 节点；   
---character_prompt： 角色的prompt，[角色名] 必须在开头，如果使用图生图模式，必须加入“img”关键词，例如 a man img；    
---scene_prompts： 场景描述的prompt，[角色名] 必须在开头，2个角色最好在前两行各自出现一次，[NC]在开头时，角色不出现（适合无角色场景），(角色A and 角色B) 时开启MS-diffusion的双角色模式，and 和其前后空格不能忽略； #用于分段prompt，渲染整段，但是将只输出#后面的prompt；    
---split_prompt： 切分prompt的符号,为空时不生效，用于prompt为外置时的规范化段落。比如你传入10行的文字时，分段符不一定正确，但是用切分符号，比如“；”就能很好的区分每一行。    
---negative_prompt： 只在img_style为No_style时生效；     
---seed/steps/cfg： 适用于comfyUI常用功能；    
---ip_adapter_strength： img2img 图生图的ip_adapter权重控制；  
---style_strength_ratio： 风格权重控制，控制风格从哪一步开始生效，风格一致性不好时，可以试着调高或者调低此参数；  
---encoder_repo： 仅在双角色同图时有效，如果要使用本地模型，务必使用X:/XXX/XXX/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k  必须是“/”；   
---role_scale： 仅在双角色同图时有效，控制角色在图片中的权重；    
---mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
--- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
---save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
---controlnet_model_path: controlnet的模型加载，这是需要config文件的加载方式，无法兼容comfyUI常规的单模型（比起单模型，只需要多下一个几K的config文件而已）；  
---controlnet_scale:  controlne权重；   
---layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
-
---<Comic_Type>  
----
---fonts_list： 拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）；
---text_size： 拼图文字的大小；    
---comic_type： 拼图的风格展示；  
---split_lines： 适用于非英语文字被其他翻译节点翻译后，换行符被删除，此时使用切分符号，可以正确地重新赋予prompt换行符，确保文字描述在正确的图片上显示；     
-
---<Pre_Translate_prompt> ： 翻译节点的前置处理   
----
---keep_character_name： 是否保留角色名在后续文字拼图上显示。    
-
-特别提醒：  
-
---添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！     
---因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；    
---优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；    
---Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;          
---role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；      
---ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；      
---预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；         
---默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。    
---编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。         
---支持diffuser 0.28以上版本；         
---图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；         
---图片不出现角色，场景prompt前面加入[NC] ；     
---分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
-
-
 1.安装
 -----
   在/ComfyUI /custom_node的目录下：   
@@ -220,6 +156,66 @@ control_img图片的预处理，请使用其他节点
 
 文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
+
+节点的功能说明
+---   
+--<Storydiffusion_Model_Loader>  
+-- sd_type：选择“Use_Single_XL_Model”时，可以使用社区SDXL模型，其他选项均为扩散模型；   
+-- ckpt_name：使用“Use_Single_XL_Model”时生效，社区SDLX模型选择；   
+-- character_weights：使用sampler节点的save_character 功能保存的角色权重。选择为“none/无”时不生效！（注意，保存的角色权重不能马上被识别，需要重启comfyUI）；   
+-- lora：选择SDXL lora，为“none”时不生效；   
+-- lora_scale： lora的权重，Lora生效时启用；   
+-- trigger_words： lora的关键词，会自动添加到prompt里，启用Lora时，请填写Lora对应的trigger_words；  
+-- scheduler： 采样器选择，文生图加角色同框时，如果连续跑，会报错，这时候，改一个采样器，就能继续跑，这个bug暂时没修复；  
+-- model_type： 选择txt2img 或者img2img模式，使用txt2img模式时采样器可以不接入图片；   
+-- id_number： 使用多少个角色，目前仅支持1个或者2个；  
+-- sa32_degree/sa64_degree： 注意力层的可调参数；  
+--img_width/img_height： 出图的高宽尺寸。
+
+--<Storydiffusion_Sampler>   
+-- pipe/info： 必须链接的接口；  
+--image： 图生图才必须链接的接口，双角色请按示例，用comfyUI内置的image batch 节点；   
+--character_prompt： 角色的prompt，[角色名] 必须在开头，如果使用图生图模式，必须加入“img”关键词，例如 a man img；    
+--scene_prompts： 场景描述的prompt，[角色名] 必须在开头，2个角色最好在前两行各自出现一次，[NC]在开头时，角色不出现（适合无角色场景），(角色A and 角色B) 时开启MS-diffusion的双角色模式，and 和其前后空格不能忽略； #用于分段prompt，渲染整段，但是将只输出#后面的prompt；    
+--split_prompt： 切分prompt的符号,为空时不生效，用于prompt为外置时的规范化段落。比如你传入10行的文字时，分段符不一定正确，但是用切分符号，比如“；”就能很好的区分每一行。    
+--negative_prompt： 只在img_style为No_style时生效；     
+--seed/steps/cfg： 适用于comfyUI常用功能；    
+--ip_adapter_strength： img2img 图生图的ip_adapter权重控制；  
+--style_strength_ratio： 风格权重控制，控制风格从哪一步开始生效，风格一致性不好时，可以试着调高或者调低此参数；  
+--encoder_repo： 仅在双角色同图时有效，如果要使用本地模型，务必使用X:/XXX/XXX/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k  必须是“/”；   
+--role_scale： 仅在双角色同图时有效，控制角色在图片中的权重；    
+--mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
+-- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
+--save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
+--controlnet_model_path: controlnet的模型加载，这是需要config文件的加载方式，无法兼容comfyUI常规的单模型（比起单模型，只需要多下一个几K的config文件而已）；  
+--controlnet_scale:  controlne权重；   
+--layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
+
+--<Comic_Type>  
+--fonts_list： 拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）；
+--text_size： 拼图文字的大小；    
+--comic_type： 拼图的风格展示；  
+--split_lines： 适用于非英语文字被其他翻译节点翻译后，换行符被删除，此时使用切分符号，可以正确地重新赋予prompt换行符，确保文字描述在正确的图片上显示；     
+
+--<Pre_Translate_prompt> ： 翻译节点的前置处理   
+--keep_character_name： 是否保留角色名在后续文字拼图上显示。    
+
+特别提醒：  
+
+--添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！     
+--因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；    
+--优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；    
+--Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;          
+--role_scale，mask_threshold，start_step主要调节双角色同框的随机性和风格一致性；      
+--ip_adapter_strength和style_strength_ratio在img2img时，可以调节风格的一致性；      
+--预处理翻译文本节点，使用方法可以参考示例图。  (中文或其他东亚文字注意更换字体)；         
+--默认用每段文字末尾的";"来切分段落，翻译为中文后，有几率会被翻译为“；”，所以记得改成“；”，否则会是一句话。    
+--编辑config/models.yaml文件，记住用同样的格式，可以加入你喜欢的基于SDXL的扩散模型。         
+--支持diffuser 0.28以上版本；         
+--图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；         
+--图片不出现角色，场景prompt前面加入[NC] ；     
+--分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
+
 
 Citation
 ------
