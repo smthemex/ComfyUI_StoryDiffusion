@@ -33,8 +33,8 @@ NEW Update
 
 Function Description of Nodes  
 ---   
---<Storydiffusion_Model_Loader>-- 
---Sd_type: When selecting "UseSingle_XL-Model", the community SDXL model can be used, and all other options are diffusion models;   
+--<Storydiffusion_Model_Loader>--    
+--Sd_type: When selecting "UseSingle_XL-Model", the community SDXL model can be used, and all other options are diffusion models;     
 --Ckptname: Effective when using "UsesSingle_XL-Model", community SDLX model selection;   
 --Character_weights: Character weights saved using the save_character feature of the sampler node. Selecting "none/none" does not take effect! (Note that the saved character weights cannot be immediately recognized and require a restart of comfyUI);   
 --Lora: Selecting SDXL Lora does not take effect when set to "none";   
@@ -46,7 +46,7 @@ Function Description of Nodes
 --Sa32_degree/sa64_degree: an adjustable parameter for the attention layer;   
 --Img_width/img_height: The height and width dimensions of the drawing.   
 
---<Storydiffusion_Sampler>---    
+--<Storydiffusion_Sampler>---       
 --Pipe/info: The interface that must be linked;   
 --Image: The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI;   
 --Character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;   
@@ -65,13 +65,13 @@ Function Description of Nodes
 --Controllet_scale: control ne weight;   
 --Layout_guidance: Is automatic layout enabled? (If automatic layout is enabled, it is best to have clear location information in the prompt, such as on the left and where...)..., For example, up and down, etc;    
 
---<Comic_Type>--      
+--<Comic_Type>--         
 --Fonts list: The puzzle node supports custom fonts (place the font file in the fonts directory. fonts/you_font. ttf);   
 --Text_size: The size of the puzzle text;   
 --Comic_type: Display the style of the puzzle;   
 --Split lines: Suitable for non English text that has been translated by other translation nodes and the line break is removed. In this case, using a split symbol can correctly reassign the prompt line break to ensure that the text description is displayed on the correct image;   
 
---<Pre_Translate_prompt>: Pre processing of translation nodes    
+--<Pre_Translate_prompt>: Pre processing of translation nodes       
 --Keep_charactername: Whether to keep the character name displayed on subsequent text puzzles.   
 
 Tips：
