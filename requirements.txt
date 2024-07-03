@@ -1,3 +1,2 @@
-ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main
 spaces
 peft
