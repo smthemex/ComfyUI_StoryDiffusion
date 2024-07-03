@@ -36,11 +36,6 @@ NEW Update
 -----
   In the ./ComfyUI /custom_node directory, run the following:   
   
-  ``` python 
-  git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
-  
-  ```
-
 2.requirements  
 ----
 ```
