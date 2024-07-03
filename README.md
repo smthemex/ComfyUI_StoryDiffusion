@@ -35,14 +35,14 @@ NEW Update
 1.Installation
 -----
   In the ./ComfyUI /custom_node directory, run the following:   
+```
+git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
+```  
   
 2.requirements  
 ----
 ```
 pip install -r requirements.txt
-```
-```
-pip install git+https://github.com/tencent-ailab/IP-Adapter.git   
 ```
 
 If the module is missing, please pip install   
