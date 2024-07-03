@@ -29,4 +29,5 @@ lightning_xl_lora:
       - dmd2_sdxl_4step_lora.safetensors
       - dmd2_sdxl_4step_lora_fp16.safetensors
       - TCD-SDXL-LoRA.safetensors                         #need rename and TCD
+      - manne_turbo.safetensors                        
 
