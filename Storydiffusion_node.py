@@ -971,15 +971,16 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
                                                          torch_dtype=torch.float16).to(device)
             pipe=StableDiffusionXLControlNetPipeline.from_pipe(pipe,controlnet = controlnet).to(device)
-    ms_dir = os.path.join(dir_path, "weights")
+    ms_dir = get_instance_path(os.path.join(dir_path, "weights"))
     photomaker_local_path = os.path.join(ms_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
-        ms_path = hf_hub_download(
+        hf_hub_download(
             repo_id="doge1516/MS-Diffusion",
             filename="ms_adapter.bin",
             repo_type="model",
             local_dir=ms_dir,
         )
+        ms_path = photomaker_local_path
     else:
         ms_path = photomaker_local_path
     ms_ckpt = get_instance_path(ms_path)
@@ -1143,12 +1144,13 @@ class Storydiffusion_Model_Loader:
         photomaker_dir = get_instance_path(os.path.join(dir_path, "weights"))
         photomaker_local_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
         if not os.path.exists(photomaker_local_path):
-            photomaker_path = hf_hub_download(
+            hf_hub_download(
                 repo_id="TencentARC/PhotoMaker",
                 filename="photomaker-v1.bin",
                 repo_type="model",
                 local_dir=photomaker_dir,
             )
+            photomaker_path = get_instance_path(photomaker_local_path)
         else:
             photomaker_path = get_instance_path(photomaker_local_path)
 
