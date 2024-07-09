@@ -11,7 +11,6 @@ import random
 
 import yaml
 from PIL import ImageFont
-from diffusers.image_processor import IPAdapterMaskProcessor
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 import re
