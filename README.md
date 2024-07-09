@@ -26,6 +26,9 @@ My ComfyUI node list：
 
 NEW Update
 ---
+--2024/07/09 
+Fixed an error where continuous rendering is not possible when using MS. You need to set "reset_txt2img" to Ture, which will replace the scheduler   
+The models are now unified in the models directory of comfyUI   
 --Add a Controlnet layout control button, which defaults to automatic programming.   
 --Introducing Controlnet for dual character co image, supporting multi image introduction, 
 --Add the function of saving and loading character models   
