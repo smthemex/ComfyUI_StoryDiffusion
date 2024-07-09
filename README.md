@@ -23,12 +23,15 @@ My ComfyUI node list：
 12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)      
 13、ComfyUI_Streamv2v_Plus node:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
 14、ComfyUI_MS_Diffusion node:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
+15、ComfyUI_AnyDoor node: [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
 
 NEW Update
 ---
---2024/07/09 
-Fixed an error where continuous rendering is not possible when using MS. You need to set "reset_txt2img" to Ture, which will replace the scheduler   
-The models are now unified in the models directory of comfyUI   
+--2024/07/09    
+--To fix the bug where MS diffusion cannot run continuously in the txt2img, it is necessary to enable the "reset_txt2img" of the loading model node to be Ture;   
+--Fix the error in introducing modules, now change the model storage address to“ models/photomaker”, reuse the model, and avoid wasting hard disk space(the PT model is also located in the photometer directory);  
+--Changing the method of selecting models now makes it more convenient to choose other diffusion models;    
+
 --Add a Controlnet layout control button, which defaults to automatic programming.   
 --Introducing Controlnet for dual character co image, supporting multi image introduction, 
 --Add the function of saving and loading character models   
@@ -53,9 +56,10 @@ If the module is missing, please pip install
 3 Need  model 
 ----
 
+You can directly fill in the repo, such as:"stablityai/table diffusion xl base-1.0", or select the corresponding model in the local diffuser menu (provided that you have the model in the "models/diffuser" directory), or you can directly select a single SDXL community model. The priority of repo or local diffusers is higher than that of individual community models.    
 
-In online mode, click run and the required model will be automatically downloaded from the huggingface. Please ensure that your network is unobstructed. The default available models are G161222/RealVisXL_V4.0, stabilityai/stable-diffusion-xl-base-1.0  ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；    
-Select 'Use_Single_XL-Model', as well as your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), and the corresponding config file will also be downloaded;    
+Supports all SDXL based diffusion models (such as "G161222/RealVisXL_V4.0", "sd-community/sdxl-flash"）， It also supports non SD models, such as ("stablediffusionapi/sdxl-unstable-diffusers-y", playground-v2.5-1024px-aesthetic）   
+When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), please set local_diffusers to none and download the corresponding config files to run.  
 
 --using dual role same frame function:      
 
@@ -63,23 +67,19 @@ Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffu
 Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
 
 ```
-├── ComfyUI/custom_nodes/ComfyUI_StoryDiffusion/
-|      ├──weights/
+├── ComfyUI/models/
+|      ├──photomaker/
 |             ├── photomaker-v1.bin
 |             ├── ms_adapter.bin
 
 ```
 
 3.2 offline  
-Open the models.yaml file of ComfyUI_StoryDiffusion/config/models.yaml. If there is a pre downloaded default diffusion model, it can be left blank. If the address is not in the default C drive category, you can fill in the absolute address of the diffusion model in the "path" column, which must be "/"   
+You can fill in the absolute address of the diffusion model in repo, using "/"   
 
 --using dual role same frame function:     
 Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-14-laion2B-39B-b160k" column, using "/". Please refer to the file structure demonstration below for the required files.        
 ```
-├── ComfyUI/custom_nodes/ComfyUI_StoryDiffusion/
-|      ├──weights/
-|             ├── photomaker-v1.bin
-|             ├── ms_adapter.bin
 ├── Any local_path/
 |     ├──CLIP ViT bigG-14-laion2B-39B-b160k/
 |             ├── config.json
@@ -94,7 +94,7 @@ Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-1
 ```
 
 3.3 
-make sure ..comfyUI/ComfyUI_Pops/weights/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
+make sure ..comfyUI/models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
 
 3.4 The model file example for dual role controllnet is as follows, which only supports SDXL controllnet    
 ```
@@ -111,7 +111,7 @@ make sure ..comfyUI/ComfyUI_Pops/weights/photomaker-v1.bin    [link](https://hug
 |     ├──diffusers/controlnet-depth-sdxl-1.0   
 |         ├── config.json   
 |         ├── diffusion_pytorch_model.fp16.safetensors
-|     ├──/controlnet-zoe-depth-sdxl-1.0  
+|     ├──controlnet-zoe-depth-sdxl-1.0  
 |         ├── config.json   
 |         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──TheMistoAI/MistoLine 
@@ -158,6 +158,7 @@ Function Description of Nodes
 --Idnumber: How many roles are used, currently only supporting 1 or 2;   
 --Sa32_degree/sa64_degree: an adjustable parameter for the attention layer;   
 --Img_width/img_height: The height and width dimensions of the drawing.   
+--reset_txt2img: Fixed an error where continuous rendering is not possible when using MS. You need to set "reset_txt2img" to Ture, which will replace the scheduler   
 
 --<Storydiffusion_Sampler>---       
 --Pipe/info: The interface that must be linked;   
