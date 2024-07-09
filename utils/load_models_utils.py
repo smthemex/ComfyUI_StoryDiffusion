@@ -17,7 +17,6 @@ def get_instance_path(path):
         instance_path = path.replace('\\', "/")
     return instance_path
 
-yaml_path = get_instance_path(os.path.join(path_dir ,'config','models.yaml'))
 original_config_file=get_instance_path(os.path.join(path_dir,'config','sd_xl_base.yaml'))
 loras_path = get_instance_path(os.path.join(path_dir,"config","lora.yaml"))
 
@@ -38,27 +37,9 @@ def get_lora_dict():
 
 datas = get_lora_dict()
 lora_lightning_list = datas["lightning_xl_lora"]
-#print(lora_lightning_list)
-def get_models_dict():
-    # 打开并读取YAML文件
-    with open(yaml_path, 'r', encoding="UTF-8") as stream:
-        try:
-            # 解析YAML文件内容
-            data = yaml.safe_load(stream)
-            
-            # 此时 'data' 是一个Python字典，里面包含了YAML文件的所有数据
-            # print(data)
-            return data
-            
-        except yaml.YAMLError as exc:
-            # 如果在解析过程中发生了错误，打印异常信息
-            print(exc)
 
-def load_models(model_info,_sd_type,device,photomaker_path,lora,lora_path,trigger_words,lora_scale):
-    path =  model_info["path"]
-    single_files =  model_info["single_files"]
-    use_safetensors = model_info["use_safetensors"]
-    model_type = model_info["model_type"]
+
+def load_models(path,model_type,single_files,use_safetensors,device,photomaker_path,lora,lora_path,trigger_words,lora_scale):
 
     if model_type == "txt2img":
         if single_files:
