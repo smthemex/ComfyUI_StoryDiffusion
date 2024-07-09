@@ -1,15 +1,11 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
-import hashlib
 import numpy as np
 import torch
-import gc
 import copy
 import os
 import random
-
-import yaml
 from PIL import ImageFont
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
@@ -46,24 +42,21 @@ from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import torch.nn.functional as F
 from .utils.utils import get_comic
 from .utils.style_template import styles
-from .utils.load_models_utils import get_models_dict, load_models, get_instance_path, get_lora_dict
-from .utils.pipeline import PhotoMakerStableDiffusionXLPipeline
+from .utils.load_models_utils import  load_models, get_instance_path, get_lora_dict
 import folder_paths
 from comfy.utils import common_upscale
-
 
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
 global write
 global height, width
 STYLE_NAMES = list(styles.keys())
-
-global models_dict
-models_dict = get_models_dict()  # 获取模型信息
 import diffusers
-
 dif_version = str(diffusers.__version__)
 dif_version_int = int(dif_version.split(".")[1])
+
+photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
+
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -78,12 +71,20 @@ file_path = os.path.dirname(path_dir)
 fonts_path = os.path.join(dir_path, "fonts")
 fonts_lists = os.listdir(fonts_path)
 
-yaml_list = list(models_dict.keys())
-
-global lora_get
 lora_get = get_lora_dict()
 lora_lightning_list = lora_get["lightning_xl_lora"]
-# print(lora_lightning_list)
+diff_paths = []
+for search_path in folder_paths.get_folder_paths("diffusers"):
+    if os.path.exists(search_path):
+        for root, subdir, files in os.walk(search_path, followlinks=True):
+            if "model_index.json" in files:
+                diff_paths.append(os.path.relpath(root, start=search_path))
+
+if diff_paths:
+    paths = ["none"] + [x for x in diff_paths if x]
+else:
+    paths = ["none", ]
+
 
 control_paths = []
 paths_a = []
@@ -137,7 +138,6 @@ def tensor_to_image(tensor):
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
-
 
 # get fonts list
 def has_parentheses(s):
@@ -242,6 +242,7 @@ def array2string(arr):
             stringtmp += part
 
     return stringtmp
+
 
 def find_directories(base_path):
     directories = []
@@ -902,7 +903,7 @@ def nomarl_upscale(img, width, height):
 
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
-                     encoder_repo, _model_type, _sd_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,
+                     encoder_repo, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
                      original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
@@ -918,12 +919,16 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         return res
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
+        
         # load SDXL pipeline
-        if _sd_type == "Use_Single_XL_Model":
-            sd_model_path = ckpt_path
+        if dif_repo!="none":
+            single_files=False
+            if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic" or dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
+                raise "playground or unstable is not support"
+        elif dif_repo=="none" and ckpt_path!="none":
+            single_files=True
         else:
-            sd_model_path = models_dict[_sd_type]["path"]  # diffuser models
-        single_files = models_dict[_sd_type]["single_files"]
+            raise "no model"
         if controlnet_model_path!="none":
             controlnet_model_path=get_instance_path(get_local_path(file_path, controlnet_model_path))
             controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
@@ -931,31 +936,31 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             if single_files:
                 if dif_version_int >= 28:
                     pipe = StableDiffusionXLControlNetPipeline.from_single_file(
-                        sd_model_path, original_config=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
+                        ckpt_path, original_config=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
                         add_watermarker=False, ).to(device)
                 else:
                     pipe = StableDiffusionXLControlNetPipeline.from_single_file(
-                        sd_model_path, original_config_file=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
+                        ckpt_path, original_config_file=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
                         add_watermarker=False,
                     ).to(device)
             else:
                 pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,controlnet = controlnet,
+                    dif_repo, torch_dtype=torch.float16, add_watermarker=False,controlnet = controlnet,
                 ).to(device)
         else:
             if single_files:
                 if dif_version_int >= 28:
                     pipe = StableDiffusionXLPipeline.from_single_file(
-                        sd_model_path, original_config=original_config_file, torch_dtype=torch.float16,
+                        ckpt_path, original_config=original_config_file, torch_dtype=torch.float16,
                         add_watermarker=False, ).to(device)
                 else:
                     pipe = StableDiffusionXLPipeline.from_single_file(
-                        sd_model_path, original_config_file=original_config_file, torch_dtype=torch.float16,
+                        ckpt_path, original_config_file=original_config_file, torch_dtype=torch.float16,
                         add_watermarker=False,
                     ).to(device)
             else:
                 pipe = StableDiffusionXLPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16, add_watermarker=False,
+                    dif_repo, torch_dtype=torch.float16, add_watermarker=False,
                 ).to(device)
         if lora != "none":
             if lora in lora_lightning_list:
@@ -970,16 +975,14 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
                                                          torch_dtype=torch.float16).to(device)
             pipe=StableDiffusionXLControlNetPipeline.from_pipe(pipe,controlnet = controlnet).to(device)
-    ms_dir = get_instance_path(os.path.join(dir_path, "weights"))
-    photomaker_local_path = os.path.join(ms_dir, "ms_adapter.bin")
+    photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
-        hf_hub_download(
+        ms_path=hf_hub_download(
             repo_id="doge1516/MS-Diffusion",
             filename="ms_adapter.bin",
             repo_type="model",
-            local_dir=ms_dir,
+            local_dir=photomaker_dir,
         )
-        ms_path = photomaker_local_path
     else:
         ms_path = photomaker_local_path
     ms_ckpt = get_instance_path(ms_path)
@@ -1094,14 +1097,15 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
 
 class Storydiffusion_Model_Loader:
     def __init__(self):
-        pass
+        self.counters = {}
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "sd_type": (yaml_list,),
-                "ckpt_name": (folder_paths.get_filename_list("checkpoints"),),
+                "local_diffuser": (diff_paths,),
+                "repo_id": ("STRING", {"default": ""}),
+                "ckpt_name": (["none"]+folder_paths.get_filename_list("checkpoints"),),
                 "character_weights": (character_weights,),
                 "lora": (["none"] + folder_paths.get_filename_list("loras"),),
                 "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
@@ -1115,17 +1119,46 @@ class Storydiffusion_Model_Loader:
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
+                "reset_txt2img":("BOOLEAN", {"default": False},),
+            },
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
             }
         }
 
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+    
     RETURN_TYPES = ("MODEL", "STRING",)
     RETURN_NAMES = ("pipe", "info",)
     FUNCTION = "story_model_loader"
     CATEGORY = "Storydiffusion"
-
-    def story_model_loader(self, sd_type, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height):
-
+    
+    def instance_path(self,path, repo):
+        if repo == "":
+            if path == "none":
+                repo = "none"
+            else:
+                model_path = get_local_path(file_path, path)
+                repo = get_instance_path(model_path)
+        return repo
+    def story_model_loader(self,local_diffuser,repo_id, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,reset_txt2img,unique_id):
+        
+        scheduler_choice = get_scheduler(scheduler)
+        
+        if model_type=="txt2img" and reset_txt2img :
+            counter = int(1)
+            if self.counters.__contains__(unique_id):
+                counter = self.counters[unique_id]
+            counter += 1  # 迭代1次
+            self.counters[unique_id] = counter
+            index = int(counter-1) % len(scheduler_list) + 1
+            scheduler=scheduler_list[index]
+            scheduler_choice = get_scheduler(scheduler)
+        
         if character_weights!="none":
             character_weights_path = get_instance_path(os.path.join(base_pt, character_weights))
             weights_list = os.listdir(character_weights_path)
@@ -1135,23 +1168,19 @@ class Storydiffusion_Model_Loader:
                 char_files=""
         else:
             char_files = ""
-
-        ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-        ckpt_path = get_instance_path(ckpt_path)
-        scheduler_choice = get_scheduler(scheduler)
-
-        photomaker_dir = get_instance_path(os.path.join(dir_path, "weights"))
+        
+        original_config_file = get_instance_path(os.path.join(path_dir, 'config', 'sd_xl_base.yaml'))
+        
         photomaker_local_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
         if not os.path.exists(photomaker_local_path):
-            hf_hub_download(
+            photomaker_path=hf_hub_download(
                 repo_id="TencentARC/PhotoMaker",
                 filename="photomaker-v1.bin",
                 repo_type="model",
                 local_dir=photomaker_dir,
             )
-            photomaker_path = get_instance_path(photomaker_local_path)
         else:
-            photomaker_path = get_instance_path(photomaker_local_path)
+            photomaker_path = photomaker_local_path
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
@@ -1181,41 +1210,39 @@ class Storydiffusion_Model_Loader:
         width = img_width
 
         # load model
-        original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-        original_config_file = get_instance_path(original_config_file)
-        if sd_type == "Use_Single_XL_Model":
-            sd_model_path = ckpt_path
-        else:
-            sd_model_path = models_dict[sd_type]["path"]  # diffuser models
-        if sd_type != "Playground_v2p5" or sd_type != "Playground_v2p5":  # load stable model
-            model_info = models_dict[sd_type]
-            model_info["model_type"] = model_type
-            if sd_type == "Use_Single_XL_Model":
-                model_info["path"] = ckpt_path
-            pipe = load_models(model_info, sd_type, device=device, photomaker_path=photomaker_path, lora=lora,
+        dif_repo= self.instance_path(local_diffuser,repo_id)
+        ckpt_path=ckpt_name
+        if dif_repo=="none" and ckpt_name=="none":
+            raise "you need choice a model"
+        elif dif_repo=="none" and ckpt_name!="none": # load ckpt
+            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+            ckpt_path = get_instance_path(ckpt_path)
+            pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, device=device, photomaker_path=photomaker_path, lora=lora,
                                lora_path=lora_path,
                                trigger_words=trigger_words, lora_scale=lora_scale)
             set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-        else:
-            if model_type == "img2img":
-                pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
-                    sd_model_path, torch_dtype=torch.float16)
-                pipe.load_photomaker_adapter(
-                   photomaker_path,
-                    subfolder="",
-                    weight_name="photomaker-v1.bin",
-                    trigger_word="img",  # define the trigger word
+        else: #if repo and ckpt,choice repo
+            if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic":
+                pipe = DiffusionPipeline.from_pretrained(
+                    dif_repo,
+                    torch_dtype=torch.float16,
+                    variant="fp16",
                 )
-            else:
-                if sd_type == "Playground_v2p5":
-                    pipe = DiffusionPipeline.from_pretrained(
-                        sd_model_path, torch_dtype=torch.float16
-                    )
-                else:
-                    pipe = StableDiffusionXLPipeline.from_pretrained(
-                        sd_model_path, torch_dtype=torch.float16
-                    )
-            pipe = pipe.to(device)
+                pipe = pipe.to(device)
+                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            elif dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    dif_repo, torch_dtype=torch.float16,use_safetensors=False
+                )
+                pipe = pipe.to(device)
+                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            else: # SD dif_repo
+                pipe = load_models(dif_repo, model_type=model_type, single_files=False, use_safetensors=True,
+                                   device=device, photomaker_path=photomaker_path, lora=lora,
+                                   lora_path=lora_path,
+                                   trigger_words=trigger_words, lora_scale=lora_scale)
+                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            
         pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
         pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
         pipe.enable_vae_slicing()
@@ -1240,7 +1267,7 @@ class Storydiffusion_Model_Loader:
         else:
             char_file = "none"
         info = str(";".join(
-            [model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, str(lora_scale),char_file]))
+            [model_type, ckpt_path,dif_repo,lora_path, original_config_file, lora, trigger_words, str(lora_scale),char_file]))
         return (pipe, info,)
 
 
@@ -1301,7 +1328,7 @@ class Storydiffusion_Sampler:
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
 
-        model_type, ckpt_path, lora_path, original_config_file, lora, trigger_words, sd_type, lora_scale,char_files = info.split(
+        model_type, ckpt_path, dif_repo,lora_path, original_config_file, lora, trigger_words,lora_scale,char_files = info.split(
             ";")
         lora_scale = float(lora_scale)
         if char_files=="none":
@@ -1393,8 +1420,8 @@ class Storydiffusion_Sampler:
             image_a = image_pil_list[positions_char_1]
             image_b = image_pil_list[positions_char_2]
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
-                                          img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, sd_type, lora,
-                                          lora_path,lora_scale, trigger_words, ckpt_path, original_config_file, role_scale,
+                                          img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, lora,
+                                          lora_path,lora_scale, trigger_words, ckpt_path,dif_repo, original_config_file, role_scale,
                                           mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance)
             j = 0
             for i in positions_dual: #重新将双人场景插入原序列
