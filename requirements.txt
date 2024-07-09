@@ -1,2 +1,3 @@
 spaces
 peft
+diffusers
