@@ -20,10 +20,16 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 11、Pic2Story node（基于模型的图像识别） :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
 12、PBR_Maker node（生成式PBR贴图，即将上线）:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)   
 13、ComfyUI_Streamv2v_Plus node（视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
-14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本，即将上线）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
+14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
+15、ComfyUI_AnyDoor node(一键换衣插件): [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
 
 更新
 ---
+20270709更新
+--修复文生图使用MS-diffusion时无法连续跑的bug，需要开启加载模型节点的“reset_txt2img”为Ture；  
+--修复引入模块的错误，现在模型存放地址改至models/photomaker，重复利用模型，避免浪费硬盘空间(存储的pt模型也会在photomaker下)；   
+-- 更改选择模型的方式，现在可以更方便选择其他的扩散模型了；   
+
 --新增controlnet布局控制按钮，默认是否，为程序自动。
 --修复controlnet加载菜单的bug；   
 --为双角色同图引入controlnet，并支持多图引入（MS还是保留吧，剔除了有些人又不想装2个插件。 ）  
@@ -51,8 +57,9 @@ pip install -r requirements.txt
 3 Need  model 
 ----
 3.1 在线模式   
-点击运行，会自动从huggingface 下载所需模型，请确保你的的网络通畅，默认可用的模型有G161222/RealVisXL_V4.0 ，stabilityai/stable-diffusion-xl-base-1.0   ， stablediffusionapi/sdxl-unstable-diffusers-y ，sd-community/sdxl-flash ；  
-选择'Use_Single_XL_Model',以及你本地的SDXL单体模型（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），也会下载对应的config文件；  
+你可以直接在repo填写如：stabilityai/stable-diffusion-xl-base-1.0 ，或者在local diffuser菜单里选择对应的模型（前提是你把模型存在在models/diffuser目录下），也可以直接选择单体的SDXL社区模型。repo或local diffuser的优先级要高于单体的社区模型。   
+支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，sd-community/sdxl-flash），也支持非SD模型，如（stablediffusionapi/sdxl-unstable-diffusers-y，playground-v2.5-1024px-aesthetic）   
+使用你本地的SDXL单体模型时（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），请将local_diffusers设置成无，下载对应的config文件们就可以运行。     
 
 --(使用双角色功能时):       
 你用全局外网，会自动下载，但是一般是去C盘。  
@@ -60,26 +67,22 @@ pip install -r requirements.txt
 需要下载 "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[下载地址](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
 文件存放的结构如下：  
 ```
-├── ComfyUI/custom_nodes/ComfyUI_Pops/
-|      ├──weights/
+├── ComfyUI/models/
+|      ├──photomaker/
 |             ├── photomaker-v1.bin
 |             ├── ms_adapter.bin
 
 ```
 
 3.2 离线模式 
-打开ComfyUI_StoryDiffusion/config/models.yaml的models.yaml文件，如果有预下载的默认的扩散模型，可以不填，如果地址不在默认的C盘一类，可以在“path”一栏：填写扩散模型的绝对地址，须是“/” .  
+可以在repo填写扩散模型的绝对地址，须用“/” .  
 
 --(使用双角色功能时):     
 在“laion/CLIP-ViT-bigG-14-laion2B-39B-b160k” 一栏里填写你的本地clip模型的绝对路径，使用“/”，需求的文件看下面的文件结构演示。      
 
 以下是双角色功能，离线版的模型文件结构：   
 ```
-├── ComfyUI/custom_nodes/ComfyUI_Pops/
-|      ├──weights/
-|             ├── photomaker-v1.bin
-|             ├── ms_adapter.bin
-├── local_path/
+├── 任意地址/
 |     ├──CLIP ViT bigG-14-laion2B-39B-b160k/
 |             ├── config.json
 |             ├── preprocessor_config.json
@@ -94,7 +97,7 @@ pip install -r requirements.txt
 
 3.3 
 
-在comfyUI/ComfyUI_Pops/weights目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
+在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
 
 3.4 双角色controlnet的模型文件示例如下，仅支持SDXL controlnet   
 ```
@@ -159,6 +162,7 @@ control_img图片的预处理，请使用其他节点
 -- id_number： 使用多少个角色，目前仅支持1个或者2个；  
 -- sa32_degree/sa64_degree： 注意力层的可调参数；  
 --img_width/img_height： 出图的高宽尺寸。
+--reset_txt2img  文生图模式的BUG目前只能用开启这个来修复.   
 
 --<Storydiffusion_Sampler>   
 -- pipe/info： 必须链接的接口；  
