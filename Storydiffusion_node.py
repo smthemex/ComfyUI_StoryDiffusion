@@ -81,9 +81,9 @@ for search_path in folder_paths.get_folder_paths("diffusers"):
                 diff_paths.append(os.path.relpath(root, start=search_path))
 
 if diff_paths:
-    paths = ["none"] + [x for x in diff_paths if x]
+    diff_paths = ["none"] + [x for x in diff_paths if x]
 else:
-    paths = ["none", ]
+    diff_paths = ["none", ]
 
 
 control_paths = []
