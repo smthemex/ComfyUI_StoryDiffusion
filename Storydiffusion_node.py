@@ -921,7 +921,9 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         return res
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
-        
+        if sys.platform=="darwin":
+            cur_path=os.getcwd()
+            original_config_file=os.path.join(cur_path,'config', 'sd_xl_base.yaml')
         # load SDXL pipeline
         if dif_repo!="none":
             single_files=False
