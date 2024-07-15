@@ -45,7 +45,7 @@ from .utils.style_template import styles
 from .utils.load_models_utils import  load_models, get_instance_path, get_lora_dict
 import folder_paths
 from comfy.utils import common_upscale
-
+from pathlib import Path
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
 global write
@@ -922,8 +922,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
         del pipe
         if sys.platform=="darwin":
-            cur_path=os.getcwd()
-            original_config_file=os.path.join(cur_path,'config', 'sd_xl_base.yaml')
+            original_config_file=Path(original_config_file)
         # load SDXL pipeline
         if dif_repo!="none":
             single_files=False
