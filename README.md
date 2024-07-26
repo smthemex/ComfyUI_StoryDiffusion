@@ -24,9 +24,18 @@ My ComfyUI node list：
 13、ComfyUI_Streamv2v_Plus node:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
 14、ComfyUI_MS_Diffusion node:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
 15、ComfyUI_AnyDoor node: [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
+16、ComfyUI_Stable_Makeup node: [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
+17、ComfyUI_EchoMimic node:  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
+18、ComfyUI_FollowYourEmoji node: [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 
 NEW Update
 ---
+--2024/07/26
+--fix some bug,while ControlNet now uses community models.   
+-- The base model now has only two options: using repo input or selecting the community model...
+--Adjusting the model loading of MS has made the speed faster   
+
+
 --2024/07/09    
 --To fix the bug where MS diffusion cannot run continuously in the txt2img, it is necessary to enable the "reset_txt2img" of the loading model node to be Ture;   
 --Fix the error in introducing modules, now change the model storage address to“ models/photomaker”, reuse the model, and avoid wasting hard disk space(the PT model is also located in the photometer directory);  
@@ -63,8 +72,9 @@ When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffu
 
 --using dual role same frame function:      
 
-Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main) 
-Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
+photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
+Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
+Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)   
 
 ```
 ├── ComfyUI/models/
@@ -92,35 +102,18 @@ Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-1
 |             ├──tokenizer_config.json
 |             ├──vocab.json
 ```
-
-3.3 
-make sure ..comfyUI/models/photomaker/photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
-
-3.4 The model file example for dual role controllnet is as follows, which only supports SDXL controllnet    
+ 
+3.3 The model file example for dual role controllnet is as follows, which only supports SDXL community controllnet    
 ```
-├── ComfyUI/models/diffusers/   
+├── ComfyUI/models/controlne/   
 |     ├──xinsir/controlnet-openpose-sdxl-1.0    
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──xinsir/controlnet-scribble-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──diffusers/controlnet-canny-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──diffusers/controlnet-depth-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──controlnet-zoe-depth-sdxl-1.0  
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──TheMistoAI/MistoLine 
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──xinsir/controlnet-tile-sdxl-1.0
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
-   
+
 ```
 Control_img image preprocessing, please use other nodes     
 
@@ -133,7 +126,7 @@ img2img mode, prompt words introduced [NC] and # refer to JSON with the same nam
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png) 
 
 img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img_lora_controlnet_2rolein1img.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
 
 txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
@@ -147,8 +140,8 @@ Translate the text into other language examples, and the translation nodes in th
 Function Description of Nodes  
 ---   
 --<Storydiffusion_Model_Loader>--    
---Sd_type: When selecting "UseSingle_XL-Model", the community SDXL model can be used, and all other options are diffusion models;     
---Ckptname: Effective when using "UsesSingle_XL-Model", community SDLX model selection;   
+--repo: using diffuser models ;     
+--Ckptname:  using  community SDLX model selection;   
 --Character_weights: Character weights saved using the save_character feature of the sampler node. Selecting "none/none" does not take effect! (Note that the saved character weights cannot be immediately recognized and require a restart of comfyUI);   
 --Lora: Selecting SDXL Lora does not take effect when set to "none";   
 --Lora_scale: The weight of Lora, which is enabled when Lora takes effect;   
@@ -175,8 +168,8 @@ Function Description of Nodes
 --Mask_threshold: It is only effective when two roles are in the same picture, and controls the position of the role in the picture (MS system automatically assigns the role position according to prompt, so appropriate role position information description can be added to prompt);   
 --Start_step: Only effective when two characters are in the same image, controlling the number of starting steps for the character's position in the image   
 --Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;  
---Controlnet_modelpath: Controlnet's model loading requires a configuration file, which is not compatible with the conventional single model of comfyUI (compared to a single model, only a few K more configuration files need to be added);   
---Controllet_scale: control ne weight;   
+--Controlnet_modelpath: Controlnet's community  model );   
+--Controllet_scale: control net weight;   
 --Layout_guidance: Is automatic layout enabled? (If automatic layout is enabled, it is best to have clear location information in the prompt, such as on the left and where...)..., For example, up and down, etc;    
 
 --<Comic_Type>--         
