@@ -46,10 +46,10 @@ class MSAdapter(torch.nn.Module):
         state_dict = torch.load(ckpt_path, map_location="cpu")
 
         # Load state dict for image_proj_model and adapter_modules when using resampler
-        # self.image_proj_model.load_state_dict(state_dict["image_proj"], strict=False)
-        # self.adapter_modules.load_state_dict(state_dict["ms_adapter"], strict=False)
-        self.image_proj_model.load_state_dict(state_dict["image_proj"], strict=True)
-        self.adapter_modules.load_state_dict(state_dict["ms_adapter"], strict=True)
+        self.image_proj_model.load_state_dict(state_dict["image_proj"], strict=False)
+        self.adapter_modules.load_state_dict(state_dict["ms_adapter"], strict=False)
+        # self.image_proj_model.load_state_dict(state_dict["image_proj"], strict=True)
+        # self.adapter_modules.load_state_dict(state_dict["ms_adapter"], strict=True)
         self.load_state_dict({"dummy_image_tokens": state_dict["dummy_image_tokens"]}, strict=False)
 
         # Calculate new checksums
@@ -221,6 +221,8 @@ class MSAdapter(torch.nn.Module):
             negative_prompt_embeds = torch.cat([negative_prompt_embeds_, uncond_image_prompt_embeds], dim=1)
 
         generator = torch.Generator(self.device).manual_seed(seed) if seed is not None else None
+        
+        pipe.to(self.device)
         images = pipe(
             prompt_embeds=prompt_embeds,
             negative_prompt_embeds=negative_prompt_embeds,
@@ -234,5 +236,5 @@ class MSAdapter(torch.nn.Module):
             width=width,
             **kwargs,
         ).images
-
+        torch.cuda.empty_cache()
         return images
