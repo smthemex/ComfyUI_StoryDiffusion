@@ -7,6 +7,7 @@ import copy
 import os
 import random
 from PIL import ImageFont
+from safetensors.torch import load_file
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 import re
@@ -126,7 +127,6 @@ def get_instance_path(path):
     if sys.platform == 'win32':
         instance_path = instance_path.replace('\\', "/")
     return instance_path
-
 
 def add_pil(list, list_add, num):
     new_list = list[:num] + list_add + list[num:]
@@ -893,6 +893,7 @@ def process_generation(
             )
         yield [results_dict[ind] for ind in results_dict.keys()]
     total_results = [results_dict[ind] for ind in range(len(prompts))]
+    torch.cuda.empty_cache()
     yield total_results
 
 
@@ -906,7 +907,7 @@ def nomarl_upscale(img, width, height):
 
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
-                     original_config_file, role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance):
+                      role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance,cfg):
     def get_phrases_idx(tokenizer, phrases, prompt):
         res = []
         phrase_cnt = {}
@@ -919,52 +920,40 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                 phrase_cnt[phrase] = 1
             res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
         return res
+    
+    original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
+    
     if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
+        pipe.unload_ip_adapter()
+        pipe.unload_lora_weights()
         del pipe
-        if sys.platform=="darwin":
-            original_config_file=os.path.join('dir_path','config', 'sd_xl_base.yaml')
+        torch.cuda.empty_cache()
         # load SDXL pipeline
         if dif_repo!="none":
             single_files=False
             if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic" or dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
-                raise "playground or unstable is not support"
+                raise "playground or unstable is not support,choice SDXL diffuser"
         elif dif_repo=="none" and ckpt_path!="none":
             single_files=True
         else:
             raise "no model"
-        if controlnet_model_path!="none":
-            controlnet_model_path=get_instance_path(get_local_path(file_path, controlnet_model_path))
-            controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
-                                                         torch_dtype=torch.float16).to(device)
-            if single_files:
-                if dif_version_int >= 28:
-                    pipe = StableDiffusionXLControlNetPipeline.from_single_file(
-                        ckpt_path, original_config=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
-                        add_watermarker=False, ).to(device)
-                else:
-                    pipe = StableDiffusionXLControlNetPipeline.from_single_file(
-                        ckpt_path, original_config_file=original_config_file,controlnet = controlnet, torch_dtype=torch.float16,
-                        add_watermarker=False,
-                    ).to(device)
+        if single_files:
+            if dif_version_int >= 28:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    pretrained_model_link_or_path=ckpt_path, original_config=original_config_file,
+                    torch_dtype=torch.float16)
+
             else:
-                pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
-                    dif_repo, torch_dtype=torch.float16, add_watermarker=False,controlnet = controlnet,
-                ).to(device)
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                    pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                    torch_dtype=torch.float16
+                )
+
         else:
-            if single_files:
-                if dif_version_int >= 28:
-                    pipe = StableDiffusionXLPipeline.from_single_file(
-                        ckpt_path, original_config=original_config_file, torch_dtype=torch.float16,
-                        add_watermarker=False, ).to(device)
-                else:
-                    pipe = StableDiffusionXLPipeline.from_single_file(
-                        ckpt_path, original_config_file=original_config_file, torch_dtype=torch.float16,
-                        add_watermarker=False,
-                    ).to(device)
-            else:
-                pipe = StableDiffusionXLPipeline.from_pretrained(
-                    dif_repo, torch_dtype=torch.float16, add_watermarker=False,
-                ).to(device)
+            pipe = StableDiffusionXLPipeline.from_pretrained(
+                dif_repo, torch_dtype=torch.float16,
+            )
+        pipe = pipe.to(device)
         if lora != "none":
             if lora in lora_lightning_list:
                 pipe.load_lora_weights(lora_path)
@@ -972,12 +961,22 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             else:
                 pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-    else:
-        if controlnet_model_path != "none":
-            controlnet_model_path = get_instance_path(get_local_path(file_path, controlnet_model_path))
-            controlnet = ControlNetModel.from_pretrained(controlnet_model_path, variant="fp16", use_safetensors=True,
-                                                         torch_dtype=torch.float16).to(device)
-            pipe=StableDiffusionXLControlNetPipeline.from_pipe(pipe,controlnet = controlnet).to(device)
+        pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
+        pipe.enable_xformers_memory_efficient_attention()
+        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+        pipe.enable_vae_slicing()
+        torch.cuda.empty_cache()
+
+    if controlnet_model_path != "none":
+        controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
+        controlnet = ControlNetModel.from_unet(pipe.unet)
+        cn_state_dict = load_file(controlnet_model_path, device="cuda")
+        controlnet.load_state_dict(cn_state_dict, strict=False)
+        pipe = StableDiffusionXLControlNetPipeline.from_pipe(pipe, controlnet=controlnet,
+                                                              torch_dtype=torch.float16).to(device)
+
+
+      
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
         ms_path=hf_hub_download(
@@ -994,6 +993,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         encoder_repo = get_instance_path(encoder_repo)
     image_encoder_type = "clip"
     image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo).to(device, dtype=torch.float16)
+    pipe.image_encoder=image_encoder
     image_encoder_projection_dim = image_encoder.config.projection_dim
     num_tokens = 16
     image_proj_type = "resampler"
@@ -1011,11 +1011,12 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         latent_init_mode=latent_init_mode,
         phrase_embeddings_dim=pipe.text_encoder.config.projection_dim,
     ).to(device, dtype=torch.float16)
+
     ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
     ms_model.to(device, dtype=torch.float16)
-
+    torch.cuda.empty_cache()
     input_images = [image_1, image_2]
-    input_images = [x.resize((width, height)) for x in input_images]
+    #input_images = [x.resize((width, height)) for x in input_images] #no need
     # generation configs
     num_samples = 1
     image_ouput = []
@@ -1063,7 +1064,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
             eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
             # print(phrase_idxes, eot_idxes)
-            images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+            images  = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
                                        num_inference_steps=steps,
                                        seed=seed,
                                        prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
@@ -1073,9 +1074,10 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                                        image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
                                        phrases=phrases,
                                        drop_grounding_tokens=drop_grounding_tokens,
-                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width,image=control_image,ontrolnet_conditioning_scale=controlnet_scale)
-
+                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width,image=control_image,controlnet_conditioning_scale=controlnet_scale)
+            
             image_ouput += images
+            torch.cuda.empty_cache()
     else:
         for i, prompt in enumerate(prompts_dual):
             # used to get the attention map, return zero if the phrase is not in the prompt
@@ -1093,8 +1095,9 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                                        phrases=phrases,
                                        drop_grounding_tokens=drop_grounding_tokens,
                                        phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width)
-
             image_ouput += images
+            torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
     return image_ouput
 
 
@@ -1106,7 +1109,6 @@ class Storydiffusion_Model_Loader:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "local_diffuser": (diff_paths,),
                 "repo_id": ("STRING", {"default": ""}),
                 "ckpt_name": (["none"]+folder_paths.get_filename_list("checkpoints"),),
                 "character_weights": (character_weights,),
@@ -1147,7 +1149,7 @@ class Storydiffusion_Model_Loader:
                 model_path = get_local_path(file_path, path)
                 repo = get_instance_path(model_path)
         return repo
-    def story_model_loader(self,local_diffuser,repo_id, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
+    def story_model_loader(self,repo_id, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
                            model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,reset_txt2img,unique_id):
         
         scheduler_choice = get_scheduler(scheduler)
@@ -1172,18 +1174,14 @@ class Storydiffusion_Model_Loader:
         else:
             char_files = ""
         
-        original_config_file = get_instance_path(os.path.join(path_dir, 'config', 'sd_xl_base.yaml'))
-        
-        photomaker_local_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
-        if not os.path.exists(photomaker_local_path):
+        photomaker_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
+        if not os.path.exists(photomaker_path):
             photomaker_path=hf_hub_download(
                 repo_id="TencentARC/PhotoMaker",
                 filename="photomaker-v1.bin",
                 repo_type="model",
                 local_dir=photomaker_dir,
             )
-        else:
-            photomaker_path = photomaker_local_path
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
@@ -1213,11 +1211,12 @@ class Storydiffusion_Model_Loader:
         width = img_width
 
         # load model
-        dif_repo= self.instance_path(local_diffuser,repo_id)
+        #dif_repo= self.instance_path(repo_id)
+        
         ckpt_path=ckpt_name
-        if dif_repo=="none" and ckpt_name=="none":
+        if not repo_id and ckpt_name=="none":
             raise "you need choice a model"
-        elif dif_repo=="none" and ckpt_name!="none": # load ckpt
+        elif not repo_id and ckpt_name!="none": # load ckpt
             ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
             ckpt_path = get_instance_path(ckpt_path)
             pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, device=device, photomaker_path=photomaker_path, lora=lora,
@@ -1225,22 +1224,22 @@ class Storydiffusion_Model_Loader:
                                trigger_words=trigger_words, lora_scale=lora_scale)
             set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
         else: #if repo and ckpt,choice repo
-            if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic":
+            if repo_id.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic":
                 pipe = DiffusionPipeline.from_pretrained(
-                    dif_repo,
+                    repo_id,
                     torch_dtype=torch.float16,
                     variant="fp16",
                 )
                 pipe = pipe.to(device)
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
+            elif repo_id.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
                 pipe = StableDiffusionXLPipeline.from_pretrained(
-                    dif_repo, torch_dtype=torch.float16,use_safetensors=False
+                    repo_id, torch_dtype=torch.float16,use_safetensors=False
                 )
                 pipe = pipe.to(device)
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             else: # SD dif_repo
-                pipe = load_models(dif_repo, model_type=model_type, single_files=False, use_safetensors=True,
+                pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,
                                    device=device, photomaker_path=photomaker_path, lora=lora,
                                    lora_path=lora_path,
                                    trigger_words=trigger_words, lora_scale=lora_scale)
@@ -1269,8 +1268,10 @@ class Storydiffusion_Model_Loader:
             char_file="ture"
         else:
             char_file = "none"
-        info = str(";".join(
-            [model_type, ckpt_path,dif_repo,lora_path, original_config_file, lora, trigger_words, str(lora_scale),char_file]))
+        if not repo_id:
+            repo_id="none"
+        info = ";".join(
+            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file])
         return (pipe, info,)
 
 
@@ -1313,7 +1314,7 @@ class Storydiffusion_Sampler:
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "start_step": ("INT", {"default": 5, "min": 1, "max": 1024}),
                 "save_character": ("BOOLEAN", {"default": False},),
-                "controlnet_model_path": (control_paths,),
+                "controlnet_model_path": (["none"] + folder_paths.get_filename_list("controlnet"),),
                 "controlnet_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "layout_guidance": ("BOOLEAN", {"default": False},),
@@ -1331,7 +1332,7 @@ class Storydiffusion_Sampler:
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
 
-        model_type, ckpt_path, dif_repo,lora_path, original_config_file, lora, trigger_words,lora_scale,char_files = info.split(
+        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files = info.split(
             ";")
         lora_scale = float(lora_scale)
         if char_files=="none":
@@ -1424,8 +1425,8 @@ class Storydiffusion_Sampler:
             image_b = image_pil_list[positions_char_2]
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, lora,
-                                          lora_path,lora_scale, trigger_words, ckpt_path,dif_repo, original_config_file, role_scale,
-                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance)
+                                          lora_path,lora_scale, trigger_words, ckpt_path,dif_repo, role_scale,
+                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance,cfg)
             j = 0
             for i in positions_dual: #重新将双人场景插入原序列
                 img = image_dual[j]
