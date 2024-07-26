@@ -22,9 +22,17 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 13、ComfyUI_Streamv2v_Plus node（视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
 14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
 15、ComfyUI_AnyDoor node(一键换衣插件): [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
+16、ComfyUI_Stable_Makeup node(一键化妆): [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
+17、ComfyUI_EchoMimic node(音频驱动动画):  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
+18、ComfyUI_FollowYourEmoji node(画面驱动表情包): [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 
 更新
 ---
+2024/07/26更新   
+--模型现在只有使用repo输入或者选择社区模型两种方式，修复了一些bug；  
+--controlnet现在使用单体模型；  
+---调整MS的模型加载，速度更快了；  
+
 20270709更新
 --修复文生图使用MS-diffusion时无法连续跑的bug，需要开启加载模型节点的“reset_txt2img”为Ture；  
 --修复引入模块的错误，现在模型存放地址改至models/photomaker，重复利用模型，避免浪费硬盘空间(存储的pt模型也会在photomaker下)；   
@@ -57,12 +65,13 @@ pip install -r requirements.txt
 3 Need  model 
 ----
 3.1 在线模式   
-你可以直接在repo填写如：stabilityai/stable-diffusion-xl-base-1.0 ，或者在local diffuser菜单里选择对应的模型（前提是你把模型存在在models/diffuser目录下），也可以直接选择单体的SDXL社区模型。repo或local diffuser的优先级要高于单体的社区模型。   
-支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，sd-community/sdxl-flash），也支持非SD模型，如（stablediffusionapi/sdxl-unstable-diffusers-y，playground-v2.5-1024px-aesthetic）   
-使用你本地的SDXL单体模型时（例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），请将local_diffusers设置成无，下载对应的config文件们就可以运行。     
+你可以直接在repo填写如：stabilityai/stable-diffusion-xl-base-1.0 ，也可以直接选择单体的SDXL社区模型。社区模型的优先级要repo模型。   
+repo模式 支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，sd-community/sdxl-flash），也支持非SD模型，如（stablediffusionapi/sdxl-unstable-diffusers-y，playground-v2.5-1024px-aesthetic）   
+单体模型支持SDXL,例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），    
 
 --(使用双角色功能时):       
 你用全局外网，会自动下载，但是一般是去C盘。  
+在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
 需要下载 "ms_adapter.bin" : [下载](https://huggingface.co/doge1516/MS-Diffusion/tree/main) 
 需要下载 "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[下载地址](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
 文件存放的结构如下：  
@@ -95,34 +104,16 @@ pip install -r requirements.txt
 |             ├──vocab.json
 ```
 
-3.3 
-
-在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
-
-3.4 双角色controlnet的模型文件示例如下，仅支持SDXL controlnet   
+3.3 双角色controlnet的模型示例如下，现在已支持社区SDXL单体模型。
 ```
-├── ComfyUI/models/diffusers/   
+├── ComfyUI/models/controlnet/   
 |     ├──xinsir/controlnet-openpose-sdxl-1.0    
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──xinsir/controlnet-scribble-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──diffusers/controlnet-canny-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors   
 |     ├──diffusers/controlnet-depth-sdxl-1.0   
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──/controlnet-zoe-depth-sdxl-1.0  
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──TheMistoAI/MistoLine 
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
 |     ├──xinsir/controlnet-tile-sdxl-1.0
-|         ├── config.json   
-|         ├── diffusion_pytorch_model.fp16.safetensors
    
 ```
 control_img图片的预处理，请使用其他节点   
@@ -130,29 +121,29 @@ control_img图片的预处理，请使用其他节点
 4 Example
 ----
 
-文生图模式，模型使用的单体社区SDXL模型，首次使用会连外网下载config文件。
+文生图模式，模型使用的单体社区SDXL模型，首次使用会连外网下载config文件。旧的示例   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2txt.png)
 
-图生图模式,提示词引入了[NC]和# 参考示例文件夹下的同名的json
+图生图模式,提示词引入了[NC]和# 参考示例文件夹下的同名的json，旧的示例  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png)
 
-图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2img_lora_controlnet_2rolein1img.png)
+图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框，最新的示例   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
 
-文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）
+文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）旧的示例   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
 
-多controlnet加入双角色同框（角色1 and 角色2）
+多controlnet加入双角色同框（角色1 and 角色2）旧的示例   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png)
 
-文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。  
+文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。旧的示例    
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 节点的功能说明
 ---   
 --<Storydiffusion_Model_Loader>  
--- sd_type：选择“Use_Single_XL_Model”时，可以使用社区SDXL模型，其他选项均为扩散模型；   
--- ckpt_name：使用“Use_Single_XL_Model”时生效，社区SDLX模型选择；   
+-- repeo：填写扩散模型的绝对路径；   
+-- ckpt_name：社区SDLX模型选择；   
 -- character_weights：使用sampler节点的save_character 功能保存的角色权重。选择为“none/无”时不生效！（注意，保存的角色权重不能马上被识别，需要重启comfyUI）；   
 -- lora：选择SDXL lora，为“none”时不生效；   
 -- lora_scale： lora的权重，Lora生效时启用；   
@@ -179,7 +170,7 @@ control_img图片的预处理，请使用其他节点
 --mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
 -- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
 --save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
---controlnet_model_path: controlnet的模型加载，这是需要config文件的加载方式，无法兼容comfyUI常规的单模型（比起单模型，只需要多下一个几K的config文件而已）；  
+--controlnet_model_path: 选择SDXL社区模型；  
 --controlnet_scale:  controlne权重；   
 --layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
 
