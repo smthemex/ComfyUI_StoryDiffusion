@@ -119,22 +119,22 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
-txt2img mode uses the SDXL model of the single community model   
+txt2img mode uses the SDXL model of the single community model Old version examples    
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2txt.png)
 
-img2img mode, prompt words introduced [NC] and # refer to JSON with the same name in the example folder  
+img2img mode, prompt words introduced [NC] and # refer to JSON with the same name in the example folder Old version examples    
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png) 
 
-img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame)   
+img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame) Latest examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
 
-txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame)  
+txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame) Old version examples   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
 
-More ControlNet added dual role co frame (Role 1 and Role 2)
+More ControlNet added dual role co frame (Role 1 and Role 2) Old version examples   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png) 
 
-Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node.   
+Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Old version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 Function Description of Nodes  
