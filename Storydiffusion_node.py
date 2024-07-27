@@ -922,61 +922,64 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         return res
     
     original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-    
-    if _model_type == "img2img" :  # 图生图双角色目前只能先用原方法，2者encoder模型不同，没法相互调用
-        pipe.unload_ip_adapter()
-        pipe.unload_lora_weights()
-        del pipe
-        torch.cuda.empty_cache()
-        # load SDXL pipeline
-        if dif_repo!="none":
-            single_files=False
-            if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic" or dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
-                raise "playground or unstable is not support,choice SDXL diffuser"
-        elif dif_repo=="none" and ckpt_path!="none":
-            single_files=True
-        else:
-            raise "no model"
-        if single_files:
-            if dif_version_int >= 28:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    pretrained_model_link_or_path=ckpt_path, original_config=original_config_file,
-                    torch_dtype=torch.float16)
-
-            else:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
-                    torch_dtype=torch.float16
-                )
-
-        else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(
-                dif_repo, torch_dtype=torch.float16,
-            )
-        #pipe = pipe.to(device)
-        if lora != "none":
-            if lora in lora_lightning_list:
-                pipe.load_lora_weights(lora_path)
-                pipe.fuse_lora()
-            else:
-                pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
-                pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-        pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
-        pipe.enable_xformers_memory_efficient_attention()
-        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        pipe.enable_vae_slicing()
-        if device != "mps":
-            pipe.enable_model_cpu_offload()
-        torch.cuda.empty_cache()
-
     if controlnet_model_path != "none":
+        if _model_type == "img2img":
+            pipe.unload_ip_adapter()  # img2img先去掉原方法的ip
+            pipe.unload_lora_weights()
+            del pipe
+            torch.cuda.empty_cache()
+            if dif_repo != "none":
+                single_files=False
+                if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic" or dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
+                     raise "playground or unstable is not support,choice SDXL diffuser"
+            elif dif_repo=="none" and ckpt_path!="none":
+                single_files=True
+            else:
+                raise "no model"
+            if single_files:
+                if dif_version_int >= 28:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                         pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                         torch_dtype=torch.float16)
+                 
+                else:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                         pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                         torch_dtype=torch.float16)
+            else:
+                pipe=StableDiffusionXLControlNetPipeline.from_pretrained(dif_repo,torch_dtype=torch.float16)
+            if lora != "none":
+                if lora in lora_lightning_list:
+                    pipe.load_lora_weights(lora_path)
+                    pipe.fuse_lora()
+                else:
+                    pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                    pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
+                    
+            pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
+            pipe.enable_xformers_memory_efficient_attention()
+            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+            pipe.enable_vae_slicing()
+            if device != "mps":
+                pipe.enable_model_cpu_offload()
+            torch.cuda.empty_cache()
+        #原方法的unet有层残缺
         controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
         controlnet = ControlNetModel.from_unet(pipe.unet)
         cn_state_dict = load_file(controlnet_model_path)
         controlnet.load_state_dict(cn_state_dict, strict=False)
-        pipe = StableDiffusionXLControlNetPipeline.from_pipe(pipe, controlnet=controlnet,
-                                                              torch_dtype=torch.float16)
-
+        
+        if dif_version_int >= 28:
+            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
+                                                                        controlnet=controlnet,
+                                                                        original_config=original_config_file,
+                                                                        torch_dtype=torch.float16)
+        else:
+            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
+                                                                        controlnet=controlnet,
+                                                                        original_config_file=original_config_file,
+                                                                        torch_dtype=torch.float16)
+    # 预加载 ms
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
         ms_path = hf_hub_download(
@@ -992,7 +995,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     if encoder_repo.count("/") > 1:
         encoder_repo = get_instance_path(encoder_repo)
     image_encoder_type = "clip"
-    image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo,ignore_mismatched_sizes=True).to(device,dtype=torch.float16)
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo, ignore_mismatched_sizes=True).to(device,dtype=torch.float16)
     image_encoder_projection_dim = image_encoder.config.projection_dim
     num_tokens = 16
     image_proj_type = "resampler"
@@ -1013,6 +1016,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     
     ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
     ms_model.to(device, dtype=torch.float16)
+    pipe.to(device)
     torch.cuda.empty_cache()
     input_images = [image_1, image_2]
     # input_images = [x.resize((width, height)) for x in input_images] #no need
@@ -1068,8 +1072,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                                        seed=seed,
                                        prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
                                        image_encoder=image_encoder,
-                                       image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
-                                       start_step=start_step,
+                                       image_processor=image_processor, boxes=boxes,
                                        image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
                                        phrases=phrases,
                                        drop_grounding_tokens=drop_grounding_tokens,
@@ -1135,7 +1138,10 @@ class Storydiffusion_Model_Loader:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
+        if not kwargs.get("reset_txt2img"):
+            return
+        else:
+            return True
     
     RETURN_TYPES = ("MODEL", "STRING",)
     RETURN_NAMES = ("pipe", "info",)
@@ -1316,7 +1322,7 @@ class Storydiffusion_Sampler:
                 "controlnet_model_path": (["none"] + folder_paths.get_filename_list("controlnet"),),
                 "controlnet_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "layout_guidance": ("BOOLEAN", {"default": False},),
+                "layout_guidance": ("BOOLEAN", {"default": True},),
             },
             "optional": {"image": ("IMAGE",),
             "control_image": ("IMAGE",),}
@@ -1436,8 +1442,6 @@ class Storydiffusion_Sampler:
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
-        #del pipe
-        #del gen
         torch.cuda.empty_cache()
         return (image, scene_prompts,)
 
