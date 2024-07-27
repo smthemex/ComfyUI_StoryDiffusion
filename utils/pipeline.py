@@ -15,7 +15,8 @@ import diffusers
 dif_version = str(diffusers.__version__)
 dif_version_int= int(dif_version.split(".")[1])
 if dif_version_int>28:
-    from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput
+    from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput, \
+    rescale_noise_cfg
 else:
     from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
 
@@ -118,8 +119,8 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         # load finetuned CLIP image encoder and fuse module here if it has not been registered to the pipeline yet
         print(f"Loading PhotoMaker components [1] id_encoder from [{pretrained_model_name_or_path_or_dict}]...")
         id_encoder = PhotoMakerIDEncoder()
-        id_encoder.load_state_dict(state_dict["id_encoder"], strict=True)
-        id_encoder = id_encoder.to(self.device, dtype=self.unet.dtype)
+        id_encoder.load_state_dict(state_dict["id_encoder"], strict=False)
+        id_encoder = id_encoder.to("cuda", dtype=self.unet.dtype)
         self.id_encoder = id_encoder
         self.id_image_processor = CLIPImageProcessor()
 
