@@ -71,7 +71,9 @@ repo模式 支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，s
 
 --(使用双角色功能时):       
 你用全局外网，会自动下载，但是一般是去C盘。  
-在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)    
+在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)  
+photomaker-v2.bin 虽然也能用，但是新代码没有更新，所以发挥不了其新特性 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  
+
 需要下载 "ms_adapter.bin" : [下载](https://huggingface.co/doge1516/MS-Diffusion/tree/main) 
 需要下载 "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[下载地址](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k) 
 文件存放的结构如下：  
@@ -79,6 +81,7 @@ repo模式 支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，s
 ├── ComfyUI/models/
 |      ├──photomaker/
 |             ├── photomaker-v1.bin
+|             ├── photomaker-v2.bin
 |             ├── ms_adapter.bin
 
 ```
