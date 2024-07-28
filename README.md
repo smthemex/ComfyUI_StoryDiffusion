@@ -72,7 +72,8 @@ When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffu
 
 --using dual role same frame function:      
 
-photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)     
+photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
+photomaker-v2.bin    [link](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  (need  update code )
 Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
 Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)   
 
@@ -80,6 +81,7 @@ Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://hug
 ├── ComfyUI/models/
 |      ├──photomaker/
 |             ├── photomaker-v1.bin
+|             ├── photomaker-v2.bin
 |             ├── ms_adapter.bin
 
 ```
