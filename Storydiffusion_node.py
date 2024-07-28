@@ -1128,6 +1128,7 @@ class Storydiffusion_Model_Loader:
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
+                "photmake_mode": (["v1", "v2"],),
                 "reset_txt2img":("BOOLEAN", {"default": False},),
             },
             "hidden": {
@@ -1157,10 +1158,10 @@ class Storydiffusion_Model_Loader:
                 repo = get_instance_path(model_path)
         return repo
     def story_model_loader(self,repo_id, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,reset_txt2img,unique_id):
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photmake_mode,reset_txt2img,unique_id):
         
         scheduler_choice = get_scheduler(scheduler)
-        
+
         if model_type=="txt2img" and reset_txt2img :
             counter = int(1)
             if self.counters.__contains__(unique_id):
@@ -1181,14 +1182,21 @@ class Storydiffusion_Model_Loader:
         else:
             char_files = ""
         
-        photomaker_path = os.path.join(photomaker_dir, "photomaker-v1.bin")
-        if not os.path.exists(photomaker_path):
-            photomaker_path=hf_hub_download(
-                repo_id="TencentARC/PhotoMaker",
-                filename="photomaker-v1.bin",
-                repo_type="model",
-                local_dir=photomaker_dir,
-            )
+        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photmake_mode}.bin")
+        if photmake_mode=="v1":
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker",
+                    filename="photomaker-v1.bin",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker-V2",
+                    filename="photomaker-v2.bin",
+                    local_dir=photomaker_dir,
+                )
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
