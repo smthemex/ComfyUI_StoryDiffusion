@@ -2,7 +2,7 @@
 name = "comfyui_storydiffusion"
 description = "you can using sotry-diffusion in comfyui"
 version = "1.0.1"
-license = "LICENSE"
+license = { file = "LICENSE" }
 dependencies = ["ip_adapter @ git+https://github.com/tencent-ailab/IP-Adapter.git@main", "spaces", "peft"]
 
 [project.urls]
