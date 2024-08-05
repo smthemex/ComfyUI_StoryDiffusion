@@ -11,14 +11,17 @@ from safetensors import safe_open
 from huggingface_hub.utils import validate_hf_hub_args
 from transformers import CLIPImageProcessor, CLIPTokenizer
 from diffusers import StableDiffusionXLPipeline
-import diffusers
-dif_version = str(diffusers.__version__)
-dif_version_int= int(dif_version.split(".")[1])
-if dif_version_int>28:
+try:
     from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput, \
     rescale_noise_cfg
-else:
-    from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
+except:
+    try:
+       from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput,rescale_noise_cfg
+    except:
+        try:
+            from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput,rescale_noise_cfg
+        except:
+            raise "import StableDiffusionXLPipelineOutput,rescale_noise_cfg error"
 
 from diffusers.utils import (
     _get_model_file,
@@ -438,6 +441,7 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                 prompt_embeds = None
                 pooled_prompt_embeds_text_only_arr.append(pooled_prompt_embeds_text_only)
                 pooled_prompt_embeds_text_only = None
+                
             # 7. Prepare timesteps
             self.scheduler.set_timesteps(num_inference_steps, device=device)
             timesteps = self.scheduler.timesteps
