@@ -6,35 +6,18 @@ You can using StoryDiffusion in ComfyUI
 StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)   
 MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 ----
-My ComfyUI node list：
------
-
-1、ParlerTTS node:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
-2、Llama3_8B node:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
-3、HiDiffusion node：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
-4、ID_Animator node： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
-5、StoryDiffusion node：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
-6、Pops node：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
-7、stable-audio-open-1.0 node ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
-8、GLM4 node：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
-9、CustomNet node：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
-10、Pipeline_Tool node :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
-11、Pic2Story node :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
-12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)      
-13、ComfyUI_Streamv2v_Plus node:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
-14、ComfyUI_MS_Diffusion node:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
-15、ComfyUI_AnyDoor node: [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
-16、ComfyUI_Stable_Makeup node: [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
-17、ComfyUI_EchoMimic node:  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
-18、ComfyUI_FollowYourEmoji node: [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 
 NEW Update
 ---
+--2024/08/05
+--Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
+--support photomaker V2;  
+--fix some bug;  
+
 --2024/07/26
 --fix some bug,while ControlNet now uses community models.   
 -- The base model now has only two options: using repo input or selecting the community model...
 --Adjusting the model loading of MS has made the speed faster   
-
 
 --2024/07/09    
 --To fix the bug where MS diffusion cannot run continuously in the txt2img, it is necessary to enable the "reset_txt2img" of the loading model node to be Ture;   
@@ -59,7 +42,10 @@ git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
 ```
 pip install -r requirements.txt
 ```
-
+if using photomakerV2,need:  
+```
+pip install insightface==0.7.3  or new   
+```
 If the module is missing, please pip install   
 
 3 Need  model 
@@ -73,7 +59,7 @@ When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffu
 --using dual role same frame function:      
 
 photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
-photomaker-v2.bin    [link](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  (need  update code )
+photomaker-v2.bin    [link](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  
 Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
 Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)   
 
@@ -85,6 +71,51 @@ Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://hug
 |             ├── ms_adapter.bin
 
 ```
+
+if using kolors:  
+Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
+Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+The file structure is shown in the following figure:
+```
+├── any path/Kwai-Kolors/Kolors
+|      ├──model_index.json
+|      ├──vae
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors (rename from diffusion_pytorch_model.fp16.safetensors )
+|      ├──unet
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors (rename from diffusion_pytorch_model.fp16.safetensors )
+|      ├──tokenizer
+|          ├── tokenization_chatglm.py
+|          ├── tokenizer.model
+|          ├── tokenizer_config.json
+|          ├── vocab.txt text_encoder
+|       ├── text_encoder
+|          ├── config.json
+|          ├── configuration_chatglm.py
+|          ├── modeling_chatglm.py
+|          ├── pytorch_model.bin.index.json
+|          ├── quantization.py
+|          ├── tokenization_chatglm.py
+|          ├── tokenizer.model
+|          ├── tokenizer_config.json
+|          ├── vocab.txt
+|          ├── pytorch_model-00001-of-00007.bin to pytorch_model-00007-of-00007.bin
+|       ├── scheduler
+|          ├── scheduler_config.json
+|       ├── Kolors-IP-Adapter-Plus
+|          ├──model_index.json
+|          ├──ip_adapter_plus_general.bin
+|          ├──config.json
+|          ├──image_encoder
+|               ├──config.json
+|               ├──preprocessor_config.json
+|               ├──pytorch_model.bin
+|               ├──tokenizer.json
+|               ├──tokenizer_config.json
+|               ├──vocab.json
+```
+
 
 3.2 offline  
 You can fill in the absolute address of the diffusion model in repo, using "/"   
@@ -121,22 +152,25 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
-txt2img mode uses the SDXL model of the single community model Old version examples    
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2txt.png)
+txt2img mode uses kolors model using chinese prompt (Latest version)        
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgkolors.png)
 
-img2img mode, prompt words introduced [NC] and # refer to JSON with the same name in the example folder Old version examples    
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png) 
+img2img mode, uses kolors model using chinese prompt (Latest version)     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgkolors.png)
 
-img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame) Latest examples     
+img2img mode, uses photomakeV2 (Latest version)     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgphotomakev2.png)
+
+img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame) Outdated version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
 
-txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame) Old version examples   
+txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame) Outdated version examples   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
 
-More ControlNet added dual role co frame (Role 1 and Role 2) Old version examples   
+More ControlNet added dual role co frame (Role 1 and Role 2) Outdated version examples   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png) 
 
-Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Old version examples     
+Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 Function Description of Nodes  
@@ -144,6 +178,7 @@ Function Description of Nodes
 --<Storydiffusion_Model_Loader>--    
 --repo: using diffuser models ;     
 --Ckptname:  using  community SDLX model selection;   
+--vae_id: some model need fb16 vae,
 --Character_weights: Character weights saved using the save_character feature of the sampler node. Selecting "none/none" does not take effect! (Note that the saved character weights cannot be immediately recognized and require a restart of comfyUI);   
 --Lora: Selecting SDXL Lora does not take effect when set to "none";   
 --Lora_scale: The weight of Lora, which is enabled when Lora takes effect;   
@@ -153,17 +188,18 @@ Function Description of Nodes
 --Idnumber: How many roles are used, currently only supporting 1 or 2;   
 --Sa32_degree/sa64_degree: an adjustable parameter for the attention layer;   
 --Img_width/img_height: The height and width dimensions of the drawing.   
+--photomake_mode: choice v1 or v2 model;  
 --reset_txt2img: Fixed an error where continuous rendering is not possible when using MS. You need to set "reset_txt2img" to Ture, which will replace the scheduler   
 
 --<Storydiffusion_Sampler>---       
 --Pipe/info: The interface that must be linked;   
 --Image: The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI;   
---Character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;   
+--Character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;if using  chinese prompt, need["角色名"] or ['角色名']  
 --Scene prompts: The prompt for the scene description, [character name], must start at the beginning. It is best for both characters to appear once in the first two lines. [NC] At the beginning, the character does not appear (suitable for non character scenes). When (character A and character B), MS diffusion's dual character mode is enabled, and and the spaces before and after it cannot be ignored# Used for segmented prompt, rendering the entire segment, but only outputting the prompt after #;    
 --Split prompt: The symbol for splitting the prompt, which does not take effect when it is empty. It is used to normalize paragraphs when the prompt is external. For example, when you pass in 10 lines of text, the hyphen may not be correct, but using a hyphen, such as ";", can effectively distinguish each line.     
 --Negative prompt: only effective when img_style is No_style;      
 --Seed/steps/cfg: suitable for commonly used functions in comfyUI;     
---Ip-adapter_strength: img2img controls the weight of ip-adapter in graph generation;   
+--Ip-adapter_strength: img2img controls the weight of ip-adapter in graph generation,only using in kolors;   
 --Style_strength'ratio: Style weight control, which controls from which step the style takes effect. When the style consistency is not good, you can try increasing or decreasing this parameter;   
 --Encoder'repo: Only valid when two characters are in the same image. If you want to use a local model, be sure to use X:/XXX/XXX/laion/CLIP ViT bigG-14-laion2B-39B-b160k, which must be "/";   
 --Role-scale: only effective when two characters are in the same image, controlling the weight of the characters in the image;   
@@ -199,7 +235,28 @@ Tips：
 --No characters appear in the image, add [NC] in front of the scene prompt;   
 --Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
   
+My ComfyUI node list：
+-----
 
+1、ParlerTTS node:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
+2、Llama3_8B node:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
+3、HiDiffusion node：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
+4、ID_Animator node： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
+5、StoryDiffusion node：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
+6、Pops node：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
+7、stable-audio-open-1.0 node ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
+8、GLM4 node：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
+9、CustomNet node：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
+10、Pipeline_Tool node :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
+11、Pic2Story node :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
+12、PBR_Maker node:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)      
+13、ComfyUI_Streamv2v_Plus node:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
+14、ComfyUI_MS_Diffusion node:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
+15、ComfyUI_AnyDoor node: [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
+16、ComfyUI_Stable_Makeup node: [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
+17、ComfyUI_EchoMimic node:  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
+18、ComfyUI_FollowYourEmoji node: [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
+19、ComfyUI_Diffree node: [ComfyUI_Diffree](https://github.com/smthemex/ComfyUI_Diffree)     
 
 Citation
 ------
@@ -231,5 +288,23 @@ MS-Diffusion
   eprint={2406.07209},
   archivePrefix={arXiv},
   primaryClass={cs.CV}
+}
+```
+photomaker
+```
+@inproceedings{li2023photomaker,
+  title={PhotoMaker: Customizing Realistic Human Photos via Stacked ID Embedding},
+  author={Li, Zhen and Cao, Mingdeng and Wang, Xintao and Qi, Zhongang and Cheng, Ming-Ming and Shan, Ying},
+  booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2024}
+}
+```
+kolors
+```
+@article{kolors,
+  title={Kolors: Effective Training of Diffusion Model for Photorealistic Text-to-Image Synthesis},
+  author={Kolors Team},
+  journal={arXiv preprint},
+  year={2024}
 }
 ```
