@@ -1,6 +1,8 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
+
+import cv2
 import numpy as np
 import torch
 import copy
@@ -20,6 +22,7 @@ from .utils.gradio_utils import (
     is_torch2_available,
 )
 from PIL import Image
+from .utils.insightface_package import FaceAnalysis2, analyze_faces
 
 if is_torch2_available():
     from .utils.gradio_utils import AttnProcessor2_0 as AttnProcessor
@@ -35,7 +38,11 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
-
+from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
+from .kolors.models.modeling_chatglm import ChatGLMModel
+from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
+from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
+from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
 from .msdiffusion.models.projection import Resampler
 from .msdiffusion.models.model import MSAdapter
 from .msdiffusion.utils import get_phrase_idx, get_eot_idx
@@ -52,9 +59,6 @@ global sa32, sa64
 global write
 global height, width
 STYLE_NAMES = list(styles.keys())
-import diffusers
-dif_version = str(diffusers.__version__)
-dif_version_int = int(dif_version.split(".")[1])
 
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
 
@@ -134,7 +138,6 @@ def add_pil(list, list_add, num):
 
 
 def tensor_to_image(tensor):
-    # tensor = tensor.cpu()
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
@@ -209,7 +212,7 @@ def get_image_path_list(folder_name):
 def apply_style_positive(style_name: str, positive: str):
     p, n = styles.get(style_name, styles[style_name])
     #print(p, "test0", n)
-    return p.replace("{prompt}", positive)
+    return p.replace("{prompt}", positive),n
 
 
 def apply_style(style_name: str, positives: list, negative: str = ""):
@@ -702,14 +705,15 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,
+        trigger_words,photomake_mode,use_kolor
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
     # _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
-    if model_type == "img2img" and "img" not in general_prompt:
-        raise 'Please choice img2img typle,and add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
+    if not use_kolor:
+        if model_type == "img2img" and "img" not in general_prompt:
+            raise 'Please choice img2img typle,and add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
 
     global total_length, attn_procs, cur_model_type
     global write
@@ -719,7 +723,10 @@ def process_generation(
 
     prompts_origin = prompt_array.splitlines()
     prompts = [prompt for prompt in prompts_origin if not has_parentheses(prompt)]  # 剔除双角色
-    add_trigger_words = "," + trigger_words + " " + "style" + ";"
+    if use_kolor:
+        add_trigger_words = "," + trigger_words + " " + "风格" + ";"
+    else:
+        add_trigger_words = "," + trigger_words + " " + "style" + ";"
     if lora != "none":
         if lora in lora_lightning_list:
             prompts = remove_punctuation_from_strings(prompts)
@@ -744,10 +751,12 @@ def process_generation(
             nc_indexs.append(ind)
             if ind < id_length:
                 raise f"The first {id_length} row is id prompts, cannot use [NC]!"
+
     prompts = [
         prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
         for prompt in clipped_prompts
     ]
+    
     if lora != "none":
         if lora in lora_lightning_list:
             prompts = [
@@ -785,15 +794,20 @@ def process_generation(
     write = True
     cur_step = 0
     attn_count = 0
-    # id_prompts, negative_prompt = apply_style(style_name, id_prompts, negative_prompt)
+    #id_prompts_no_using, negative_prompt = apply_style(style_name, ["id_prompts"], negative_prompt)
     #setup_seed(seed_)
     total_results = []
     id_images = []
     results_dict = {}
     p_num=0
+    
+    if photomake_mode=="v2":
+        face_detector = FaceAnalysis2(providers=['CUDAExecutionProvider'], allowed_modules=['detection', 'recognition'])
+        face_detector.prepare(ctx_id=0, det_size=(640, 640))
+    
     global cur_character
     if not load_chars:
-        for character_key in character_dict.keys():
+        for character_key in character_dict.keys():# 先生成角色对应第一句场景提示词的图片
             cur_character = [character_key]
             ref_indexs = ref_indexs_dict[character_key]
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
@@ -803,8 +817,8 @@ def process_generation(
             cur_positive_prompts, negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            # print("test2",cur_positive_prompts,"test2",negative_prompt,"test2")
-            # print("21",cur_positive_prompts[p_num],"21")
+            if use_kolor:
+                negative_prompt=[negative_prompt]
             if model_type == "txt2img":
                 id_images = pipe(
                     cur_positive_prompts,
@@ -816,23 +830,63 @@ def process_generation(
                     generator=generator
                 ).images
             elif model_type == "img2img":
-                id_images = pipe(
-                    cur_positive_prompts,
-                    input_id_images=input_id_images_dict[character_key],
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    start_merge_step=start_merge_step,
-                    height=height,
-                    width=width,
-                    negative_prompt=negative_prompt,
-                    generator=generator
-                ).images
+                if use_kolor:
+                    pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
+                    id_images = pipe(
+                        prompt=cur_positive_prompts,
+                        ip_adapter_image=input_id_images_dict[character_key],
+                        negative_prompt=negative_prompt,
+                        num_inference_steps=_num_steps,
+                        height=height,
+                        width=width,
+                        guidance_scale=guidance_scale,
+                        num_images_per_prompt=1,
+                        generator=generator,
+                    ).images
+                else:
+                    if photomake_mode == "v2":
+                        # 提取id
+                        # print("v2 mode load_chars", cur_positive_prompts, negative_prompt, character_key)
+                        
+                        img = input_id_images_dict[character_key][
+                            0]  # input_id_images_dict {'[Taylor]': [pil], '[Lecun]': [pil]}
+                        img = np.array(img)
+                        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                        faces = analyze_faces(face_detector, img, )
+                        id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
+                        id_embeds = torch.stack(id_embed_list)
+                
+                        id_images = pipe(
+                            cur_positive_prompts,
+                            input_id_images=input_id_images_dict[character_key],
+                            num_inference_steps=_num_steps,
+                            guidance_scale=guidance_scale,
+                            start_merge_step=start_merge_step,
+                            height=height,
+                            width=width,
+                            negative_prompt=negative_prompt,
+                            id_embeds=id_embeds,
+                            generator=generator
+                        ).images
+                    else:
+                        # print("v1 mode,load_chars", cur_positive_prompts, negative_prompt,character_key )
+                        id_images = pipe(
+                            cur_positive_prompts,
+                            input_id_images=input_id_images_dict[character_key],
+                            num_inference_steps=_num_steps,
+                            guidance_scale=guidance_scale,
+                            start_merge_step=start_merge_step,
+                            height=height,
+                            width=width,
+                            negative_prompt=negative_prompt,
+                            generator=generator
+                        ).images
             else:
                 raise NotImplementedError(
                     "You should choice between original and Photomaker!",
                     f"But you choice {model_type}",
                 )
-            #p_num+=1
+            p_num+=1
             # total_results = id_images + total_results
             # yield total_results
             for ind, img in enumerate(id_images):
@@ -846,7 +900,11 @@ def process_generation(
         ]
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
+        
     #print(real_prompts_inds)
+    real_prompt_no, negative_prompt_style = apply_style_positive(style_name, "real_prompt")
+    negative_prompt=str(negative_prompt)+str(negative_prompt_style)
+
     for real_prompts_ind in real_prompts_inds:  # 非角色流程
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
@@ -856,7 +914,7 @@ def process_generation(
             raise "Temporarily Not Support Multiple character in Ref Image Mode!"
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
-        real_prompt = apply_style_positive(style_name, real_prompt)
+        real_prompt ,negative_prompt_style_no= apply_style_positive(style_name, real_prompt)
         #print(real_prompt)
         if model_type == "txt2img":
            # print(results_dict,real_prompts_ind)
@@ -870,22 +928,82 @@ def process_generation(
                 generator=generator,
             ).images[0]
         elif model_type == "img2img":
-            results_dict[real_prompts_ind] = pipe(
-                real_prompt,
-                input_id_images=(
-                    input_id_images_dict[cur_character[0]]
-                    if real_prompts_ind not in nc_indexs
-                    else input_id_images_dict[character_list[0]]
-                ),
-                num_inference_steps=_num_steps,
-                guidance_scale=guidance_scale,
-                start_merge_step=start_merge_step,
-                height=height,
-                width=width,
-                negative_prompt=negative_prompt,
-                generator=generator,
-                nc_flag=True if real_prompts_ind in nc_indexs else False,
-            ).images[0]
+            if use_kolor:
+                
+                empty_img=Image.new('RGB', (height, width), (255, 255, 255))
+                results_dict[real_prompts_ind] = pipe(
+                prompt = real_prompt,
+                ip_adapter_image = [(
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else empty_img
+                    ),],
+                negative_prompt = negative_prompt,
+                height = height,
+                width = width,
+                num_inference_steps = _num_steps,
+                guidance_scale = guidance_scale,
+                num_images_per_prompt = 1,
+                generator = generator,
+                nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
+                ).images[0]
+            else:
+                if photomake_mode == "v2":
+                    # V2版本必须要有id_embeds，只能用input_id_images作为风格参考
+                    img = (
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else input_id_images_dict[character_list[0]]
+                    ),
+                    # print(img,type(img[0][0]))
+                    
+                    img = np.array(img[0][0])
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    faces = analyze_faces(face_detector, img, )
+                    nc_flag = True if real_prompts_ind in nc_indexs else False  # 有nc为ture，无则false
+                    if not nc_flag:
+                        id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
+                    else:
+                        id_embed_list = [torch.zeros_like(torch.from_numpy((faces[0]['embedding'])))]
+                    id_embeds = torch.stack(id_embed_list)
+                    
+                    # print(real_prompts_ind, real_prompt,"v2 mode")
+                    
+                    results_dict[real_prompts_ind] = pipe(
+                        real_prompt,
+                        input_id_images=(
+                            input_id_images_dict[cur_character[0]]
+                            if real_prompts_ind not in nc_indexs
+                            else input_id_images_dict[character_list[0]]
+                        ),
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        start_merge_step=start_merge_step,
+                        height=height,
+                        width=width,
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                        id_embeds=id_embeds,
+                        nc_flag=True if real_prompts_ind in nc_indexs else False,
+                    ).images[0]
+                else:
+                    #print(real_prompts_ind, real_prompt, "v1 mode", )
+                    results_dict[real_prompts_ind] = pipe(
+                        real_prompt,
+                        input_id_images=(
+                            input_id_images_dict[cur_character[0]]
+                            if real_prompts_ind not in nc_indexs
+                            else input_id_images_dict[character_list[0]]
+                        ),
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        start_merge_step=start_merge_step,
+                        height=height,
+                        width=width,
+                        negative_prompt=negative_prompt,
+                        generator=generator,
+                        nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
+                    ).images[0]
         else:
             raise NotImplementedError(
                 "You should choice between original and Photomaker!",
@@ -937,15 +1055,17 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             else:
                 raise "no model"
             if single_files:
-                if dif_version_int >= 28:
+                try:
                     pipe = StableDiffusionXLPipeline.from_single_file(
                          pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
                          torch_dtype=torch.float16)
-                 
-                else:
-                    pipe = StableDiffusionXLPipeline.from_single_file(
-                         pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
-                         torch_dtype=torch.float16)
+                except:
+                    try:
+                        pipe = StableDiffusionXLPipeline.from_single_file(
+                             pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                             torch_dtype=torch.float16)
+                    except:
+                        raise "load pipe error!,check you diffusers"
             else:
                 pipe=StableDiffusionXLControlNetPipeline.from_pretrained(dif_repo,torch_dtype=torch.float16)
             if lora != "none":
@@ -966,19 +1086,23 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         #原方法的unet有层残缺
         controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
         controlnet = ControlNetModel.from_unet(pipe.unet)
-        cn_state_dict = load_file(controlnet_model_path)
+        cn_state_dict = load_file(controlnet_model_path,device="cpu")
         controlnet.load_state_dict(cn_state_dict, strict=False)
         
-        if dif_version_int >= 28:
+        try:
             pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
                                                                         controlnet=controlnet,
                                                                         original_config=original_config_file,
                                                                         torch_dtype=torch.float16)
-        else:
-            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
-                                                                        controlnet=controlnet,
-                                                                        original_config_file=original_config_file,
-                                                                        torch_dtype=torch.float16)
+        except:
+            try:
+                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
+                                                                            controlnet=controlnet,
+                                                                            original_config_file=original_config_file,
+                                                                            torch_dtype=torch.float16)
+            except:
+                raise "load pipe error!,check you diffusers"
+            
     # 预加载 ms
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
@@ -1115,6 +1239,7 @@ class Storydiffusion_Model_Loader:
             "required": {
                 "repo_id": ("STRING", {"default": ""}),
                 "ckpt_name": (["none"]+folder_paths.get_filename_list("checkpoints"),),
+                "vae_id":(["none"]+folder_paths.get_filename_list("vae"),),
                 "character_weights": (character_weights,),
                 "lora": (["none"] + folder_paths.get_filename_list("loras"),),
                 "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
@@ -1128,7 +1253,7 @@ class Storydiffusion_Model_Loader:
                     "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-                "photmake_mode": (["v1", "v2"],),
+                "photomake_mode": (["v1", "v2"],),
                 "reset_txt2img":("BOOLEAN", {"default": False},),
             },
             "hidden": {
@@ -1157,8 +1282,8 @@ class Storydiffusion_Model_Loader:
                 model_path = get_local_path(file_path, path)
                 repo = get_instance_path(model_path)
         return repo
-    def story_model_loader(self,repo_id, ckpt_name, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photmake_mode,reset_txt2img,unique_id):
+    def story_model_loader(self,repo_id, ckpt_name,vae_id, character_weights, lora, lora_scale, trigger_words, scheduler,
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,reset_txt2img,unique_id):
         
         scheduler_choice = get_scheduler(scheduler)
 
@@ -1182,8 +1307,8 @@ class Storydiffusion_Model_Loader:
         else:
             char_files = ""
         
-        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photmake_mode}.bin")
-        if photmake_mode=="v1":
+        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
+        if photomake_mode=="v1":
             if not os.path.exists(photomaker_path):
                 photomaker_path = hf_hub_download(
                     repo_id="TencentARC/PhotoMaker",
@@ -1227,14 +1352,17 @@ class Storydiffusion_Model_Loader:
 
         # load model
         #dif_repo= self.instance_path(repo_id)
-        
+        use_kolor = False
+        if repo_id:
+            if repo_id.rsplit("/")[-1] in "Kwai-Kolors/Kolors":
+                use_kolor=True
         ckpt_path=ckpt_name
         if not repo_id and ckpt_name=="none":
-            raise "you need choice a model"
+            raise "you need choice a model or repo_id"
         elif not repo_id and ckpt_name!="none": # load ckpt
             ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
             ckpt_path = get_instance_path(ckpt_path)
-            pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, photomaker_path=photomaker_path, lora=lora,
+            pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, photomake_mode=photomake_mode,photomaker_path=photomaker_path, lora=lora,
                                lora_path=lora_path,
                                trigger_words=trigger_words, lora_scale=lora_scale)
             set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
@@ -1243,7 +1371,6 @@ class Storydiffusion_Model_Loader:
                 pipe = DiffusionPipeline.from_pretrained(
                     repo_id,
                     torch_dtype=torch.float16,
-                    variant="fp16",
                 )
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             elif repo_id.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
@@ -1251,15 +1378,60 @@ class Storydiffusion_Model_Loader:
                     repo_id, torch_dtype=torch.float16,use_safetensors=False
                 )
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            elif use_kolor:
+                text_encoder = ChatGLMModel.from_pretrained(
+                    f'{repo_id}/text_encoder',torch_dtype=torch.float16).half()
+                vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
+                tokenizer = ChatGLMTokenizer.from_pretrained(f'{repo_id}/text_encoder')
+                scheduler = EulerDiscreteScheduler.from_pretrained(f"{repo_id}/scheduler")
+                if model_type=="txt2img":
+                    unet = UNet2DConditionModel.from_pretrained(f"{repo_id}/unet", revision=None,
+                                                                use_safetensors=True).half()
+                    
+                    pipe = StableDiffusionXLPipelineKolors(
+                        vae=vae,
+                        text_encoder=text_encoder,
+                        tokenizer=tokenizer,
+                        unet=unet,
+                        scheduler=scheduler,
+                        force_zeros_for_empty_prompt=False, )
+                    set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+                else:
+                    image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+                        f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(
+                        dtype=torch.float16)
+                    ip_img_size = 336
+                    clip_image_processor = CLIPImageProcessor(size=ip_img_size, crop_size=ip_img_size)
+                    unet = UNet2DConditionModelkolor.from_pretrained(f"{repo_id}/unet", revision=None,).half()
+                    pipe=StableDiffusionXLPipelinekoloripadapter(
+                        vae=vae,
+                        text_encoder=text_encoder,
+                        tokenizer=tokenizer,
+                        unet=unet,
+                        scheduler=scheduler,
+                        image_encoder=image_encoder,
+                        feature_extractor=clip_image_processor,
+                        force_zeros_for_empty_prompt=False
+                    )
+                    if hasattr(pipe.unet, 'encoder_hid_proj'):
+                        pipe.unet.text_encoder_hid_proj = pipe.unet.encoder_hid_proj
+                    
+                    pipe.load_ip_adapter(f'{repo_id}/Kolors-IP-Adapter-Plus', subfolder="",
+                                         weight_name=["ip_adapter_plus_general.bin"])
+                    
+                    #set_attention_processor(pipe.unet, id_length, is_ipadapter=True)
             else: # SD dif_repo
-                pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,
+                pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
                                    lora_path=lora_path,
                                    trigger_words=trigger_words, lora_scale=lora_scale)
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            
-        pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+        if vae_id != "none":
+            vae_id = folder_paths.get_full_path("vae", vae_id)
+            pipe.vae=AutoencoderKL.from_single_file(vae_id, torch_dtype=torch.float16)
+        if not use_kolor:
+            pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
+            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
         pipe.enable_vae_slicing()
         if device != "mps":
             pipe.enable_model_cpu_offload()
@@ -1283,8 +1455,12 @@ class Storydiffusion_Model_Loader:
             char_file = "none"
         if not repo_id:
             repo_id="none"
+        if not use_kolor:
+            use_kolor="false"
+        else:
+            use_kolor = "ture"
         info = ";".join(
-            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file])
+            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file,photomake_mode,use_kolor])
         return (pipe, info,)
 
 
@@ -1345,13 +1521,17 @@ class Storydiffusion_Sampler:
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
 
-        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files = info.split(
+        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files,photomake_mode,use_kolor = info.split(
             ";")
         lora_scale = float(lora_scale)
         if char_files=="none":
             load_chars=False
         else:
             load_chars = True
+        if use_kolor=="false":
+            use_kolor=False
+        else:
+            use_kolor=True
         # 格式化文字内容
         if split_prompt:
             scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
@@ -1402,7 +1582,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,)
+                                     trigger_words,photomake_mode,use_kolor)
 
         else:
             upload_images = None
@@ -1418,7 +1598,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,)
+                                     trigger_words,photomake_mode,use_kolor)
 
 
         for value in gen:
