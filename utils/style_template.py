@@ -2,7 +2,7 @@ style_list = [
     {
         "name": "No_style",
         "prompt": "{prompt},8k, RAW photo, best quality,",
-        "negative_prompt": "",
+        "negative_prompt": "worst quality",
     },
     {
         "name": "Realistic",
