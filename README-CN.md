@@ -4,30 +4,15 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)   
 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 ----
-我的其他comfyUI插件：
------
-
-1、ParlerTTS node （ParlerTTS英文的音频节点）:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
-2、Llama3_8B node（羊驼3的节点，也兼容了其他基于羊驼3的模型）:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
-3、HiDiffusion node（高清放大节点）：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
-4、ID_Animator node（零样本单图制作视频）： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
-5、StoryDiffusion node（故事绘本节点）：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
-6、Pops node（材质、融合类节点，基于pops方法）：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
-7、stable-audio-open-1.0 node（SD官方的音频节点的简单实现） ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
-8、GLM4 node（基于智普AI的api节点，涵盖智普的本地大模型）：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
-9、CustomNet node（基于腾讯的CustomNet做的角度控制节点）：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
-10、Pipeline_Tool node（方便玩家调用镜像抱脸下载） :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
-11、Pic2Story node（基于模型的图像识别） :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
-12、PBR_Maker node（生成式PBR贴图，即将上线）:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)   
-13、ComfyUI_Streamv2v_Plus node（视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
-14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
-15、ComfyUI_AnyDoor node(一键换衣插件): [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
-16、ComfyUI_Stable_Makeup node(一键化妆): [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
-17、ComfyUI_EchoMimic node(音频驱动动画):  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
-18、ComfyUI_FollowYourEmoji node(画面驱动表情包): [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 
 更新
 ---
+2024/08/05更新   
+--特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行，32G内存以下谨慎测试，别问为什么，除非你用超大显存。   
+--加入可灵kolor模型的支持，支持文生图和可灵ipadapter的图生图，需要的模型文件见下方；   
+-- 加入photomakerV2的支持，由于V2版需要insight face ，所以不会装的谨慎尝试；     
+--修复一些bug     
+
 2024/07/26更新   
 --模型现在只有使用repo输入或者选择社区模型两种方式，修复了一些bug；  
 --controlnet现在使用单体模型；  
@@ -59,6 +44,10 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 ```
 pip install -r requirements.txt
 ```
+如果要使用photomake v2
+```
+pip install insightface==0.7.3   或者更高版本（未测试）
+```
 如果缺失模块，请单独pip install    
 
  
@@ -84,6 +73,50 @@ photomaker-v2.bin 虽然也能用，但是新代码没有更新，所以发挥�
 |             ├── photomaker-v2.bin
 |             ├── ms_adapter.bin
 
+```
+
+如果要使用kolor（可灵），下载链接如下：
+Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
+Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+文件结构如下，注意是有层级的：
+```
+├── 你的本地任意地址/Kwai-Kolors/Kolors
+|      ├──model_index.json
+|      ├──vae
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors (从diffusion_pytorch_model.fp16.safetensors 改名而来)
+|      ├──unet
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors (从diffusion_pytorch_model.fp16.safetensors 改名而来)
+|      ├──tokenizer
+|          ├── tokenization_chatglm.py
+|          ├── tokenizer.model
+|          ├── tokenizer_config.json
+|          ├── vocab.txt text_encoder
+|       ├── text_encoder
+|          ├── config.json
+|          ├── configuration_chatglm.py
+|          ├── modeling_chatglm.py
+|          ├── pytorch_model.bin.index.json
+|          ├── quantization.py
+|          ├── tokenization_chatglm.py
+|          ├── tokenizer.model
+|          ├── tokenizer_config.json
+|          ├── vocab.txt
+|          ├── pytorch_model-00001-of-00007.bin to pytorch_model-00007-of-00007.bin（7个模型，别下少了）
+|       ├── scheduler
+|          ├── scheduler_config.json
+|       ├── Kolors-IP-Adapter-Plus
+|          ├──model_index.json
+|          ├──ip_adapter_plus_general.bin
+|          ├──config.json
+|          ├──image_encoder
+|               ├──config.json
+|               ├──preprocessor_config.json
+|               ├──pytorch_model.bin
+|               ├──tokenizer.json
+|               ├──tokenizer_config.json
+|               ├──vocab.json
 ```
 
 3.2 离线模式 
@@ -124,22 +157,25 @@ control_img图片的预处理，请使用其他节点
 4 Example
 ----
 
-文生图模式，模型使用的单体社区SDXL模型，首次使用会连外网下载config文件。旧的示例   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2txt.png)
+文生图模式，使用可灵的中文提示词，最新示例，example内最新的json文件      
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgkolors.png)
 
-图生图模式,提示词引入了[NC]和# 参考示例文件夹下的同名的json，旧的示例  
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imga.png)
+图生图模式，使用可灵的中文提示词，最新示例，example内最新的json文件      
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgkolors.png)
 
-图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框，最新的示例   
+图生图模式，使用photomakeV2，最新示例，
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgphotomakev2.png)
+
+图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框，旧的示例，只供参考      
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
 
-文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）旧的示例   
+文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）旧的示例  只供参考       
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
 
-多controlnet加入双角色同框（角色1 and 角色2）旧的示例   
+多controlnet加入双角色同框（角色1 and 角色2）旧的示例，只供参考       
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png)
 
-文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。旧的示例    
+文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。旧的示例只供参考       
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 节点的功能说明
@@ -147,6 +183,7 @@ control_img图片的预处理，请使用其他节点
 --<Storydiffusion_Model_Loader>  
 -- repeo：填写扩散模型的绝对路径；   
 -- ckpt_name：社区SDLX模型选择；   
+-- vae_id:有些模型需要fb16的vae，你可以选择comfyUI的vae来避免出黑图
 -- character_weights：使用sampler节点的save_character 功能保存的角色权重。选择为“none/无”时不生效！（注意，保存的角色权重不能马上被识别，需要重启comfyUI）；   
 -- lora：选择SDXL lora，为“none”时不生效；   
 -- lora_scale： lora的权重，Lora生效时启用；   
@@ -156,6 +193,7 @@ control_img图片的预处理，请使用其他节点
 -- id_number： 使用多少个角色，目前仅支持1个或者2个；  
 -- sa32_degree/sa64_degree： 注意力层的可调参数；  
 --img_width/img_height： 出图的高宽尺寸。
+--photomake_mode： 选择用V1还是V2的模型；  
 --reset_txt2img  文生图模式的BUG目前只能用开启这个来修复.   
 
 --<Storydiffusion_Sampler>   
@@ -188,6 +226,10 @@ control_img图片的预处理，请使用其他节点
 
 特别提醒：  
 
+-- 可灵中文输入，必须使用["角色名"]或者['角色名'],[NC]不变， 注意【】是不能用的！！！！  
+-- 可灵只支持在repo_id输入本地绝对地址，地址的最后部分必须是kolors   
+-- 可灵模型只需要下载fb16的，然后改名。
+
 --添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！     
 --因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；    
 --优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；    
@@ -202,6 +244,29 @@ control_img图片的预处理，请使用其他节点
 --图片不出现角色，场景prompt前面加入[NC] ；     
 --分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
 
+
+我的其他comfyUI插件：
+-----
+
+1、ParlerTTS node （ParlerTTS英文的音频节点）:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
+2、Llama3_8B node（羊驼3的节点，也兼容了其他基于羊驼3的模型）:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
+3、HiDiffusion node（高清放大节点）：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
+4、ID_Animator node（零样本单图制作视频）： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
+5、StoryDiffusion node（故事绘本节点）：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
+6、Pops node（材质、融合类节点，基于pops方法）：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
+7、stable-audio-open-1.0 node（SD官方的音频节点的简单实现） ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
+8、GLM4 node（基于智普AI的api节点，涵盖智普的本地大模型）：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
+9、CustomNet node（基于腾讯的CustomNet做的角度控制节点）：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
+10、Pipeline_Tool node（方便玩家调用镜像抱脸下载） :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
+11、Pic2Story node（基于模型的图像识别） :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
+12、PBR_Maker node（生成式PBR贴图，即将上线）:[ComfyUI_PBR_Maker](https://github.com/smthemex/ComfyUI_PBR_Maker)   
+13、ComfyUI_Streamv2v_Plus node（视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
+14、ComfyUI_MS_Diffusion node（基于MS-diffusion做的故事话本）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
+15、ComfyUI_AnyDoor node(一键换衣插件): [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
+16、ComfyUI_Stable_Makeup node(一键化妆): [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
+17、ComfyUI_EchoMimic node(音频驱动动画):  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
+18、ComfyUI_FollowYourEmoji node(画面驱动表情包): [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
+19、ComfyUI_Diffree node: [超强的一致性的文生图内绘](https://github.com/smthemex/ComfyUI_Diffree)     
 
 Citation
 ------
@@ -233,5 +298,23 @@ MS-Diffusion
   eprint={2406.07209},
   archivePrefix={arXiv},
   primaryClass={cs.CV}
+}
+```
+photomaker
+```
+@inproceedings{li2023photomaker,
+  title={PhotoMaker: Customizing Realistic Human Photos via Stacked ID Embedding},
+  author={Li, Zhen and Cao, Mingdeng and Wang, Xintao and Qi, Zhongang and Cheng, Ming-Ming and Shan, Ying},
+  booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2024}
+}
+```
+kolors
+```
+@article{kolors,
+  title={Kolors: Effective Training of Diffusion Model for Photorealistic Text-to-Image Synthesis},
+  author={Kolors Team},
+  journal={arXiv preprint},
+  year={2024}
 }
 ```
