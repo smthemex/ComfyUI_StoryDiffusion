@@ -1,0 +1,476 @@
+{
+  "last_node_id": 15,
+  "last_link_id": 24,
+  "nodes": [
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [
+        1294,
+        -1426
+      ],
+      "size": {
+        "0": 384.2422180175781,
+        "1": 375.1480407714844
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 15,
+          "label": "images"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 6,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        742,
+        -1544
+      ],
+      "size": {
+        "0": 482.9454040527344,
+        "1": 748.680419921875
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": 9,
+          "label": "pipe"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 10,
+          "widget": {
+            "name": "info"
+          },
+          "label": "info"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            15
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "",
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n",
+        "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        1715088538,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        true
+      ]
+    },
+    {
+      "id": 1,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        307,
+        -1440
+      ],
+      "size": {
+        "0": 315,
+        "1": 438
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 2,
+      "outputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "links": [
+            9
+          ],
+          "shape": 3,
+          "label": "pipe",
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            10
+          ],
+          "shape": 3,
+          "label": "info",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
+        "none",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler",
+        "txt2img",
+        1,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        false
+      ]
+    },
+    {
+      "id": 12,
+      "type": "PreviewImage",
+      "pos": [
+        3185,
+        -824
+      ],
+      "size": {
+        "0": 470.3456115722656,
+        "1": 519.9826049804688
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 17,
+          "label": "images"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 10,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        2208,
+        -929
+      ],
+      "size": {
+        "0": 315,
+        "1": 438
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "links": [
+            18
+          ],
+          "shape": 3,
+          "label": "pipe",
+          "slot_index": 0
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            20
+          ],
+          "shape": 3,
+          "label": "info",
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
+        "none",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler",
+        "txt2img",
+        1,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        false
+      ]
+    },
+    {
+      "id": 11,
+      "type": "LoadImage",
+      "pos": [
+        2214,
+        -435
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "shape": 3,
+          "label": "IMAGE",
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "4.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        2673,
+        -832
+      ],
+      "size": {
+        "0": 482.9454040527344,
+        "1": 748.680419921875
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "MODEL",
+          "link": 18,
+          "label": "pipe"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 20,
+          "widget": {
+            "name": "info"
+          },
+          "label": "info"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            17
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "",
+        "[\"泰勒\"] 一个女人，穿着白色T恤，蓝头发;",
+        "[\"泰勒\"] 从床上醒过来，中景;\n[\"泰勒\"] 在吃早餐，窗外阳光明媚，全景;\n[NC] 一只熊猫在窗户外走过;\n",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        339434363,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        true
+      ]
+    }
+  ],
+  "links": [
+    [
+      9,
+      1,
+      0,
+      6,
+      0,
+      "MODEL"
+    ],
+    [
+      10,
+      1,
+      1,
+      6,
+      3,
+      "STRING"
+    ],
+    [
+      15,
+      6,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      17,
+      13,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      10,
+      0,
+      13,
+      0,
+      "MODEL"
+    ],
+    [
+      20,
+      10,
+      1,
+      13,
+      3,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "Group",
+      "bounding": [
+        4,
+        -1818,
+        1730,
+        1231
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "Group",
+      "bounding": [
+        2163,
+        -1006,
+        1610,
+        932
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.1167815779425636,
+      "offset": {
+        "0": -2001.767135727018,
+        "1": 1096.6141983473372
+      }
+    }
+  },
+  "version": 0.4
+}
