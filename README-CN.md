@@ -7,6 +7,9 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 更新
 ---
+2024/08/06更新
+--加入实验版的FLUX diffusers pippline流程,repo填写black-forest-labs/FLUX.1-dev或者X:/XXX/black-forest-labs/FLUX.1-dev 开启,需要高版本的diffusers和optimum-quanto,请谨慎测试.  
+
 2024/08/05更新   
 --特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行，32G内存以下谨慎测试，别问为什么，除非你用超大显存。   
 --加入可灵kolor模型的支持，支持文生图和可灵ipadapter的图生图，需要的模型文件见下方；   
