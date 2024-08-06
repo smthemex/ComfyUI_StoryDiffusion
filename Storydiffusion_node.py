@@ -36,6 +36,7 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        AutoPipelineForText2Image, StableDiffusionXLControlNetImg2ImgPipeline, KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler, AutoencoderKL,
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
+
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
 from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
@@ -705,7 +706,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor
+        trigger_words,photomake_mode,use_kolor,use_flux
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -719,6 +720,11 @@ def process_generation(
     global write
     global cur_step, attn_count
 
+    if use_flux=="ture":
+        use_flux=True
+    else:
+        use_flux=False
+      
     #load_chars = load_character_files_on_running(unet, character_files=char_files)
 
     prompts_origin = prompt_array.splitlines()
@@ -820,15 +826,28 @@ def process_generation(
             if use_kolor:
                 negative_prompt=[negative_prompt]
             if model_type == "txt2img":
-                id_images = pipe(
-                    cur_positive_prompts,
-                    num_inference_steps=_num_steps,
-                    guidance_scale=guidance_scale,
-                    height=height,
-                    width=width,
-                    negative_prompt=negative_prompt,
-                    generator=generator
-                ).images
+                if use_flux:
+                    id_images = pipe(
+                        prompt=cur_positive_prompts,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        output_type="pil",
+                        max_sequence_length=256,
+                        height=height,
+                        width=width,
+                        generator=torch.Generator("cpu").manual_seed(0)
+                    ).images
+                else:
+                    id_images = pipe(
+                        cur_positive_prompts,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        height=height,
+                        width=width,
+                        negative_prompt=negative_prompt,
+                        generator=generator
+                    ).images
+                
             elif model_type == "img2img":
                 if use_kolor:
                     pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
@@ -842,6 +861,18 @@ def process_generation(
                         guidance_scale=guidance_scale,
                         num_images_per_prompt=1,
                         generator=generator,
+                    ).images
+                elif  use_flux:
+                    id_images = pipe(
+                        prompt=cur_positive_prompts,
+                        latents=phi2narry(input_id_images_dict[character_key]),
+                        num_inference_steps=_num_steps,
+                        height=height,
+                        width=width,
+                        output_type="pil",
+                        max_sequence_length=256,
+                        guidance_scale=guidance_scale,
+                        generator=torch.Generator("cpu").manual_seed(0),
                     ).images
                 else:
                     if photomake_mode == "v2":
@@ -918,18 +949,30 @@ def process_generation(
         #print(real_prompt)
         if model_type == "txt2img":
            # print(results_dict,real_prompts_ind)
-            results_dict[real_prompts_ind] = pipe(
-                real_prompt,
-                num_inference_steps=_num_steps,
-                guidance_scale=guidance_scale,
-                height=height,
-                width=width,
-                negative_prompt=negative_prompt,
-                generator=generator,
-            ).images[0]
+            if use_flux:
+                results_dict[real_prompts_ind] = pipe(
+                    prompt= real_prompt,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    output_type="pil",
+                    max_sequence_length=256,
+                    height=height,
+                    width=width,
+                    generator=torch.Generator("cpu").manual_seed(0)
+                ).images[0]
+            else:
+                results_dict[real_prompts_ind] = pipe(
+                    real_prompt,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height,
+                    width=width,
+                    negative_prompt=negative_prompt,
+                    generator=generator,
+                ).images[0]
+           
         elif model_type == "img2img":
             if use_kolor:
-                
                 empty_img=Image.new('RGB', (height, width), (255, 255, 255))
                 results_dict[real_prompts_ind] = pipe(
                 prompt = real_prompt,
@@ -946,6 +989,23 @@ def process_generation(
                 num_images_per_prompt = 1,
                 generator = generator,
                 nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
+                ).images[0]
+            elif use_flux:
+                empty_img = Image.new('RGB', (height, width), (255, 255, 255))
+                results_dict[real_prompts_ind]=pipe(
+                    prompt=real_prompt,
+                    latents=phi2narry([(
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else empty_img
+                    ),],),
+                    num_inference_steps=_num_steps,
+                    height=height,
+                    width=width,
+                    output_type="pil",
+                    max_sequence_length=256,
+                    guidance_scale=guidance_scale,
+                    generator=torch.Generator("cpu").manual_seed(0),
                 ).images[0]
             else:
                 if photomake_mode == "v2":
@@ -1353,9 +1413,12 @@ class Storydiffusion_Model_Loader:
         # load model
         #dif_repo= self.instance_path(repo_id)
         use_kolor = False
+        use_flux = False
         if repo_id:
             if repo_id.rsplit("/")[-1] in "Kwai-Kolors/Kolors":
                 use_kolor=True
+            if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
+                use_flux = True
         ckpt_path=ckpt_name
         if not repo_id and ckpt_name=="none":
             raise "you need choice a model or repo_id"
@@ -1420,6 +1483,44 @@ class Storydiffusion_Model_Loader:
                                          weight_name=["ip_adapter_plus_general.bin"])
                     
                     #set_attention_processor(pipe.unet, id_length, is_ipadapter=True)
+            elif use_flux:
+                # pip install optimum-quanto
+                # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
+                from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+                from optimum.quanto import freeze, qfloat8, quantize
+                from diffusers import FlowMatchEulerDiscreteScheduler
+                from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
+                from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
+                dtype = torch.bfloat16
+                revision = "refs/pr/1"
+                scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
+                                                                            revision=revision)
+                text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype,
+                                                                revision=revision)
+                tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
+                                                              revision=revision)
+                vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
+                transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
+                                                                     torch_dtype=dtype, revision=revision)
+                quantize(transformer, weights=qfloat8)
+                freeze(transformer)
+                quantize(text_encoder_2, weights=qfloat8)
+                freeze(text_encoder_2)
+                pipe = FluxPipeline(
+                    scheduler=scheduler,
+                    text_encoder=text_encoder,
+                    tokenizer=tokenizer,
+                    text_encoder_2=None,
+                    tokenizer_2=tokenizer_2,
+                    vae=vae,
+                    transformer=None,
+                )
+                pipe.text_encoder_2 = text_encoder_2
+                pipe.transformer = transformer
+                pipe.enable_model_cpu_offload()
+                
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
@@ -1427,15 +1528,18 @@ class Storydiffusion_Model_Loader:
                                    trigger_words=trigger_words, lora_scale=lora_scale)
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
         if vae_id != "none":
-            vae_id = folder_paths.get_full_path("vae", vae_id)
-            pipe.vae=AutoencoderKL.from_single_file(vae_id, torch_dtype=torch.float16)
-        if not use_kolor:
+            if not use_flux:
+                vae_id = folder_paths.get_full_path("vae", vae_id)
+                pipe.vae=AutoencoderKL.from_single_file(vae_id, torch_dtype=torch.float16)
+        if not use_kolor or not use_flux:
             pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-        pipe.enable_vae_slicing()
+        if not use_flux:
+            pipe.enable_vae_slicing()
         if device != "mps":
             pipe.enable_model_cpu_offload()
-        unet = pipe.unet
+        if not use_flux:
+           unet = pipe.unet
         global mask1024, mask4096
         mask1024, mask4096 = cal_attn_mask_xl(
             total_length,
@@ -1448,7 +1552,8 @@ class Storydiffusion_Model_Loader:
             dtype=torch.float16,
         )
         torch.cuda.empty_cache()
-        load_chars = load_character_files_on_running(unet, character_files=char_files)
+        if not use_flux:
+            load_chars = load_character_files_on_running(unet, character_files=char_files)
         if load_chars:
             char_file="ture"
         else:
@@ -1459,8 +1564,12 @@ class Storydiffusion_Model_Loader:
             use_kolor="false"
         else:
             use_kolor = "ture"
+        if use_flux:
+            use_flux="ture"
+        else:
+            use_flux = "false"
         info = ";".join(
-            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file,photomake_mode,use_kolor])
+            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file,photomake_mode,use_kolor,use_flux])
         return (pipe, info,)
 
 
@@ -1521,7 +1630,7 @@ class Storydiffusion_Sampler:
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
 
-        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files,photomake_mode,use_kolor = info.split(
+        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files,photomake_mode,use_kolor,use_flux = info.split(
             ";")
         lora_scale = float(lora_scale)
         if char_files=="none":
@@ -1582,7 +1691,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor)
+                                     trigger_words,photomake_mode,use_kolor,use_flux)
 
         else:
             upload_images = None
@@ -1598,7 +1707,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor)
+                                     trigger_words,photomake_mode,use_kolor,use_flux)
 
 
         for value in gen:
