@@ -9,6 +9,10 @@ MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 NEW Update
 ---
+--2024/08/06
+--add Flux diffusers pipeline,need 16G VRAM and more,using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"
+--The required diffusers have a higher version,   
+
 --2024/08/05
 --Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
 --support photomaker V2;  
