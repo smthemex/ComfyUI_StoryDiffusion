@@ -1552,6 +1552,7 @@ class Storydiffusion_Model_Loader:
             dtype=torch.float16,
         )
         torch.cuda.empty_cache()
+        load_chars=False                       
         if not use_flux:
             load_chars = load_character_files_on_running(unet, character_files=char_files)
         if load_chars:
