@@ -1848,7 +1848,7 @@ class FLUX_Dev_Model_Loader:
         if repo_id:
             if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
                 use_flux = True
-        if use_flux:
+        if use_flux and ckpt_name=="none":
             from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
             if not use_int4:
                 from optimum.quanto import freeze, qfloat8, quantize
