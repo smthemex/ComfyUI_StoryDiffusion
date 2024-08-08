@@ -10,6 +10,7 @@ import os
 import random
 from PIL import ImageFont
 from safetensors.torch import load_file
+
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 import re
@@ -125,6 +126,7 @@ scheduler_list = [
 def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
     return img
+
 
 
 def get_instance_path(path):
@@ -706,13 +708,14 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux
+        trigger_words,photomake_mode,use_kolor,use_flux,
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
     # _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
-    if not use_kolor:
+    
+    if not use_kolor and not use_flux:
         if model_type == "img2img" and "img" not in general_prompt:
             raise 'Please choice img2img typle,and add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
 
@@ -720,11 +723,6 @@ def process_generation(
     global write
     global cur_step, attn_count
 
-    if use_flux=="ture":
-        use_flux=True
-    else:
-        use_flux=False
-      
     #load_chars = load_character_files_on_running(unet, character_files=char_files)
 
     prompts_origin = prompt_array.splitlines()
@@ -863,9 +861,10 @@ def process_generation(
                         generator=generator,
                     ).images
                 elif  use_flux:
+
                     id_images = pipe(
                         prompt=cur_positive_prompts,
-                        latents=phi2narry(input_id_images_dict[character_key]),
+                        latents=None,
                         num_inference_steps=_num_steps,
                         height=height,
                         width=width,
@@ -958,7 +957,7 @@ def process_generation(
                     max_sequence_length=256,
                     height=height,
                     width=width,
-                    generator=torch.Generator("cpu").manual_seed(0)
+                    generator=torch.Generator("cpu").manual_seed(seed_)
                 ).images[0]
             else:
                 results_dict[real_prompts_ind] = pipe(
@@ -991,21 +990,16 @@ def process_generation(
                 nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
                 ).images[0]
             elif use_flux:
-                empty_img = Image.new('RGB', (height, width), (255, 255, 255))
                 results_dict[real_prompts_ind]=pipe(
                     prompt=real_prompt,
-                    latents=phi2narry([(
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else empty_img
-                    ),],),
+                    latents=None,
                     num_inference_steps=_num_steps,
                     height=height,
                     width=width,
                     output_type="pil",
                     max_sequence_length=256,
                     guidance_scale=guidance_scale,
-                    generator=torch.Generator("cpu").manual_seed(0),
+                    generator=torch.Generator("cpu").manual_seed(seed_),
                 ).images[0]
             else:
                 if photomake_mode == "v2":
@@ -1552,7 +1546,7 @@ class Storydiffusion_Model_Loader:
             dtype=torch.float16,
         )
         torch.cuda.empty_cache()
-        load_chars=False                       
+        load_chars=False
         if not use_flux:
             load_chars = load_character_files_on_running(unet, character_files=char_files)
         if load_chars:
@@ -1642,6 +1636,12 @@ class Storydiffusion_Sampler:
             use_kolor=False
         else:
             use_kolor=True
+        
+        if use_flux == "ture":
+            use_flux = True
+        else:
+            use_flux = False
+            
         # 格式化文字内容
         if split_prompt:
             scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
@@ -1818,17 +1818,132 @@ class Pre_Translate_prompt:
         scene_prompts = ''.join(captions)
         return (scene_prompts,)
 
+class FLUX_Dev_Model_Loader:
+    def __init__(self):
+        pass
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "repo_id": ("STRING", {"default": ""}),
+            "ckpt_name": (["none"] + folder_paths.get_filename_list("checkpoints"),),
+            "model_type": (["img2img", "txt2img"],),
+            "device":(["cpu","gpu"],),
+            "id_number": ("INT", {"default": 2, "min": 1, "max": 2, "step": 1, "display": "number"}),
+            "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
+            "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
+            "use_int4":("BOOLEAN", {"default": False},)
+                             }
+        }
+
+    RETURN_TYPES = ("MODEL","STRING")
+    ETURN_NAMES = ("pipe","info")
+    FUNCTION = "flux_load_main"
+    CATEGORY = "Storydiffusion"
+
+    def flux_load_main(self,repo_id,ckpt_name,model_type,device,id_number,img_width,img_height,use_int4):
+        # pip install optimum-quanto
+        # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
+        
+        use_flux = False
+        if repo_id:
+            if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
+                use_flux = True
+        if use_flux:
+            from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+            if not use_int4:
+                from optimum.quanto import freeze, qfloat8, quantize
+            else:
+                from optimum.quanto import  freeze, qfloat8, qint4, quantize
+            from diffusers import FlowMatchEulerDiscreteScheduler
+            from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
+            from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
+            dtype = torch.bfloat16
+            revision = "refs/pr/1"
+            scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
+                                                                        revision=revision)
+            text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+            tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+            text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype,
+                                                            revision=revision)
+            tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
+                                                          revision=revision)
+            vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
+            transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
+                                                                 torch_dtype=dtype, revision=revision)
+            if use_int4:
+                quantize(transformer, weights=qint4, exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
+            else:
+                quantize(transformer, weights=qfloat8)
+                
+            freeze(transformer)
+            quantize(text_encoder_2, weights=qfloat8)
+            freeze(text_encoder_2)
+            pipe = FluxPipeline(
+                scheduler=scheduler,
+                text_encoder=text_encoder,
+                tokenizer=tokenizer,
+                text_encoder_2=None,
+                tokenizer_2=tokenizer_2,
+                vae=vae,
+                transformer=None,
+            )
+            pipe.text_encoder_2 = text_encoder_2
+            pipe.transformer = transformer
+            
+            if device=="cpu":
+               pipe.enable_model_cpu_offload()
+
+            use_flux="ture"
+        elif ckpt_name!="none" and use_flux:
+            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+            from diffusers import FluxTransformer2DModel, FluxPipeline
+            from transformers import T5EncoderModel, CLIPTextModel
+            from optimum.quanto import freeze, qfloat8, quantize
+            dtype = torch.bfloat16
+            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
+            quantize(transformer, weights=qfloat8)
+            freeze(transformer)
+            
+            text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype)
+            quantize(text_encoder_2, weights=qfloat8)
+            freeze(text_encoder_2)
+            
+            pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None, torch_dtype=dtype)
+            pipe.transformer = transformer
+            pipe.text_encoder_2 = text_encoder_2
+            if device=="cpu":
+               pipe.enable_model_cpu_offload()
+            use_flux="ture"
+        else:
+            use_flux ="false"
+            
+        global write, height, width
+        global attn_count, total_count, id_length, total_length, cur_step
+        attn_count = 0
+        total_count = 0
+        cur_step = 0
+        id_length = id_number
+        total_length = 5
+        write = False
+        height = img_height
+        width = img_width
+        info = ";".join(
+            [model_type, "ckpt_path", "repo_id", "lora_path", "lora", "trigger_words", "1", "none", "photomake_mode",
+             "false",use_flux])
+        return (pipe,info,)
 
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Model_Loader": Storydiffusion_Model_Loader,
     "Storydiffusion_Sampler": Storydiffusion_Sampler,
     "Pre_Translate_prompt": Pre_Translate_prompt,
-    "Comic_Type": Comic_Type
+    "Comic_Type": Comic_Type,
+    "FLUX_Dev_Model_Loader":FLUX_Dev_Model_Loader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Model_Loader": "Storydiffusion_Model_Loader",
     "Storydiffusion_Sampler": "Storydiffusion_Sampler",
     "Pre_Translate_prompt": "Pre_Translate_prompt",
-    "Comic_Type": "Comic_Type"
+    "Comic_Type": "Comic_Type",
+    "FLUX_Dev_Model_Loader":"FLUX_Dev_Model_Loader"
 }
