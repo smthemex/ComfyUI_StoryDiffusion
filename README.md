@@ -9,6 +9,11 @@ MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 NEW Update
 ---
+--2024/08/08   
+--2 ways to using flux，using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  and ckpt_name="none" in new loader node or old,or using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and using single ckpt like "flux1-dev-fp8.safetensors";  
+--flux img2img will be later..   
+-- ini4 mode not tested.   
+
 --2024/08/06  
 --add Flux diffusers pipeline,need 16G VRAM and more,using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"
 --The Flux required diffusers 0.30.0 and accelerate 0.30 or new version... and 64G ram if using cup
@@ -164,6 +169,9 @@ img2img mode, uses kolors model using chinese prompt (Latest version)
 
 img2img mode, uses photomakeV2 (Latest version)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgphotomakev2.png)
+
+flux model, txt2img/img2img(Latest version)     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_12G_VRAM.png)
 
 img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame) Outdated version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
