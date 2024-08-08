@@ -7,8 +7,9 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 更新
 ---
-2024/08/06更新
+2024/08/08更新
 --加入实验版的FLUX diffusers pippline流程,repo填写black-forest-labs/FLUX.1-dev或者X:/XXX/black-forest-labs/FLUX.1-dev 开启,需要高版本的diffusers和optimum-quanto,请谨慎测试.  
+-- Flux意义不大，不如用comfyUI自带的，当然，int4的8G显存的可以测试一下，如果要跑fp8，12G也能跑，就是内存需要48G以上
 
 2024/08/05更新   
 --特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行，32G内存以下谨慎测试，别问为什么，除非你用超大显存。   
