@@ -40,11 +40,6 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
 
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
-from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
-from .kolors.models.modeling_chatglm import ChatGLMModel
-from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
-from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
-from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
 from .msdiffusion.models.projection import Resampler
 from .msdiffusion.models.model import MSAdapter
 from .msdiffusion.utils import get_phrase_idx, get_eot_idx
@@ -1436,6 +1431,11 @@ class Storydiffusion_Model_Loader:
                 )
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             elif use_kolor:
+                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
+                from .kolors.models.modeling_chatglm import ChatGLMModel
+                from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
+                from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
+                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
                 text_encoder = ChatGLMModel.from_pretrained(
                     f'{repo_id}/text_encoder',torch_dtype=torch.float16).half()
                 vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
