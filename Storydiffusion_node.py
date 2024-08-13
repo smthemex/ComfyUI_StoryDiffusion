@@ -32,9 +32,9 @@ else:
 from huggingface_hub import hf_hub_download
 from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMScheduler, ControlNetModel,
                        KDPM2AncestralDiscreteScheduler, LMSDiscreteScheduler,
-                       AutoPipelineForInpainting, DPMSolverMultistepScheduler, DPMSolverSinglestepScheduler,
+                        DPMSolverMultistepScheduler, DPMSolverSinglestepScheduler,
                        EulerDiscreteScheduler, HeunDiscreteScheduler, UNet2DConditionModel,
-                       AutoPipelineForText2Image, StableDiffusionXLControlNetImg2ImgPipeline, KDPM2DiscreteScheduler,
+                       KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler, AutoencoderKL,
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
 
@@ -123,7 +123,6 @@ def phi2narry(img):
     return img
 
 
-
 def get_instance_path(path):
     instance_path = os.path.normpath(path)
     if sys.platform == 'win32':
@@ -134,7 +133,6 @@ def add_pil(list, list_add, num):
     new_list = list[:num] + list_add + list[num:]
     return new_list
 
-
 def tensor_to_image(tensor):
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
@@ -144,10 +142,12 @@ def tensor_to_image(tensor):
 def has_parentheses(s):
     return bool(re.search(r'\(.*?\)', s))
 
-
 def contains_brackets(s):
     return '[' in s or ']' in s
 
+def extract_content_from_brackets(text):
+    # 正则表达式匹配多对方括号内的内容
+    return re.findall(r'\[(.*?)\]', text)
 
 def narry_list(list_in):
     for i in range(len(list_in)):
@@ -721,7 +721,7 @@ def process_generation(
     #load_chars = load_character_files_on_running(unet, character_files=char_files)
 
     prompts_origin = prompt_array.splitlines()
-    prompts = [prompt for prompt in prompts_origin if not has_parentheses(prompt)]  # 剔除双角色
+    prompts = [prompt for prompt in prompts_origin if not len(extract_content_from_brackets(prompt))>=2]  # 剔除双角色
     if use_kolor:
         add_trigger_words = "," + trigger_words + " " + "风格" + ";"
     else:
@@ -1071,73 +1071,112 @@ def nomarl_upscale(img, width, height):
     img = tensor_to_image(samples)
     return img
 
+def get_phrases_idx(tokenizer, phrases, prompt):
+    res = []
+    phrase_cnt = {}
+    for phrase in phrases:
+        if phrase in phrase_cnt:
+            cur_cnt = phrase_cnt[phrase]
+            phrase_cnt[phrase] += 1
+        else:
+            cur_cnt = 0
+            phrase_cnt[phrase] = 1
+        res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
+    return res
 
+
+
+def main_normal(prompt,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,image_processor,
+                boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,height,width,phrase_idxes, eot_idxes):
+
+    images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                               num_inference_steps=steps,
+                               seed=seed,
+                               prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
+                               image_encoder=image_encoder, guidance_scale=cfg,
+                               image_processor=image_processor, boxes=boxes,
+                               mask_threshold=mask_threshold,
+                               start_step=start_step,
+                               image_proj_type=image_proj_type,
+                               image_encoder_type=image_encoder_type,
+                               phrases=phrases,
+                               drop_grounding_tokens=drop_grounding_tokens,
+                               phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height,
+                               width=width)
+    return images
+def main_control(prompt,width,height,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,
+                 image_processor,boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,controlnet_scale,control_image,phrase_idxes, eot_idxes):
+    images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                               num_inference_steps=steps,
+                               seed=seed,
+                               prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
+                               image_encoder=image_encoder, guidance_scale=cfg,
+                               image_processor=image_processor, boxes=boxes,
+                               mask_threshold=mask_threshold,
+                               start_step=start_step,
+                               image_proj_type=image_proj_type,
+                               image_encoder_type=image_encoder_type,
+                               phrases=phrases,
+                               drop_grounding_tokens=drop_grounding_tokens,
+                               phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height,
+                               width=width,
+                               image=control_image, controlnet_conditioning_scale=controlnet_scale)
+
+    return images
+
+def get_float(str_in):
+    list_str=str_in.split(",")
+    float_box=[float(x) for x in list_str]
+    return float_box
+    
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      encoder_repo, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
-                      role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance,cfg):
-    def get_phrases_idx(tokenizer, phrases, prompt):
-        res = []
-        phrase_cnt = {}
-        for phrase in phrases:
-            if phrase in phrase_cnt:
-                cur_cnt = phrase_cnt[phrase]
-                phrase_cnt[phrase] += 1
-            else:
-                cur_cnt = 0
-                phrase_cnt[phrase] = 1
-            res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
-        return res
-    
+                      role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list):
+
     original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-    if controlnet_model_path != "none":
-        if _model_type == "img2img":
-            pipe.unload_ip_adapter()  # img2img先去掉原方法的ip
-            pipe.unload_lora_weights()
-            del pipe
-            torch.cuda.empty_cache()
-            if dif_repo != "none":
-                single_files=False
-                if dif_repo.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic" or dif_repo.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
-                     raise "playground or unstable is not support,choice SDXL diffuser"
-            elif dif_repo=="none" and ckpt_path!="none":
-                single_files=True
-            else:
-                raise "no model"
-            if single_files:
+    if _model_type == "img2img":
+        pipe.unload_ip_adapter()  # img2img先去掉原方法的ip
+        pipe.unload_lora_weights()
+        del pipe
+        torch.cuda.empty_cache()
+        if dif_repo:
+            single_files=False
+        elif not dif_repo and ckpt_path:
+            single_files=True
+        elif dif_repo and ckpt_path:
+            single_files = False
+        else:
+            raise "no model"
+        if single_files:
+            try:
+                pipe = StableDiffusionXLPipeline.from_single_file(
+                     pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                     torch_dtype=torch.float16)
+            except:
                 try:
                     pipe = StableDiffusionXLPipeline.from_single_file(
                          pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
                          torch_dtype=torch.float16)
                 except:
-                    try:
-                        pipe = StableDiffusionXLPipeline.from_single_file(
-                             pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
-                             torch_dtype=torch.float16)
-                    except:
-                        raise "load pipe error!,check you diffusers"
+                    raise "load pipe error!,check you diffusers"
+        else:
+            pipe=StableDiffusionXLPipeline.from_pretrained(dif_repo,torch_dtype=torch.float16)
+            
+        if lora:
+            if lora in lora_lightning_list:
+                pipe.load_lora_weights(lora_path)
+                pipe.fuse_lora()
             else:
-                pipe=StableDiffusionXLControlNetPipeline.from_pretrained(dif_repo,torch_dtype=torch.float16)
-            if lora != "none":
-                if lora in lora_lightning_list:
-                    pipe.load_lora_weights(lora_path)
-                    pipe.fuse_lora()
-                else:
-                    pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
-                    pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-                    
-            pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
-            pipe.enable_xformers_memory_efficient_attention()
-            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-            pipe.enable_vae_slicing()
-            if device != "mps":
-                pipe.enable_model_cpu_offload()
-            torch.cuda.empty_cache()
-        #原方法的unet有层残缺
+                pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
+        
+    #原方法的unet有层残缺
+    if controlnet_model_path != "none":
         controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
         controlnet = ControlNetModel.from_unet(pipe.unet)
-        cn_state_dict = load_file(controlnet_model_path,device="cpu")
+        cn_state_dict = load_file(controlnet_model_path, device="cpu")
         controlnet.load_state_dict(cn_state_dict, strict=False)
-        
+        controlnet.to(torch.float16)
         try:
             pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
                                                                         controlnet=controlnet,
@@ -1151,7 +1190,15 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                                                                             torch_dtype=torch.float16)
             except:
                 raise "load pipe error!,check you diffusers"
-            
+        
+    pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
+    pipe.enable_xformers_memory_efficient_attention()
+    pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+    pipe.enable_vae_slicing()
+    if device != "mps":
+        pipe.enable_model_cpu_offload()
+    torch.cuda.empty_cache()
+    
     # 预加载 ms
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
@@ -1192,9 +1239,17 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     pipe.to(device)
     torch.cuda.empty_cache()
     input_images = [image_1, image_2]
-    # input_images = [x.resize((width, height)) for x in input_images] #no need
-    # generation configs
-    num_samples = 1
+    batch_size = 1
+    
+    guidance_list = guidance_list.strip().split(";")
+    
+    box_add = []  # 获取预设box
+    for i in range(len(guidance_list)):
+        box_add.append(get_float(guidance_list[i]))
+    
+    if mask_threshold == 0.:
+        mask_threshold = None
+    
     image_ouput = []
     
     # get role name
@@ -1204,6 +1259,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     prompts_dual, negative_prompt = apply_style(
         style_name, prompts_dual, negative_prompt
     )
+    
     # 添加Lora trigger
     add_trigger_words = "," + trigger_words + " " + "style" + ";"
     if lora != "none":
@@ -1211,20 +1267,27 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         if lora not in lora_lightning_list:  # 加速lora不需要trigger
             prompts_dual = [item + add_trigger_words for item in prompts_dual]
     
-    item_x = ""
-    for x in char_describe:
-        item_x += x
-    prompts_dual = [item_x + item for item in prompts_dual]
-    prompts_dual = [item.replace("(", " ", 1).replace(")", " ", 1) for item in prompts_dual]
-    print(prompts_dual)
+   
+    prompts_dual = [item.replace(char_origin[0],char_describe[0]) for item in prompts_dual if char_origin[0] in item ]
+    prompts_dual = [item.replace(char_origin[1], char_describe[1]) for item in prompts_dual if char_origin[1] in item]
+    
+    prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
+    #print(prompts_dual)
     torch.cuda.empty_cache()
-    if layout_guidance:
-        boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
-    else:
-        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]  # used if you want no layout guidance
+
     phrases = [[role_a, role_b]]
     drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
     
+    if mask_threshold:
+        boxes = [box_add[:2]]
+        print(boxes)
+        # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+    else:
+        zero_list = [0 for _ in range(4)]
+        boxes = [zero_list for _ in range(2)]
+        boxes = [boxes]  # used if you want no layout guidance
+        # print(boxes)
+        
     if controlnet_model_path != "none":
         d1, _, _, _ = control_image.size()
         if d1 == 1:
@@ -1240,19 +1303,14 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
             eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
             # print(phrase_idxes, eot_idxes)
-            images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
-                                       num_inference_steps=steps,
-                                       seed=seed,
-                                       prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
-                                       image_encoder=image_encoder,
-                                       image_processor=image_processor, boxes=boxes,
-                                       image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
-                                       phrases=phrases,
-                                       drop_grounding_tokens=drop_grounding_tokens,
-                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width,
-                                       image=control_image, controlnet_conditioning_scale=controlnet_scale)
+            image_main = main_control(prompt, width, height, pipe, phrases, ms_model, input_images, batch_size,
+                                      steps,
+                                      seed, negative_prompt, role_scale, image_encoder, cfg,
+                                      image_processor, boxes, mask_threshold, start_step, image_proj_type,
+                                      image_encoder_type, drop_grounding_tokens, controlnet_scale,  control_image,
+                                      phrase_idxes, eot_idxes)
             
-            image_ouput += images
+            image_ouput += image_main
             torch.cuda.empty_cache()
     else:
         for i, prompt in enumerate(prompts_dual):
@@ -1260,18 +1318,11 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
             eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
             # print(phrase_idxes, eot_idxes)
-            images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
-                                       num_inference_steps=steps,
-                                       seed=seed,
-                                       prompt=[prompt], negative_prompt=negative_prompt, scale=role_scale,
-                                       image_encoder=image_encoder,
-                                       image_processor=image_processor, boxes=boxes, mask_threshold=mask_threshold,
-                                       start_step=start_step,
-                                       image_proj_type=image_proj_type, image_encoder_type=image_encoder_type,
-                                       phrases=phrases,
-                                       drop_grounding_tokens=drop_grounding_tokens,
-                                       phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height, width=width)
-            image_ouput += images
+            image_main = main_normal(prompt, pipe, phrases, ms_model, input_images, batch_size, steps, seed,
+                                          negative_prompt, role_scale, image_encoder, cfg, image_processor,
+                                          boxes, mask_threshold, start_step, image_proj_type, image_encoder_type,
+                                          drop_grounding_tokens, height, width, phrase_idxes, eot_idxes)
+            image_ouput += image_main
             torch.cuda.empty_cache()
     torch.cuda.empty_cache()
     return image_ouput
@@ -1304,22 +1355,22 @@ class Storydiffusion_Model_Loader:
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "photomake_mode": (["v1", "v2"],),
                 "reset_txt2img":("BOOLEAN", {"default": False},),
+                "use_int4":("BOOLEAN", {"default": False},),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
             }
         }
 
-
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         if not kwargs.get("reset_txt2img"):
-            return
+            return False
         else:
             return True
     
-    RETURN_TYPES = ("MODEL", "STRING",)
-    RETURN_NAMES = ("pipe", "info",)
+    RETURN_TYPES = ("STORY_DICT", )
+    RETURN_NAMES = ("model", )
     FUNCTION = "story_model_loader"
     CATEGORY = "Storydiffusion"
     
@@ -1332,10 +1383,14 @@ class Storydiffusion_Model_Loader:
                 repo = get_instance_path(model_path)
         return repo
     def story_model_loader(self,repo_id, ckpt_name,vae_id, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,reset_txt2img,unique_id):
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,reset_txt2img,use_int4,unique_id):
         
         scheduler_choice = get_scheduler(scheduler)
-
+        if ckpt_name=="none":
+            ckpt_path = None
+        else:
+            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
+            
         if model_type=="txt2img" and reset_txt2img :
             counter = int(1)
             if self.counters.__contains__(unique_id):
@@ -1375,13 +1430,14 @@ class Storydiffusion_Model_Loader:
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
             lora_path = get_instance_path(lora_path)
+            if "/" in lora:
+                lora = lora.split("/")[-1]
+            if "\\" in lora:
+                lora = lora.split("\\")[-1]
         else:
-            lora_path = ""
-        if "/" in lora:
-            lora = lora.split("/")[-1]
-        if "\\" in lora:
-            lora = lora.split("\\")[-1]
-
+            lora_path = None
+            lora=None
+       
         # global
         global  attn_procs
         global sa32, sa64, write, height, width
@@ -1400,7 +1456,6 @@ class Storydiffusion_Model_Loader:
         width = img_width
 
         # load model
-        #dif_repo= self.instance_path(repo_id)
         use_kolor = False
         use_flux = False
         if repo_id:
@@ -1408,17 +1463,15 @@ class Storydiffusion_Model_Loader:
                 use_kolor=True
             if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
                 use_flux = True
-        ckpt_path=ckpt_name
-        if not repo_id and ckpt_name=="none":
+        
+        if not repo_id and not ckpt_path:
             raise "you need choice a model or repo_id"
-        elif not repo_id and ckpt_name!="none": # load ckpt
-            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-            ckpt_path = get_instance_path(ckpt_path)
+        elif not repo_id and ckpt_path: # load ckpt
             pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, photomake_mode=photomake_mode,photomaker_path=photomaker_path, lora=lora,
                                lora_path=lora_path,
                                trigger_words=trigger_words, lora_scale=lora_scale)
             set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-        else: #if repo and ckpt,choice repo
+        else: #if repo or  no ckpt,choice repo
             if repo_id.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic":
                 pipe = DiffusionPipeline.from_pretrained(
                     repo_id,
@@ -1431,11 +1484,13 @@ class Storydiffusion_Model_Loader:
                 )
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             elif use_kolor:
-                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
+                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import \
+                    StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
                 from .kolors.models.modeling_chatglm import ChatGLMModel
                 from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
                 from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
-                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
+                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import \
+                    StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
                 text_encoder = ChatGLMModel.from_pretrained(
                     f'{repo_id}/text_encoder',torch_dtype=torch.float16).half()
                 vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
@@ -1480,41 +1535,69 @@ class Storydiffusion_Model_Loader:
             elif use_flux:
                 # pip install optimum-quanto
                 # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
-                from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
-                from optimum.quanto import freeze, qfloat8, quantize
-                from diffusers import FlowMatchEulerDiscreteScheduler
-                from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
-                from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-                dtype = torch.bfloat16
-                revision = "refs/pr/1"
-                scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
-                                                                            revision=revision)
-                text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-                tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-                text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype,
-                                                                revision=revision)
-                tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
-                                                              revision=revision)
-                vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
-                transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
-                                                                     torch_dtype=dtype, revision=revision)
-                quantize(transformer, weights=qfloat8)
-                freeze(transformer)
-                quantize(text_encoder_2, weights=qfloat8)
-                freeze(text_encoder_2)
-                pipe = FluxPipeline(
-                    scheduler=scheduler,
-                    text_encoder=text_encoder,
-                    tokenizer=tokenizer,
-                    text_encoder_2=None,
-                    tokenizer_2=tokenizer_2,
-                    vae=vae,
-                    transformer=None,
-                )
-                pipe.text_encoder_2 = text_encoder_2
-                pipe.transformer = transformer
+                if not ckpt_path:
+                    from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
+                    if not use_int4:
+                        from optimum.quanto import freeze, qfloat8, quantize
+                    else:
+                        from optimum.quanto import freeze, qfloat8, qint4, quantize
+                    from diffusers import FlowMatchEulerDiscreteScheduler
+                    from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
+                    from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
+                    dtype = torch.bfloat16
+                    revision = "refs/pr/1"
+                    scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
+                                                                                revision=revision)
+                    text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                    text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                    torch_dtype=dtype,
+                                                                    revision=revision)
+                    tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
+                                                                  revision=revision)
+                    vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
+                    transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
+                                                                         torch_dtype=dtype, revision=revision)
+                    if use_int4:
+                        quantize(transformer, weights=qint4,
+                                 exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
+                    else:
+                        quantize(transformer, weights=qfloat8)
+                    
+                    freeze(transformer)
+                    quantize(text_encoder_2, weights=qfloat8)
+                    freeze(text_encoder_2)
+                    pipe = FluxPipeline(
+                        scheduler=scheduler,
+                        text_encoder=text_encoder,
+                        tokenizer=tokenizer,
+                        text_encoder_2=None,
+                        tokenizer_2=tokenizer_2,
+                        vae=vae,
+                        transformer=None,
+                    )
+                    pipe.text_encoder_2 = text_encoder_2
+                    pipe.transformer = transformer
+                else:
+                    from diffusers import FluxTransformer2DModel, FluxPipeline
+                    from transformers import T5EncoderModel, CLIPTextModel
+                    from optimum.quanto import freeze, qfloat8, quantize
+                    dtype = torch.bfloat16
+                    transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
+                    quantize(transformer, weights=qfloat8)
+                    freeze(transformer)
+                    
+                    text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                    torch_dtype=dtype)
+                    quantize(text_encoder_2, weights=qfloat8)
+                    freeze(text_encoder_2)
+                    
+                    pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                        torch_dtype=dtype)
+                    pipe.transformer = transformer
+                    pipe.text_encoder_2 = text_encoder_2
                 pipe.enable_model_cpu_offload()
-                
+            
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
@@ -1528,12 +1611,14 @@ class Storydiffusion_Model_Loader:
         if not use_kolor and not use_flux:
             pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+        load_chars = False
         if not use_flux:
             pipe.enable_vae_slicing()
+            unet = pipe.unet
+            load_chars = load_character_files_on_running(unet, character_files=char_files)
         if device != "mps":
             pipe.enable_model_cpu_offload()
-        if not use_flux:
-           unet = pipe.unet
+    
         global mask1024, mask4096
         mask1024, mask4096 = cal_attn_mask_xl(
             total_length,
@@ -1546,26 +1631,10 @@ class Storydiffusion_Model_Loader:
             dtype=torch.float16,
         )
         torch.cuda.empty_cache()
-        load_chars=False
-        if not use_flux:
-            load_chars = load_character_files_on_running(unet, character_files=char_files)
-        if load_chars:
-            char_file="ture"
-        else:
-            char_file = "none"
-        if not repo_id:
-            repo_id="none"
-        if not use_kolor:
-            use_kolor="false"
-        else:
-            use_kolor = "ture"
-        if use_flux:
-            use_flux="ture"
-        else:
-            use_flux = "false"
-        info = ";".join(
-            [model_type, ckpt_path,repo_id,lora_path,  lora, trigger_words, str(lora_scale),char_file,photomake_mode,use_kolor,use_flux])
-        return (pipe, info,)
+
+        model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
+               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora}
+        return (model,)
 
 
 class Storydiffusion_Sampler:
@@ -1576,8 +1645,7 @@ class Storydiffusion_Sampler:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "info": ("STRING", {"forceInput": True, "default": ""}),
-                "pipe": ("MODEL",),
+                "model": ("STORY_DICT",),
                 "character_prompt": ("STRING", {"multiline": True,
                                                 "default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n"
                                                            "[Lecun] a man img,wearing a suit,black hair."}),
@@ -1610,7 +1678,7 @@ class Storydiffusion_Sampler:
                 "controlnet_model_path": (["none"] + folder_paths.get_filename_list("controlnet"),),
                 "controlnet_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "layout_guidance": ("BOOLEAN", {"default": True},),
+                "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
             },
             "optional": {"image": ("IMAGE",),
             "control_image": ("IMAGE",),}
@@ -1621,27 +1689,24 @@ class Storydiffusion_Sampler:
     FUNCTION = "story_sampler"
     CATEGORY = "Storydiffusion"
 
-    def story_sampler(self, info,pipe, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
+    def story_sampler(self, model, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
-                  role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,layout_guidance,**kwargs):
-
-        model_type, ckpt_path, dif_repo,lora_path, lora, trigger_words,lora_scale,char_files,photomake_mode,use_kolor,use_flux = info.split(
-            ";")
-        lora_scale = float(lora_scale)
-        if char_files=="none":
-            load_chars=False
-        else:
-            load_chars = True
-        if use_kolor=="false":
-            use_kolor=False
-        else:
-            use_kolor=True
+                  role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,guidance_list,**kwargs):
+        # get value from dict
+        pipe=model.get("pipe")
+        use_flux=model.get("use_flux")
+        photomake_mode=model.get("photomake_mode")
+        use_kolor=model.get("use_kolor")
+        load_chars=model.get("load_chars")
+        model_type=model.get("model_type")
+        trigger_words=model.get("trigger_words")
+        repo_id=model.get("repo_id")
+        lora_path=model.get("lora_path")
+        ckpt_path=model.get("ckpt_path")
+        lora=model.get("lora")
+        lora_scale =model.get("lora_scale")
+        image = kwargs.get("image")
         
-        if use_flux == "ture":
-            use_flux = True
-        else:
-            use_flux = False
-            
         # 格式化文字内容
         if split_prompt:
             scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
@@ -1659,22 +1724,25 @@ class Storydiffusion_Sampler:
 
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
-        char_describe = [char.replace("]", " ").replace("[", " ") for char in char_origin]
+        char_describe = char_origin # [A a men...,B a girl ]
         char_origin = [char.split("]")[0] + "]" for char in char_origin]
-
+        
         # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         prompts_origin = scene_prompts.splitlines()
-        positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
-        prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
+        positions_dual = [index for index, prompt in enumerate(prompts_origin) if len(extract_content_from_brackets(prompt))>=2]  #改成单句中双方括号方法，利于MS组句，[A]... [B]...[C]
+        prompts_dual = [prompt for prompt in prompts_origin if len(extract_content_from_brackets(prompt))>=2]
+        
+        # positions_dual = [index for index, prompt in enumerate(prompts_origin) if has_parentheses(prompt)]
+        # prompts_dual = [prompt for prompt in prompts_origin if has_parentheses(prompt)]
 
         if len(char_origin) == 2:
             positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
             positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
-
+            
+        
         if model_type=="img2img":
-            image=kwargs["image"]
             d1, _, _, _ = image.size()
             if d1 == 1:
                 image_load = [nomarl_upscale(image, width, height)]
@@ -1710,33 +1778,41 @@ class Storydiffusion_Sampler:
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux)
 
-
         for value in gen:
-            pass_value = value
-            del pass_value
+            print(type(value))
         image_pil_list = phi_list(value)
 
+        image_pil_list_ms = image_pil_list.copy()
         if save_character:
             print("saving character...")
             save_results(pipe.unet)
 
         if prompts_dual:
+            print("start sampler dual prompt")
             control_image = None
             if controlnet_model_path!="none":
                 control_image = kwargs["control_image"]
-            image_a = image_pil_list[positions_char_1]
-            image_b = image_pil_list[positions_char_2]
+            if model_type=="img2img":  #直接引用参考ID图
+                d1, _, _, _ = image.size()
+                img_list = list(torch.chunk(image, chunks=d1))
+                image_load = [nomarl_upscale(img, width, height) for img in img_list]
+                image_a = image_load[0]
+                image_b = image_load[1]
+            else:
+                image_a = image_pil_list_ms[positions_char_1]
+                image_b = image_pil_list_ms[positions_char_2]
+                
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, lora,
-                                          lora_path,lora_scale, trigger_words, ckpt_path,dif_repo, role_scale,
-                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,layout_guidance,cfg)
+                                          lora_path,lora_scale, trigger_words, ckpt_path,repo_id, role_scale,
+                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list)
             j = 0
             for i in positions_dual: #重新将双人场景插入原序列
                 img = image_dual[j]
                 image_pil_list.insert(int(i), img)
                 j += 1
             image_list = narry_list(image_pil_list)
-            del image_dual
+            torch.cuda.empty_cache()
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
@@ -1818,126 +1894,13 @@ class Pre_Translate_prompt:
         scene_prompts = ''.join(captions)
         return (scene_prompts,)
 
-class FLUX_Dev_Model_Loader:
-    def __init__(self):
-        pass
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {
-            "repo_id": ("STRING", {"default": ""}),
-            "ckpt_name": (["none"] + folder_paths.get_filename_list("checkpoints"),),
-            "model_type": (["img2img", "txt2img"],),
-            "device":(["cpu","gpu"],),
-            "id_number": ("INT", {"default": 2, "min": 1, "max": 2, "step": 1, "display": "number"}),
-            "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-            "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-            "use_int4":("BOOLEAN", {"default": False},)
-                             }
-        }
 
-    RETURN_TYPES = ("MODEL","STRING")
-    ETURN_NAMES = ("pipe","info")
-    FUNCTION = "flux_load_main"
-    CATEGORY = "Storydiffusion"
-
-    def flux_load_main(self,repo_id,ckpt_name,model_type,device,id_number,img_width,img_height,use_int4):
-        # pip install optimum-quanto
-        # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
-        
-        use_flux = False
-        if repo_id:
-            if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
-                use_flux = True
-        if use_flux and ckpt_name=="none":
-            from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
-            if not use_int4:
-                from optimum.quanto import freeze, qfloat8, quantize
-            else:
-                from optimum.quanto import  freeze, qfloat8, qint4, quantize
-            from diffusers import FlowMatchEulerDiscreteScheduler
-            from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
-            from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-            dtype = torch.bfloat16
-            revision = "refs/pr/1"
-            scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
-                                                                        revision=revision)
-            text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-            tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-            text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype,
-                                                            revision=revision)
-            tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
-                                                          revision=revision)
-            vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
-            transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
-                                                                 torch_dtype=dtype, revision=revision)
-            if use_int4:
-                quantize(transformer, weights=qint4, exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
-            else:
-                quantize(transformer, weights=qfloat8)
-                
-            freeze(transformer)
-            quantize(text_encoder_2, weights=qfloat8)
-            freeze(text_encoder_2)
-            pipe = FluxPipeline(
-                scheduler=scheduler,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                text_encoder_2=None,
-                tokenizer_2=tokenizer_2,
-                vae=vae,
-                transformer=None,
-            )
-            pipe.text_encoder_2 = text_encoder_2
-            pipe.transformer = transformer
-            
-            if device=="cpu":
-               pipe.enable_model_cpu_offload()
-
-            use_flux="ture"
-        elif ckpt_name!="none" and use_flux:
-            ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-            from diffusers import FluxTransformer2DModel, FluxPipeline
-            from transformers import T5EncoderModel, CLIPTextModel
-            from optimum.quanto import freeze, qfloat8, quantize
-            dtype = torch.bfloat16
-            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
-            quantize(transformer, weights=qfloat8)
-            freeze(transformer)
-            
-            text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2", torch_dtype=dtype)
-            quantize(text_encoder_2, weights=qfloat8)
-            freeze(text_encoder_2)
-            
-            pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None, torch_dtype=dtype)
-            pipe.transformer = transformer
-            pipe.text_encoder_2 = text_encoder_2
-            if device=="cpu":
-               pipe.enable_model_cpu_offload()
-            use_flux="ture"
-        else:
-            use_flux ="false"
-            
-        global write, height, width
-        global attn_count, total_count, id_length, total_length, cur_step
-        attn_count = 0
-        total_count = 0
-        cur_step = 0
-        id_length = id_number
-        total_length = 5
-        write = False
-        height = img_height
-        width = img_width
-        info = ";".join(
-            [model_type, "ckpt_path", "repo_id", "lora_path", "lora", "trigger_words", "1", "none", "photomake_mode",
-             "false",use_flux])
-        return (pipe,info,)
 
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Model_Loader": Storydiffusion_Model_Loader,
     "Storydiffusion_Sampler": Storydiffusion_Sampler,
     "Pre_Translate_prompt": Pre_Translate_prompt,
     "Comic_Type": Comic_Type,
-    "FLUX_Dev_Model_Loader":FLUX_Dev_Model_Loader
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1945,5 +1908,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Sampler": "Storydiffusion_Sampler",
     "Pre_Translate_prompt": "Pre_Translate_prompt",
     "Comic_Type": "Comic_Type",
-    "FLUX_Dev_Model_Loader":"FLUX_Dev_Model_Loader"
 }
