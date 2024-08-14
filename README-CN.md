@@ -7,6 +7,11 @@ MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 更新
 ---
+2024/08/14
+--修复bug，修改MS的一些代码，去掉flux模型加载节点，  
+-- 如果单独运行flux的repo，会自动保存pt模型（fp8)的，你可以运行至模型保存后就中断，然后用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
+--特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃！！！！  
+
 2024/08/08更新
 --加入实验版的FLUX diffusers pippline流程,repo填写black-forest-labs/FLUX.1-dev或者X:/XXX/black-forest-labs/FLUX.1-dev 开启,需要高版本的diffusers和optimum-quanto,请谨慎测试.  
 -- Flux意义不大，不如用comfyUI自带的，当然，int4的8G显存的可以测试一下，如果要跑fp8，12G也能跑，就是内存需要48G以上
@@ -160,27 +165,7 @@ control_img图片的预处理，请使用其他节点
 
 4 Example
 ----
-
-文生图模式，使用可灵的中文提示词，最新示例，example内最新的json文件      
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgkolors.png)
-
-图生图模式，使用可灵的中文提示词，最新示例，example内最新的json文件      
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgkolors.png)
-
-图生图模式，使用photomakeV2，最新示例，
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgphotomakev2.png)
-
-图生图模式,加入Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框，旧的示例，只供参考      
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
-
-文生图模式,加入HYper 加速Lora，加入双角色同框（角色1 and 角色2），加入controlnet控制（controlnet只能控制双角色同框）旧的示例  只供参考       
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
-
-多controlnet加入双角色同框（角色1 and 角色2）旧的示例，只供参考       
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png)
-
-文本翻译为其他语言示例，图示中的翻译节点可以替换成任何翻译节点。旧的示例只供参考       
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
+请看英文版的提示
 
 节点的功能说明
 ---   
@@ -199,6 +184,7 @@ control_img图片的预处理，请使用其他节点
 --img_width/img_height： 出图的高宽尺寸。
 --photomake_mode： 选择用V1还是V2的模型；  
 --reset_txt2img  文生图模式的BUG目前只能用开启这个来修复.   
+-- in4： 速度更慢，没必要。。。。
 
 --<Storydiffusion_Sampler>   
 -- pipe/info： 必须链接的接口；  
@@ -212,12 +198,12 @@ control_img图片的预处理，请使用其他节点
 --style_strength_ratio： 风格权重控制，控制风格从哪一步开始生效，风格一致性不好时，可以试着调高或者调低此参数；  
 --encoder_repo： 仅在双角色同图时有效，如果要使用本地模型，务必使用X:/XXX/XXX/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k  必须是“/”；   
 --role_scale： 仅在双角色同图时有效，控制角色在图片中的权重；    
---mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写）；   
+--mask_threshold： 仅在双角色同图时有效，控制角色在图片中的位置（MS系统自动根据prompt分配角色位置，所以prompt中可以加入适当的角色位置信息描写），为0时启用自动模式；   
 -- start_step： 仅在双角色同图时有效，控制角色在图片中的位置的起始步数;    
 --save_character： 是否保存当前角色的角色权重，文件在./ComfyUI_StoryDiffusion/weigths/pt 下，以时间为文件名  ；  
 --controlnet_model_path: 选择SDXL社区模型；  
 --controlnet_scale:  controlne权重；   
---layout_guidance: 是否开启自动布局（如果开启自动布局，prompt里最好有明显的位置信息，比如在左边，在哪。。。，比如上下等等）；  
+--guidance_list: 如果2组数字一样，人物或重叠，一般是用来分左右，上下，或其他方位；  
 
 --<Comic_Type>  
 --fonts_list： 拼图节点支持自定义字体（把字体文件放在fonts目录下 .fonts/your_font.ttf）；
@@ -230,11 +216,11 @@ control_img图片的预处理，请使用其他节点
 
 特别提醒：  
 
--- 可灵中文输入，必须使用["角色名"]或者['角色名'],[NC]不变， 注意【】是不能用的！！！！  
--- 可灵只支持在repo_id输入本地绝对地址，地址的最后部分必须是kolors   
--- 可灵模型只需要下载fb16的，然后改名。
+-- 可图中文输入，必须使用["角色名"]或者['角色名'],[NC]不变， 注意【】是不能用的！！！！  
+-- 可图只支持在repo_id输入本地绝对地址，地址的最后部分必须是kolors   
+-- 可图模型只需要下载fb16的，然后改名。
 
---添加双角色同框功能，使用方法：(A and B) have lunch...., A,B为角色名，中间的 and 和括号不能删除,括号为生效条件！！！     
+--双角色同框功能，使用方法：[A]...  [B]....,有2个方括号在prompt中为生效条件！！！     
 --因为调用了MS-diffusion的功能，所以要使用双角色同框，必须添加encoder模型（laion/CLIP-ViT-bigG-14-laion2B-39B-b160k,无法替换为其他的）和ip-adapeter微调模型（ms_adapter.bin,无法替换）；    
 --优化加载Lora的代码，使用加速Lora时，trigger_words不再加入prompt列表；    
 --Playground v2.5可以在txt2img有效，没有Playground v2.5的风格Lora可用，当可以使用加速Lora;          
@@ -271,6 +257,7 @@ control_img图片的预处理，请使用其他节点
 17、ComfyUI_EchoMimic node(音频驱动动画):  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
 18、ComfyUI_FollowYourEmoji node(画面驱动表情包): [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 19、ComfyUI_Diffree node: [超强的一致性的文生图内绘](https://github.com/smthemex/ComfyUI_Diffree)     
+20、ComfyUI_FoleyCrafter node: [给视频配音的节点](https://github.com/smthemex/ComfyUI_FoleyCrafter)
 
 Citation
 ------
