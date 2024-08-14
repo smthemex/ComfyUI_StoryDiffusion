@@ -38,6 +38,7 @@ datas = get_lora_dict()
 lora_lightning_list = datas["lightning_xl_lora"]
 
 def load_models(path,model_type,single_files,use_safetensors,photomake_mode,photomaker_path,lora,lora_path,trigger_words,lora_scale):
+    path=get_instance_path(path)
     if model_type == "txt2img":
         if single_files:
             try:
@@ -57,7 +58,7 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                 path, torch_dtype=torch.float16,use_safetensors=use_safetensors
             )
 
-        if lora != "none":
+        if lora:
             if lora in lora_lightning_list:
                 pipe.load_lora_weights(lora_path)
                 pipe.fuse_lora()
@@ -121,7 +122,7 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                 pm_version= 'v2',
             )
             
-        if lora != "none":
+        if lora:
             if lora in lora_lightning_list:
                 pipe.load_lora_weights(lora_path)
                 pipe.fuse_lora()
