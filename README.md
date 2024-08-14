@@ -9,14 +9,15 @@ MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 NEW Update
 ---
+--2024/08/14   
+-- fix bug,change MS code,del flux_load node,  
+-- 2 role in 1 img now using [A]...[B]... mode,  
+-- if first using flux repo,will automatically save the PT file on checkpoint dir(name: transform_time.pt),So you only need to run the repo and flux once separately (without completing it) to obtain the PT model, Recommend using "repo+transfomer.pt" or "repo+other fp8.safetensors" or "repo+any_name.pt(rename from transfomer )",
+
 --2024/08/08   
 --2 ways to using flux，using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  and ckpt_name="none" in new loader node or old,or using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and using single ckpt like "flux1-dev-fp8.safetensors";  
 --flux img2img will be later..   
 -- ini4 mode not tested.   
-
---2024/08/06  
---add Flux diffusers pipeline,need 16G VRAM and more,using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"
---The Flux required diffusers 0.30.0 and accelerate 0.30 or new version... and 64G ram if using cup
 
 --2024/08/05
 --Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
@@ -162,22 +163,26 @@ Control_img image preprocessing, please use other nodes
 4 Example
 ----
 txt2img mode uses kolors model using chinese prompt (Latest version)        
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2imgkolors.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorstxt2img.png)
 
 img2img mode, uses kolors model using chinese prompt (Latest version)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgkolors.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorsimg2img.png)
+
+img2img mode, uses photomakeV1 (Latest version)     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV1.png)
 
 img2img mode, uses photomakeV2 (Latest version)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgphotomakev2.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV2.png)
 
-flux model, txt2img/img2img(Latest version)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_12G_VRAM.png)
+flux model,repo+pt txt2img/img2img(Latest version)     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_transfomerpy.png)
 
-img2img_lora_controlnet_2rolein1img mode, add Lora, add dual character co frame (character 1 and character 2), add controllnet control (controllnet can only control dual character co frame) Outdated version examples     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/img2imgcontrolnetdual.png)
+txt2img2role in 1 image (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newtxt2img2role.png)
 
-txt2img_hyperlora_contrlnet_2role1img mode, adding HYper to accelerate Lora, adding dual characters in the same frame (character 1 and character 2), adding controllnet control (controllnet can only control dual characters in the same frame) Outdated version examples   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_hyperlora_contrlnet_2role1img.png)
+txt2img2role in 1 image (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2img2role.png)
+
 
 More ControlNet added dual role co frame (Role 1 and Role 2) Outdated version examples   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png) 
@@ -202,12 +207,14 @@ Function Description of Nodes
 --Img_width/img_height: The height and width dimensions of the drawing.   
 --photomake_mode: choice v1 or v2 model;  
 --reset_txt2img: Fixed an error where continuous rendering is not possible when using MS. You need to set "reset_txt2img" to Ture, which will replace the scheduler   
+--"use_int4":flux only,too slowly...   
+
 
 --<Storydiffusion_Sampler>---       
 --Pipe/info: The interface that must be linked;   
 --Image: The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI;   
 --Character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;if using  chinese prompt, need["角色名"] or ['角色名']  
---Scene prompts: The prompt for the scene description, [character name], must start at the beginning. It is best for both characters to appear once in the first two lines. [NC] At the beginning, the character does not appear (suitable for non character scenes). When (character A and character B), MS diffusion's dual character mode is enabled, and and the spaces before and after it cannot be ignored# Used for segmented prompt, rendering the entire segment, but only outputting the prompt after #;    
+--Scene prompts: The prompt for the scene description, [character name], must start at the beginning. It is best for both characters to appear once in the first two lines. [NC] At the beginning, the character does not appear (suitable for non character scenes). When [character A] and [character B], MS diffusion's dual character mode is enabled, and and the spaces before and after it cannot be ignored# Used for segmented prompt, rendering the entire segment, but only outputting the prompt after #;    
 --Split prompt: The symbol for splitting the prompt, which does not take effect when it is empty. It is used to normalize paragraphs when the prompt is external. For example, when you pass in 10 lines of text, the hyphen may not be correct, but using a hyphen, such as ";", can effectively distinguish each line.     
 --Negative prompt: only effective when img_style is No_style;      
 --Seed/steps/cfg: suitable for commonly used functions in comfyUI;     
@@ -220,7 +227,7 @@ Function Description of Nodes
 --Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;  
 --Controlnet_modelpath: Controlnet's community  model );   
 --Controllet_scale: control net weight;   
---Layout_guidance: Is automatic layout enabled? (If automatic layout is enabled, it is best to have clear location information in the prompt, such as on the left and where...)..., For example, up and down, etc;    
+--guidance_list: contrlol role's position;     
 
 --<Comic_Type>--         
 --Fonts list: The puzzle node supports custom fonts (place the font file in the fonts directory. fonts/you_font. ttf);   
@@ -233,7 +240,7 @@ Function Description of Nodes
 
 Tips：
 
---Add dual character same frame function, usage method: (A and B) have lunch, A. B is the role name, and the middle and parentheses cannot be removed. The parentheses are the effective conditions!!!   
+--Add dual character same frame function, usage method: [A] .. [B]..., A. B is the role name, The parentheses are the effective conditions!!!   
 --Because the MS diffusion function was called, in order to use dual role same frame, it is necessary to add an encoder model (laion/CLIP ViT bigG-14 laion2B-39B-b160k, which cannot be replaced with others) and an ip adapet fine-tuning model (ms-adapter.bin, which cannot be replaced);   
 --Optimize the loading of Lora's code, and when using accelerated Lora, trigger_words will no longer be added to the prompt list;   
 --Playground v2.5 can be effective on txt2img, and there is no Playground v2.5 style Lora available when accelerated Lora can be used;   
@@ -269,6 +276,7 @@ My ComfyUI node list：
 17、ComfyUI_EchoMimic node:  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
 18、ComfyUI_FollowYourEmoji node: [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
 19、ComfyUI_Diffree node: [ComfyUI_Diffree](https://github.com/smthemex/ComfyUI_Diffree)     
+20、ComfyUI_FoleyCrafter node: [ComfyUI_FoleyCrafter](https://github.com/smthemex/ComfyUI_FoleyCrafter)
 
 Citation
 ------
