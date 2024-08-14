@@ -1,0 +1,190 @@
+{
+  "last_node_id": 21,
+  "last_link_id": 31,
+  "nodes": [
+    {
+      "id": 12,
+      "type": "PreviewImage",
+      "pos": [
+        1329,
+        -182
+      ],
+      "size": {
+        "0": 552.12255859375,
+        "1": 711.5633544921875
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 26,
+          "label": "images"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 19,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        832,
+        -183
+      ],
+      "size": {
+        "0": 457.4426574707031,
+        "1": 753.3367309570312
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": 24,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image",
+          "slot_index": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            26
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[\"泰勒\"] 一个女孩，蓝色头发，白色衬衣;\n[\"张三\"] 一个中年男人，白色西装.",
+        "[\"泰勒\"]在花园里休息，中景;\n[\"张三\"]在酒吧喝酒，全景;\n[\"泰勒\"] 在吃饭，全景;\n[\"张三\"] 在开会，近景.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        562489793,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "F:/test/ComfyUI/models/clip_vision/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 16,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        428,
+        -182
+      ],
+      "size": {
+        "0": 369.6249084472656,
+        "1": 442
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "links": [
+            24
+          ],
+          "shape": 3,
+          "label": "model",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
+        "none",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler",
+        "txt2img",
+        2,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        true,
+        false
+      ]
+    }
+  ],
+  "links": [
+    [
+      24,
+      16,
+      0,
+      19,
+      0,
+      "STORY_DICT"
+    ],
+    [
+      26,
+      19,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        -264.82835476477453,
+        296.8945393894008
+      ]
+    }
+  },
+  "version": 0.4
+}
