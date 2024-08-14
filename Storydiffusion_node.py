@@ -813,11 +813,11 @@ def process_generation(
             setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
-            cur_positive_prompts, negative_prompt = apply_style(
+            cur_positive_prompts, cur_negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
             if use_kolor:
-                negative_prompt=[negative_prompt]
+                cur_negative_prompt=[cur_negative_prompt]
             if model_type == "txt2img":
                 if use_flux:
                     id_images = pipe(
@@ -831,23 +831,27 @@ def process_generation(
                         generator=torch.Generator("cpu").manual_seed(0)
                     ).images
                 else:
+                    if use_kolor:
+                        cur_negative_prompt =  cur_negative_prompt * len(cur_positive_prompts) if len( cur_negative_prompt) != len(
+                            cur_positive_prompts) else  cur_negative_prompt
                     id_images = pipe(
                         cur_positive_prompts,
                         num_inference_steps=_num_steps,
                         guidance_scale=guidance_scale,
                         height=height,
                         width=width,
-                        negative_prompt=negative_prompt,
+                        negative_prompt= cur_negative_prompt,
                         generator=generator
                     ).images
                 
             elif model_type == "img2img":
                 if use_kolor:
                     pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
+                    cur_negative_prompt=  cur_negative_prompt*len(cur_positive_prompts) if len( cur_negative_prompt)!=len(cur_positive_prompts) else  cur_negative_prompt
                     id_images = pipe(
                         prompt=cur_positive_prompts,
                         ip_adapter_image=input_id_images_dict[character_key],
-                        negative_prompt=negative_prompt,
+                        negative_prompt= cur_negative_prompt,
                         num_inference_steps=_num_steps,
                         height=height,
                         width=width,
@@ -889,7 +893,7 @@ def process_generation(
                             start_merge_step=start_merge_step,
                             height=height,
                             width=width,
-                            negative_prompt=negative_prompt,
+                            negative_prompt= cur_negative_prompt,
                             id_embeds=id_embeds,
                             generator=generator
                         ).images
@@ -903,7 +907,7 @@ def process_generation(
                             start_merge_step=start_merge_step,
                             height=height,
                             width=width,
-                            negative_prompt=negative_prompt,
+                            negative_prompt= cur_negative_prompt,
                             generator=generator
                         ).images
             else:
@@ -1535,6 +1539,11 @@ class Storydiffusion_Model_Loader:
             elif use_flux:
                 # pip install optimum-quanto
                 # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
+                
+                timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                weight_transformer = os.path.join(folder_paths.models_dir,"checkpoints",f"transformer_{timestamp}.pt")
+                # 创建文件夹
+                dtype = torch.bfloat16
                 if not ckpt_path:
                     from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
                     if not use_int4:
@@ -1544,7 +1553,6 @@ class Storydiffusion_Model_Loader:
                     from diffusers import FlowMatchEulerDiscreteScheduler
                     from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
                     from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-                    dtype = torch.bfloat16
                     revision = "refs/pr/1"
                     scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
                                                                                 revision=revision)
@@ -1563,8 +1571,10 @@ class Storydiffusion_Model_Loader:
                                  exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
                     else:
                         quantize(transformer, weights=qfloat8)
-                    
                     freeze(transformer)
+                    print(f"saving fp8 pt on '{weight_transformer}'")
+                    torch.save(transformer, weight_transformer) # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
+                    
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
                     pipe = FluxPipeline(
@@ -1581,21 +1591,70 @@ class Storydiffusion_Model_Loader:
                 else:
                     from diffusers import FluxTransformer2DModel, FluxPipeline
                     from transformers import T5EncoderModel, CLIPTextModel
-                    from optimum.quanto import freeze, qfloat8, quantize
-                    dtype = torch.bfloat16
-                    transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
-                    quantize(transformer, weights=qfloat8)
-                    freeze(transformer)
+                    if not use_int4:
+                        from optimum.quanto import freeze, qfloat8, quantize
+                    else:
+                        from optimum.quanto import freeze, qfloat8, qint4, quantize
                     
-                    text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                    torch_dtype=dtype)
-                    quantize(text_encoder_2, weights=qfloat8)
-                    freeze(text_encoder_2)
+                    if "transformer" in ckpt_path:
+                        from diffusers import FlowMatchEulerDiscreteScheduler
+                        from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
+                        revision = "refs/pr/1"
+                        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
+                                                                                    revision=revision)
+                        text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
+                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                        torch_dtype=dtype,
+                                                                        revision=revision)
+                        tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2",
+                                                                      torch_dtype=dtype,
+                                                                      revision=revision)
+                        vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype,
+                                                            revision=revision)
+                        transformer = torch.load(ckpt_path)
+                        print(f"loading fp8 pt on '{ckpt_path}'")
+                        transformer.eval()
+                        # if use_int4:
+                        #     quantize(transformer, weights=qint4,
+                        #              exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
+                        # else:
+                        #     quantize(transformer, weights=qfloat8)
+                        pipe = FluxPipeline(
+                            scheduler=scheduler,
+                            text_encoder=text_encoder,
+                            tokenizer=tokenizer,
+                            text_encoder_2=None,
+                            tokenizer_2=tokenizer_2,
+                            vae=vae,
+                            transformer=None,
+                        )
+                        pipe.text_encoder_2 = text_encoder_2
+                        pipe.transformer = transformer
                     
-                    pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                        torch_dtype=dtype)
-                    pipe.transformer = transformer
-                    pipe.text_encoder_2 = text_encoder_2
+                    else:
+                        if ckpt_path.rsplit(".")[-1]=="pt":
+                            transformer = torch.load(ckpt_path)
+                            transformer.eval()
+                        else:
+                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
+                            if use_int4:
+                                quantize(transformer, weights=qint4,
+                                         exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
+                            else:
+                                quantize(transformer, weights=qfloat8)
+                            freeze(transformer)
+                        
+                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                        torch_dtype=dtype)
+                        quantize(text_encoder_2, weights=qfloat8)
+                        freeze(text_encoder_2)
+                        
+                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                            torch_dtype=dtype)
+                        pipe.transformer = transformer
+                        pipe.text_encoder_2 = text_encoder_2
+    
                 pipe.enable_model_cpu_offload()
             
             else: # SD dif_repo
