@@ -1,9 +1,11 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
+import json
 
 import cv2
 import numpy as np
+import safetensors
 import torch
 import copy
 import os
@@ -25,6 +27,7 @@ from .utils.gradio_utils import (
 from PIL import Image
 from .utils.insightface_package import FaceAnalysis2, analyze_faces
 
+
 if is_torch2_available():
     from .utils.gradio_utils import AttnProcessor2_0 as AttnProcessor
 else:
@@ -37,7 +40,7 @@ from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline, DDIMSchedul
                        KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler, AutoencoderKL,
                        StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
-
+from omegaconf import OmegaConf
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
 from .msdiffusion.models.projection import Resampler
@@ -86,6 +89,13 @@ if diff_paths:
     diff_paths = ["none"] + [x for x in diff_paths if x]
 else:
     diff_paths = ["none", ]
+
+
+clip_lists = folder_paths.get_filename_list("clip_vision")
+if clip_lists:
+    clip_paths = ["none"] + [x for x in clip_lists if x]
+else:
+    clip_paths = ["none",]
 
 
 control_paths = []
@@ -788,8 +798,8 @@ def process_generation(
             input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load
             # input_id_images_dict[character_list[ind]] = [load_image(img)]
     # real_prompts = prompts[id_length:]
-    if device == "cuda":
-        torch.cuda.empty_cache()
+    # if device == "cuda":
+    #     torch.cuda.empty_cache()
     write = True
     cur_step = 0
     attn_count = 0
@@ -1067,6 +1077,11 @@ def process_generation(
     torch.cuda.empty_cache()
     yield total_results
 
+def nomarl_tensor_upscale(tensor, width, height):
+    samples = tensor.movedim(-1, 1)
+    samples = common_upscale(samples, width, height, "nearest-exact", "center")
+    samples = samples.movedim(1, -1)
+    return samples
 
 def nomarl_upscale(img, width, height):
     samples = img.movedim(-1, 1)
@@ -1089,11 +1104,11 @@ def get_phrases_idx(tokenizer, phrases, prompt):
     return res
 
 
-
 def main_normal(prompt,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,image_processor,
-                boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,height,width,phrase_idxes, eot_idxes):
-
-    images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,height,width,phrase_idxes, eot_idxes,in_img,use_repo):
+    if use_repo:
+        in_img = None
+    images = ms_model.generate(pipe=pipe, pil_images=[input_images],processed_images=in_img, num_samples=num_samples,
                                num_inference_steps=steps,
                                seed=seed,
                                prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
@@ -1109,8 +1124,10 @@ def main_normal(prompt,pipe,phrases,ms_model,input_images,num_samples,steps,seed
                                width=width)
     return images
 def main_control(prompt,width,height,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,
-                 image_processor,boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,controlnet_scale,control_image,phrase_idxes, eot_idxes):
-    images = ms_model.generate(pipe=pipe, pil_images=[input_images], num_samples=num_samples,
+                 image_processor,boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,controlnet_scale,control_image,phrase_idxes, eot_idxes,in_img,use_repo):
+    if use_repo:
+        in_img=None
+    images = ms_model.generate(pipe=pipe, pil_images=[input_images],processed_images=in_img, num_samples=num_samples,
                                num_inference_steps=steps,
                                seed=seed,
                                prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
@@ -1134,38 +1151,61 @@ def get_float(str_in):
     return float_box
     
 def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
-                     encoder_repo, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
-                      role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list):
-
+                     clip_vision, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
+                      role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,image):
+    from comfy.model_management import cleanup_models
+    from comfy.clip_vision import load
+    tensor_a = phi2narry(image_1.copy())
+    tensor_b = phi2narry(image_2.copy())
+    in_img = torch.cat((tensor_a, tensor_b), dim=0)
     original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-    if _model_type == "img2img":
-        pipe.unload_ip_adapter()  # img2img先去掉原方法的ip
-        pipe.unload_lora_weights()
+    if dif_repo:
+        single_files = False
+    elif not dif_repo and ckpt_path:
+        single_files = True
+    elif dif_repo and ckpt_path:
+        single_files = False
+    else:
+        raise "no model"
+    
+    if controlnet_model_path != "none":
         del pipe
+        cleanup_models(keep_clone_weights_loaded=False)
         torch.cuda.empty_cache()
-        if dif_repo:
-            single_files=False
-        elif not dif_repo and ckpt_path:
-            single_files=True
-        elif dif_repo and ckpt_path:
-            single_files = False
-        else:
-            raise "no model"
+        controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
         if single_files:
             try:
                 pipe = StableDiffusionXLPipeline.from_single_file(
-                     pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                     ckpt_path, original_config_file=original_config_file,
                      torch_dtype=torch.float16)
             except:
                 try:
                     pipe = StableDiffusionXLPipeline.from_single_file(
-                         pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                         ckpt_path, original_config_file=original_config_file,
                          torch_dtype=torch.float16)
                 except:
                     raise "load pipe error!,check you diffusers"
         else:
             pipe=StableDiffusionXLPipeline.from_pretrained(dif_repo,torch_dtype=torch.float16)
-            
+       
+        controlnet = ControlNetModel.from_unet(pipe.unet)
+        cn_state_dict = load_file(controlnet_model_path, device="cpu")
+        controlnet.load_state_dict(cn_state_dict, strict=False)
+        controlnet.to(torch.float16)
+        
+        try:
+            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
+                                                                        controlnet=controlnet,
+                                                                        original_config=original_config_file,
+                                                                        torch_dtype=torch.float16)
+        except:
+            try:
+                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
+                                                                            controlnet=controlnet,
+                                                                            original_config_file=original_config_file,
+                                                                            torch_dtype=torch.float16)
+            except:
+                raise "load pipe error!,check you diffusers"
         if lora:
             if lora in lora_lightning_list:
                 pipe.load_lora_weights(lora_path)
@@ -1173,36 +1213,40 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             else:
                 pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-        
-    #原方法的unet有层残缺
-    if controlnet_model_path != "none":
-        controlnet_model_path = folder_paths.get_full_path("controlnet", controlnet_model_path)
-        controlnet = ControlNetModel.from_unet(pipe.unet)
-        cn_state_dict = load_file(controlnet_model_path, device="cpu")
-        controlnet.load_state_dict(cn_state_dict, strict=False)
-        controlnet.to(torch.float16)
-        try:
-            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
-                                                                        controlnet=controlnet,
-                                                                        original_config=original_config_file,
-                                                                        torch_dtype=torch.float16)
-        except:
-            try:
-                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path, unet=pipe.unet,
-                                                                            controlnet=controlnet,
-                                                                            original_config_file=original_config_file,
-                                                                            torch_dtype=torch.float16)
-            except:
-                raise "load pipe error!,check you diffusers"
-        
-    pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
-    pipe.enable_xformers_memory_efficient_attention()
-    pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-    pipe.enable_vae_slicing()
+        pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
+        pipe.enable_xformers_memory_efficient_attention()
+        pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+        pipe.enable_vae_slicing()
+    else:
+        if _model_type == "img2img":
+            global write, attn_count
+            write = True
+            attn_count = 0
+            in_img = image
+            torch.cuda.empty_cache()
+            if single_files:
+                try:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                        pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                        unet=pipe.unet,
+                        torch_dtype=torch.float16)
+                except:
+                    try:
+                        pipe = StableDiffusionXLPipeline.from_single_file(
+                            pretrained_model_link_or_path=ckpt_path, original_config_file=original_config_file,
+                            unet=pipe.unet,
+                            torch_dtype=torch.float16)
+                    except:
+                        raise "load pipe error!,check you diffusers"
+            else:
+                pipe = StableDiffusionXLPipeline.from_pretrained(dif_repo, torch_dtype=torch.float16)
+            pipe.scheduler = DDPMScheduler.from_config(pipe.scheduler.config)
+            pipe.enable_xformers_memory_efficient_attention()
+            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+            pipe.enable_vae_slicing()
     if device != "mps":
         pipe.enable_model_cpu_offload()
     torch.cuda.empty_cache()
-    
     # 预加载 ms
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
     if not os.path.exists(photomaker_local_path):
@@ -1216,11 +1260,14 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         ms_path = photomaker_local_path
     ms_ckpt = get_instance_path(ms_path)
     image_processor = CLIPImageProcessor()
-    if encoder_repo.count("/") > 1:
-        encoder_repo = get_instance_path(encoder_repo)
     image_encoder_type = "clip"
-    image_encoder = CLIPVisionModelWithProjection.from_pretrained(encoder_repo, ignore_mismatched_sizes=True).to(device,dtype=torch.float16)
-    image_encoder_projection_dim = image_encoder.config.projection_dim
+
+    cleanup_models(keep_clone_weights_loaded=False)
+    image_encoder=load(clip_vision)
+    use_repo = False
+    config_path = os.path.join(dir_path, "config", "config.json")
+    image_encoder_config = OmegaConf.load(config_path)
+    image_encoder_projection_dim = image_encoder_config["vision_config"]["projection_dim"]
     num_tokens = 16
     image_proj_type = "resampler"
     latent_init_mode = "grounding"
@@ -1231,22 +1278,18 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         dim_head=64,
         heads=20,
         num_queries=num_tokens,
-        embedding_dim=image_encoder.config.hidden_size,
+        embedding_dim=image_encoder_config["vision_config"]["hidden_size"],
         output_dim=pipe.unet.config.cross_attention_dim,
         ff_mult=4,
         latent_init_mode=latent_init_mode,
         phrase_embeddings_dim=pipe.text_encoder.config.projection_dim,
-    ).to(device, dtype=torch.float16)
-    
+    ).to(device,dtype=torch.float16)
     ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
-    ms_model.to(device, dtype=torch.float16)
-    pipe.to(device)
+    ms_model.to(device,dtype=torch.float16)
     torch.cuda.empty_cache()
     input_images = [image_1, image_2]
     batch_size = 1
-    
     guidance_list = guidance_list.strip().split(";")
-    
     box_add = []  # 获取预设box
     for i in range(len(guidance_list)):
         box_add.append(get_float(guidance_list[i]))
@@ -1284,7 +1327,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     
     if mask_threshold:
         boxes = [box_add[:2]]
-        print(boxes)
+        print(f"Roles position on {boxes}")
         # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
     else:
         zero_list = [0 for _ in range(4)]
@@ -1312,7 +1355,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
                                       seed, negative_prompt, role_scale, image_encoder, cfg,
                                       image_processor, boxes, mask_threshold, start_step, image_proj_type,
                                       image_encoder_type, drop_grounding_tokens, controlnet_scale,  control_image,
-                                      phrase_idxes, eot_idxes)
+                                      phrase_idxes, eot_idxes,in_img,use_repo)
             
             image_ouput += image_main
             torch.cuda.empty_cache()
@@ -1325,7 +1368,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             image_main = main_normal(prompt, pipe, phrases, ms_model, input_images, batch_size, steps, seed,
                                           negative_prompt, role_scale, image_encoder, cfg, image_processor,
                                           boxes, mask_threshold, start_step, image_proj_type, image_encoder_type,
-                                          drop_grounding_tokens, height, width, phrase_idxes, eot_idxes)
+                                          drop_grounding_tokens, height, width, phrase_idxes, eot_idxes,in_img,use_repo)
             image_ouput += image_main
             torch.cuda.empty_cache()
     torch.cuda.empty_cache()
@@ -1675,9 +1718,9 @@ class Storydiffusion_Model_Loader:
             pipe.enable_vae_slicing()
             unet = pipe.unet
             load_chars = load_character_files_on_running(unet, character_files=char_files)
-        if device != "mps":
-            pipe.enable_model_cpu_offload()
-    
+        # if device != "mps":
+        #     pipe.enable_model_cpu_offload()
+        pipe.to("cuda")
         global mask1024, mask4096
         mask1024, mask4096 = cal_attn_mask_xl(
             total_length,
@@ -1727,7 +1770,7 @@ class Storydiffusion_Sampler:
                 "cfg": ("FLOAT", {"default": 7, "min": 0.1, "max": 10.0, "step": 0.1, "round": 0.01}),
                 "ip_adapter_strength": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "style_strength_ratio": ("INT", {"default": 20, "min": 10, "max": 50, "step": 1, "display": "number"}),
-                "encoder_repo": ("STRING", {"default": "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"}),
+                "clip_vision": (clip_paths,),
                 "role_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "mask_threshold": (
@@ -1740,7 +1783,7 @@ class Storydiffusion_Sampler:
                 "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
             },
             "optional": {"image": ("IMAGE",),
-            "control_image": ("IMAGE",),}
+                        "control_image": ("IMAGE",),}
         }
 
     RETURN_TYPES = ("IMAGE", "STRING",)
@@ -1749,7 +1792,7 @@ class Storydiffusion_Sampler:
     CATEGORY = "Storydiffusion"
 
     def story_sampler(self, model, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
-                  cfg, ip_adapter_strength, style_strength_ratio, encoder_repo,
+                  cfg, ip_adapter_strength, style_strength_ratio,clip_vision,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,guidance_list,**kwargs):
         # get value from dict
         pipe=model.get("pipe")
@@ -1845,7 +1888,10 @@ class Storydiffusion_Sampler:
         if save_character:
             print("saving character...")
             save_results(pipe.unet)
-
+        if clip_vision=="none":
+            clip_vision =None
+        else:
+            clip_vision = folder_paths.get_full_path("clip_vision", clip_vision)
         if prompts_dual:
             print("start sampler dual prompt")
             control_image = None
@@ -1862,9 +1908,9 @@ class Storydiffusion_Sampler:
                 image_b = image_pil_list_ms[positions_char_2]
                 
             image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
-                                          img_style, char_describe,char_origin,negative_prompt, encoder_repo, model_type, lora,
-                                          lora_path,lora_scale, trigger_words, ckpt_path,repo_id, role_scale,
-                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list)
+                                          img_style, char_describe,char_origin,negative_prompt, clip_vision, model_type, lora, lora_path, lora_scale,
+                                        trigger_words, ckpt_path,repo_id, role_scale,
+                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,image)
             j = 0
             for i in positions_dual: #重新将双人场景插入原序列
                 img = image_dual[j]
