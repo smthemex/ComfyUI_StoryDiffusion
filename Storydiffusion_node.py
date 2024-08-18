@@ -1222,7 +1222,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             global write, attn_count
             write = True
             attn_count = 0
-            in_img = image
+            in_img = torch.cat((in_img, image), dim=0)
             torch.cuda.empty_cache()
             if single_files:
                 try:
