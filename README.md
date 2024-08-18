@@ -9,8 +9,11 @@ MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 NEW Update
 ---
+--2024/08/18
+-- Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";
+-- Refactoring some code about MS-diffusion,controlnet still normal quality;  
+
 --2024/08/14   
--- fix bug,change MS code,del flux_load node,  
 -- 2 role in 1 img now using [A]...[B]... mode,  
 -- if first using flux repo,will automatically save the PT file on checkpoint dir(name: transform_time.pt),So you only need to run the repo and flux once separately (without completing it) to obtain the PT model, Recommend using "repo+transfomer.pt" or "repo+other fp8.safetensors" or "repo+any_name.pt(rename from transfomer )",
 
@@ -22,23 +25,15 @@ NEW Update
 --2024/08/05
 --Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
 --support photomaker V2;  
---fix some bug;  
 
 --2024/07/26
---fix some bug,while ControlNet now uses community models.   
+--while ControlNet now uses community models.   
 -- The base model now has only two options: using repo input or selecting the community model...
---Adjusting the model loading of MS has made the speed faster   
 
 --2024/07/09    
 --To fix the bug where MS diffusion cannot run continuously in the txt2img, it is necessary to enable the "reset_txt2img" of the loading model node to be Ture;   
---Fix the error in introducing modules, now change the model storage address to“ models/photomaker”, reuse the model, and avoid wasting hard disk space(the PT model is also located in the photometer directory);  
---Changing the method of selecting models now makes it more convenient to choose other diffusion models;    
-
---Add a Controlnet layout control button, which defaults to automatic programming.   
 --Introducing Controlnet for dual character co image, supporting multi image introduction, 
 --Add the function of saving and loading character models   
---It is known that when adding dual characters to the Wensheng diagram, it can only be run once. If you run it again, you need to fix the bug in the sampler or other options loaded on the model. There is currently no time to fix it;   
-
 
 1.Installation
 -----
@@ -60,29 +55,34 @@ If the module is missing, please pip install
 
 3 Need  model 
 ----
-
+3.1.1base   
 You can directly fill in the repo, such as:"stablityai/table diffusion xl base-1.0", or select the corresponding model in the local diffuser menu (provided that you have the model in the "models/diffuser" directory), or you can directly select a single SDXL community model. The priority of repo or local diffusers is higher than that of individual community models.    
 
 Supports all SDXL based diffusion models (such as "G161222/RealVisXL_V4.0", "sd-community/sdxl-flash"）， It also supports non SD models, such as ("stablediffusionapi/sdxl-unstable-diffusers-y", playground-v2.5-1024px-aesthetic）   
 When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), please set local_diffusers to none and download the corresponding config files to run.  
 
---using dual role same frame function:      
-
 photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
 photomaker-v2.bin    [link](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  
-Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
-Need encoder model "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k":[link](https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k)   
-
 ```
 ├── ComfyUI/models/
 |      ├──photomaker/
 |             ├── photomaker-v1.bin
 |             ├── photomaker-v2.bin
-|             ├── ms_adapter.bin
-
 ```
 
-if using kolors:  
+3.1.2 using dual role same frame function:      
+Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
+Need clip_vision model "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";   
+
+```
+├── ComfyUI/models/
+|      ├──photomaker/
+|             ├── ms_adapter.bin
+|      ├──pclip_vision/
+|             ├── clip_vision_g.safetensors(2.35G) or CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors(3.43G)
+```
+
+3.2 if using kolors:  
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
 The file structure is shown in the following figure:
@@ -126,26 +126,6 @@ The file structure is shown in the following figure:
 |               ├──vocab.json
 ```
 
-
-3.2 offline  
-You can fill in the absolute address of the diffusion model in repo, using "/"   
-
---using dual role same frame function:     
-Fill in the absolute path of your local clip model in the "laion/CLIP ViT bigG-14-laion2B-39B-b160k" column, using "/". Please refer to the file structure demonstration below for the required files.        
-```
-├── Any local_path/
-|     ├──CLIP ViT bigG-14-laion2B-39B-b160k/
-|             ├── config.json
-|             ├── preprocessor_config.json
-|             ├──pytorch_model.bin.index.json
-|             ├──pytorch_model-00001-of-00002.bin
-|             ├──pytorch_model-00002-of-00002.bin
-|             ├──special_tokens_map.json
-|             ├──tokenizer.json
-|             ├──tokenizer_config.json
-|             ├──vocab.json
-```
- 
 3.3 The model file example for dual role controllnet is as follows, which only supports SDXL community controllnet    
 ```
 ├── ComfyUI/models/controlne/   
@@ -162,30 +142,32 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
-txt2img mode uses kolors model using chinese prompt (Latest version)        
+txt2img mode uses kolors model using chinese prompt (Outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorstxt2img.png)
 
-img2img mode, uses kolors model using chinese prompt (Latest version)     
+img2img mode, uses kolors model using chinese prompt (Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorsimg2img.png)
 
-img2img mode, uses photomakeV1 (Latest version)     
+img2img mode, uses photomakeV1 (Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV1.png)
 
-img2img mode, uses photomakeV2 (Latest version)     
+img2img mode, uses photomakeV2 (Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV2.png)
 
-flux model,repo+pt txt2img/img2img(Latest version)     
+flux model,repo+pt txt2img/img2img(Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_transfomerpy.png)
 
 txt2img2role in 1 image (Latest version)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newtxt2img2role.png)
 
-txt2img2role in 1 image (Latest version)  
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2img2role.png)
+img2img2role in 1 image (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
 
+img2img2role in 1 image lora (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1imglora.png)
 
-More ControlNet added dual role co frame (Role 1 and Role 2) Outdated version examples   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnetnum.png) 
+ControlNet added dual role co frame (Role 1 and Role 2) (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
 Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
