@@ -11,6 +11,8 @@ NEW Update
 ---
 --2024/08/23
 --Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
+--fix some bug,Changing the loading method of Msdiffusion, reducing meaningless buttons, and removing the int4 mode of flux did not make it much faster;  
+-- support mps again...
 
 --2024/08/18
 -- Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";   
@@ -145,8 +147,8 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
-txt2img mode uses kolors model using chinese prompt (Outdated version examples)        
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorstxt2img.png)
+txt2img mode uses kolors model using chinese prompt (Latest version)        
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/new.png)
 
 img2img mode, uses kolors model using chinese prompt (Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorsimg2img.png)
@@ -160,16 +162,16 @@ img2img mode, uses photomakeV2 (Outdated version examples)
 flux model,repo+pt txt2img/img2img(Outdated version examples)     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_transfomerpy.png)
 
-txt2img2role in 1 image (Latest version)  
+txt2img2role in 1 image (Outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newtxt2img2role.png)
 
-img2img2role in 1 image (Latest version)  
+img2img2role in 1 image (Outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
 
-img2img2role in 1 image lora (Latest version)  
+img2img2role in 1 image lora (Outdated version examples)    
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1imglora.png)
 
-ControlNet added dual role co frame (Role 1 and Role 2) (Latest version)  
+ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
 Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
