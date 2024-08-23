@@ -9,9 +9,12 @@ MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 NEW Update
 ---
+--2024/08/23
+--Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
+
 --2024/08/18
--- Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";
--- Refactoring some code about MS-diffusion,controlnet still normal quality;  
+-- Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";   
+-- Refactoring some code about MS-diffusion,controlnet still normal quality;    
 
 --2024/08/14   
 -- 2 role in 1 img now using [A]...[B]... mode,  
