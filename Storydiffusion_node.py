@@ -1222,6 +1222,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
             global write, attn_count
             write = True
             attn_count = 0
+            #in_img = image
             in_img = torch.cat((in_img, image), dim=0)
             torch.cuda.empty_cache()
             if single_files:
@@ -1585,7 +1586,7 @@ class Storydiffusion_Model_Loader:
                 
                 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
                 weight_transformer = os.path.join(folder_paths.models_dir,"checkpoints",f"transformer_{timestamp}.pt")
-                # 创建文件夹
+               
                 dtype = torch.bfloat16
                 if not ckpt_path:
                     from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
@@ -1617,7 +1618,7 @@ class Storydiffusion_Model_Loader:
                     freeze(transformer)
                     print(f"saving fp8 pt on '{weight_transformer}'")
                     torch.save(transformer, weight_transformer) # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
-                    
+
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
                     pipe = FluxPipeline(
@@ -1680,7 +1681,8 @@ class Storydiffusion_Model_Loader:
                             transformer = torch.load(ckpt_path)
                             transformer.eval()
                         else:
-                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, torch_dtype=dtype)
+                            config_file = f"{repo_id}/transformer/config.json"
+                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path,config=config_file,torch_dtype=dtype)
                             if use_int4:
                                 quantize(transformer, weights=qint4,
                                          exclude=["proj_out", "x_embedder", "norm_out", "context_embedder"])
@@ -1699,7 +1701,10 @@ class Storydiffusion_Model_Loader:
                         pipe.text_encoder_2 = text_encoder_2
     
                 pipe.enable_model_cpu_offload()
-            
+                if lora != "none":
+                    pipe.load_lora_weights(lora_path)
+                    pipe.fuse_lora(lora_scale=0.125)
+                    pipe.unload_lora_weights()
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
@@ -1718,9 +1723,9 @@ class Storydiffusion_Model_Loader:
             pipe.enable_vae_slicing()
             unet = pipe.unet
             load_chars = load_character_files_on_running(unet, character_files=char_files)
+            pipe.to("cuda")
         # if device != "mps":
         #     pipe.enable_model_cpu_offload()
-        pipe.to("cuda")
         global mask1024, mask4096
         mask1024, mask4096 = cal_attn_mask_xl(
             total_length,
@@ -1843,7 +1848,6 @@ class Storydiffusion_Sampler:
             positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
             
-        
         if model_type=="img2img":
             d1, _, _, _ = image.size()
             if d1 == 1:
