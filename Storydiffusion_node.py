@@ -736,7 +736,7 @@ def process_generation(
         add_trigger_words = "," + trigger_words + " " + "风格" + ";"
     else:
         add_trigger_words = "," + trigger_words + " " + "style" + ";"
-    if lora != "none":
+    if lora :
         if lora in lora_lightning_list:
             prompts = remove_punctuation_from_strings(prompts)
         else:
@@ -766,7 +766,7 @@ def process_generation(
         for prompt in clipped_prompts
     ]
     
-    if lora != "none":
+    if lora:
         if lora in lora_lightning_list:
             prompts = [
                 prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
