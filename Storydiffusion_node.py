@@ -1701,7 +1701,7 @@ class Storydiffusion_Model_Loader:
                         pipe.text_encoder_2 = text_encoder_2
     
                 pipe.enable_model_cpu_offload()
-                if lora != "none":
+                if lora:
                     pipe.load_lora_weights(lora_path)
                     pipe.fuse_lora(lora_scale=0.125)
                     pipe.unload_lora_weights()
