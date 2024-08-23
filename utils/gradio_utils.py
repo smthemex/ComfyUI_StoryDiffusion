@@ -439,10 +439,8 @@ def is_torch2_available():
 def character_to_dict(general_prompt,lora,add_trigger_words):
     character_dict = {}
     generate_prompt_arr = general_prompt.splitlines()
-    if lora!="none":
-        if lora in lora_lightning_list:
-            pass
-        else:
+    if lora:
+        if lora not in lora_lightning_list:
             generate_prompt_arr = [item + add_trigger_words for item in generate_prompt_arr]
         #print(prompts)
     character_index_dict = {}
