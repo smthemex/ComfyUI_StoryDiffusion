@@ -1,6 +1,7 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
+import gc
 import json
 
 import cv2
@@ -11,6 +12,8 @@ import copy
 import os
 import random
 from PIL import ImageFont
+
+
 from safetensors.torch import load_file
 
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
@@ -240,6 +243,7 @@ def load_character_files(character_files: str):
         character_file = torch.load(
             character_file_name, map_location=torch.device("cpu")
         )
+        character_file.eval()
         primarytext.append(character_file["character"] + character_file["description"])
     return array2string(primarytext)
 
@@ -360,6 +364,7 @@ def load_single_character_weights(unet, filepath):
     """
     # 使用torch.load来读取权重
     weights_to_load = torch.load(filepath, map_location=torch.device("cpu"))
+    weights_to_load.eval()
     character = weights_to_load["character"]
     description = weights_to_load["description"]
     #print(character)
@@ -1174,6 +1179,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         raise "no model"
     del pipe
     cleanup_models(keep_clone_weights_loaded=False)
+    gc.collect()
     torch.cuda.empty_cache()
     if single_files:
         try:
@@ -1532,10 +1538,8 @@ class Storydiffusion_Model_Loader:
             elif use_flux:
                 # pip install optimum-quanto
                 # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
-                
                 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
                 weight_transformer = os.path.join(folder_paths.models_dir,"checkpoints",f"transformer_{timestamp}.pt")
-               
                 dtype = torch.bfloat16
                 if not ckpt_path:
                     from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
@@ -1560,7 +1564,6 @@ class Storydiffusion_Model_Loader:
                     freeze(transformer)
                     print(f"saving fp8 pt on '{weight_transformer}'")
                     torch.save(transformer, weight_transformer) # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
-
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
                     pipe = FluxPipeline(
@@ -1574,66 +1577,33 @@ class Storydiffusion_Model_Loader:
                     )
                     pipe.text_encoder_2 = text_encoder_2
                     pipe.transformer = transformer
-                else:
+                else: # flux diff unet ,diff 0.30
                     from diffusers import FluxTransformer2DModel, FluxPipeline
                     from transformers import T5EncoderModel, CLIPTextModel
-                    from optimum.quanto import freeze, qfloat8, qint4, quantize
-                    
-                    if "transformer" in ckpt_path:
-                        from diffusers import FlowMatchEulerDiscreteScheduler
-                        from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-                        revision = "refs/pr/1"
-                        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
-                                                                                    revision=revision)
-                        text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-                        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                        torch_dtype=dtype,
-                                                                        revision=revision)
-                        tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2",
-                                                                      torch_dtype=dtype,
-                                                                      revision=revision)
-                        vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype,
-                                                            revision=revision)
+                    from optimum.quanto import freeze, qfloat8, quantize
+                    if os.path.splitext(ckpt_path)[-1] == ".pt":
                         transformer = torch.load(ckpt_path)
-                        print(f"loading fp8 pt on '{ckpt_path}'")
                         transformer.eval()
-                        pipe = FluxPipeline(
-                            scheduler=scheduler,
-                            text_encoder=text_encoder,
-                            tokenizer=tokenizer,
-                            text_encoder_2=None,
-                            tokenizer_2=tokenizer_2,
-                            vae=vae,
-                            transformer=None,
-                        )
-                        pipe.text_encoder_2 = text_encoder_2
-                        pipe.transformer = transformer
-                    
                     else:
-                        if ckpt_path.rsplit(".")[-1]=="pt":
-                            transformer = torch.load(ckpt_path)
-                            transformer.eval()
-                        else:
-                            config_file = f"{repo_id}/transformer/config.json"
-                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path,config=config_file,torch_dtype=dtype)
-                            quantize(transformer, weights=qfloat8)
-                            freeze(transformer)
+                        config_file = f"{repo_id}/transformer/config.json"
+                        transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
+                                                                              torch_dtype=dtype)
+                        quantize(transformer, weights=qfloat8)
+                        freeze(transformer)
+                    text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                    torch_dtype=dtype)
+                    quantize(text_encoder_2, weights=qfloat8)
+                    freeze(text_encoder_2)
+                    
+                    pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                        torch_dtype=dtype)
+                    pipe.transformer = transformer
+                    pipe.text_encoder_2 = text_encoder_2
                         
-                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                        torch_dtype=dtype)
-                        quantize(text_encoder_2, weights=qfloat8)
-                        freeze(text_encoder_2)
-                        
-                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                            torch_dtype=dtype)
-                        pipe.transformer = transformer
-                        pipe.text_encoder_2 = text_encoder_2
-    
                 pipe.enable_model_cpu_offload()
                 if lora:
                     pipe.load_lora_weights(lora_path)
-                    pipe.fuse_lora(lora_scale=0.125)
+                    pipe.fuse_lora(lora_scale=lora_scale) #lora_scale=0.125
                     pipe.unload_lora_weights()
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
