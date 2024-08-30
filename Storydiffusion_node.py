@@ -28,7 +28,7 @@ from .utils.gradio_utils import (
     is_torch2_available,
 )
 from PIL import Image
-from .utils.insightface_package import FaceAnalysis2, analyze_faces
+
 
 
 if is_torch2_available():
@@ -718,7 +718,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux,
+        trigger_words,photomake_mode,use_kolor,use_flux,auraface
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -814,11 +814,21 @@ def process_generation(
     id_images = []
     results_dict = {}
     p_num=0
-    
-    if photomake_mode=="v2":
-        face_detector = FaceAnalysis2(providers=['CUDAExecutionProvider'], allowed_modules=['detection', 'recognition'])
+    if photomake_mode == "v2":
+        from .utils.insightface_package import FaceAnalysis2, analyze_faces
+        if auraface:
+            from huggingface_hub import snapshot_download
+            snapshot_download(
+                "fal/AuraFace-v1",
+                local_dir="models/auraface",
+            )
+            face_detector = FaceAnalysis2(name="auraface",providers=["CUDAExecutionProvider", "CPUExecutionProvider"],root=".",
+                                          allowed_modules=['detection', 'recognition'])
+        else:
+            face_detector = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                          allowed_modules=['detection', 'recognition'])
         face_detector.prepare(ctx_id=0, det_size=(640, 640))
-    
+        
     global cur_character
     if not load_chars:
         for character_key in character_dict.keys():# 先生成角色对应第一句场景提示词的图片
@@ -890,15 +900,15 @@ def process_generation(
                     if photomake_mode == "v2":
                         # 提取id
                         # print("v2 mode load_chars", cur_positive_prompts, negative_prompt, character_key)
-                        
                         img = input_id_images_dict[character_key][
                             0]  # input_id_images_dict {'[Taylor]': [pil], '[Lecun]': [pil]}
                         img = np.array(img)
                         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                        
                         faces = analyze_faces(face_detector, img, )
                         id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
                         id_embeds = torch.stack(id_embed_list)
-                
+                            
                         id_images = pipe(
                             cur_positive_prompts,
                             input_id_images=input_id_images_dict[character_key],
@@ -1291,7 +1301,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     
     # 添加Lora trigger
     add_trigger_words = "," + trigger_words + " " + "style" + ";"
-    if lora != "none":
+    if lora:
         prompts_dual = remove_punctuation_from_strings(prompts_dual)
         if lora not in lora_lightning_list:  # 加速lora不需要trigger
             prompts_dual = [item + add_trigger_words for item in prompts_dual]
@@ -1381,6 +1391,7 @@ class Storydiffusion_Model_Loader:
                 "img_width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "img_height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
                 "photomake_mode": (["v1", "v2"],),
+                "easy_function":("STRING", {"default": ""}),
             }
         }
 
@@ -1399,7 +1410,7 @@ class Storydiffusion_Model_Loader:
                 repo = get_instance_path(model_path)
         return repo
     def story_model_loader(self,repo_id, ckpt_name,vae_id, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,):
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,easy_function):
         
         scheduler_choice = get_scheduler(scheduler)
         if ckpt_name=="none":
@@ -1416,6 +1427,13 @@ class Storydiffusion_Model_Loader:
                 char_files=""
         else:
             char_files = ""
+        
+        if easy_function=="auraface":
+            auraface=True
+        else:
+            auraface = False
+        
+        
         
         photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
         if photomake_mode=="v1":
@@ -1542,8 +1560,8 @@ class Storydiffusion_Model_Loader:
                 weight_transformer = os.path.join(folder_paths.models_dir,"checkpoints",f"transformer_{timestamp}.pt")
                 dtype = torch.bfloat16
                 if not ckpt_path:
-                    from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
                     from optimum.quanto import freeze, qfloat8, quantize
+                    from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
                     from diffusers import FlowMatchEulerDiscreteScheduler
                     from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
                     from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
@@ -1555,15 +1573,18 @@ class Storydiffusion_Model_Loader:
                     text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
                                                                     torch_dtype=dtype,
                                                                     revision=revision)
-                    tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2", torch_dtype=dtype,
+                    tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2",
+                                                                  torch_dtype=dtype,
                                                                   revision=revision)
-                    vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype, revision=revision)
+                    vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype,
+                                                        revision=revision)
                     transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
                                                                          torch_dtype=dtype, revision=revision)
                     quantize(transformer, weights=qfloat8)
                     freeze(transformer)
                     print(f"saving fp8 pt on '{weight_transformer}'")
-                    torch.save(transformer, weight_transformer) # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
+                    torch.save(transformer,
+                               weight_transformer)  # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
                     pipe = FluxPipeline(
@@ -1577,6 +1598,7 @@ class Storydiffusion_Model_Loader:
                     )
                     pipe.text_encoder_2 = text_encoder_2
                     pipe.transformer = transformer
+                    
                 else: # flux diff unet ,diff 0.30
                     from diffusers import FluxTransformer2DModel, FluxPipeline
                     from transformers import T5EncoderModel, CLIPTextModel
@@ -1599,12 +1621,13 @@ class Storydiffusion_Model_Loader:
                                                         torch_dtype=dtype)
                     pipe.transformer = transformer
                     pipe.text_encoder_2 = text_encoder_2
-                        
+                
                 pipe.enable_model_cpu_offload()
                 if lora:
-                    pipe.load_lora_weights(lora_path)
-                    pipe.fuse_lora(lora_scale=lora_scale) #lora_scale=0.125
-                    pipe.unload_lora_weights()
+                    if not "Hyper" in lora_path: #can't support Hyper now
+                        pipe.load_lora_weights(lora_path)
+                        pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
+                    
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
@@ -1628,7 +1651,7 @@ class Storydiffusion_Model_Loader:
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
-               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,"scheduler":scheduler,}
+               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,"scheduler":scheduler,"auraface":auraface}
         return (model,)
 
 
@@ -1701,6 +1724,7 @@ class Storydiffusion_Sampler:
         ckpt_path=model.get("ckpt_path")
         lora=model.get("lora")
         lora_scale =model.get("lora_scale")
+        auraface=model.get("auraface")
         scheduler=model.get("scheduler")
         scheduler_choice = get_scheduler(scheduler)
         image = kwargs.get("image")
@@ -1756,7 +1780,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface)
 
         else:
             upload_images = None
@@ -1772,7 +1796,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface)
 
         for value in gen:
             print(type(value))
