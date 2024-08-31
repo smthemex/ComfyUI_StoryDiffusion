@@ -1432,6 +1432,12 @@ class Storydiffusion_Model_Loader:
             auraface=True
         else:
             auraface = False
+            
+        if easy_function=="NF4":
+            NF4=True
+        else:
+            NF4 = False
+        
         
         
         
@@ -1603,31 +1609,73 @@ class Storydiffusion_Model_Loader:
                     from diffusers import FluxTransformer2DModel, FluxPipeline
                     from transformers import T5EncoderModel, CLIPTextModel
                     from optimum.quanto import freeze, qfloat8, quantize
-                    if os.path.splitext(ckpt_path)[-1] == ".pt":
-                        transformer = torch.load(ckpt_path)
-                        transformer.eval()
+                    if NF4:
+                        #https://github.com/huggingface/diffusers/issues/9165
+                        from accelerate.utils import set_module_tensor_to_device, compute_module_sizes
+                        from accelerate import init_empty_weights
+                        from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
+                            check_quantized_param
+                        import safetensors.torch
+                        import gc
+                        dtype = torch.bfloat16
+                        is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
+                        original_state_dict = safetensors.torch.load_file(ckpt_path)
+                        config_file = os.path.join(dir_path, "config.json")
+                        with init_empty_weights():
+                            config = FluxTransformer2DModel.load_config(config_file)
+                            model = FluxTransformer2DModel.from_config(config).to(dtype)
+                            expected_state_dict_keys = list(model.state_dict().keys())
+                        
+                        _replace_with_bnb_linear(model, "nf4")
+                        
+                        for param_name, param in original_state_dict.items():
+                            if param_name not in expected_state_dict_keys:
+                                continue
+                            
+                            is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
+                            if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
+                                param = param.to(dtype)
+                            
+                            if not check_quantized_param(model, param_name):
+                                set_module_tensor_to_device(model, param_name, device=0, value=param)
+                            else:
+                                create_quantized_param(
+                                    model, param, param_name, target_device=0, state_dict=original_state_dict,
+                                    pre_quantized=True
+                                )
+                        
+                        del original_state_dict
+                        gc.collect()
+                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=model,torch_dtype=dtype)
+                        
                     else:
-                        config_file = f"{repo_id}/transformer/config.json"
-                        transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
-                                                                              torch_dtype=dtype)
-                        quantize(transformer, weights=qfloat8)
-                        freeze(transformer)
-                    text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                    torch_dtype=dtype)
-                    quantize(text_encoder_2, weights=qfloat8)
-                    freeze(text_encoder_2)
-                    
-                    pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                        torch_dtype=dtype)
-                    pipe.transformer = transformer
-                    pipe.text_encoder_2 = text_encoder_2
+                        if os.path.splitext(ckpt_path)[-1] == ".pt":
+                            transformer = torch.load(ckpt_path)
+                            transformer.eval()
+                        else:
+                            #config_file = f"{repo_id}/transformer/config.json"
+                            config_file = os.path.join(dir_path,"utils" "config.json")
+                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
+                                                                                  torch_dtype=dtype)
+                            quantize(transformer, weights=qfloat8)
+                            freeze(transformer)
+                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                        torch_dtype=dtype)
+                        quantize(text_encoder_2, weights=qfloat8)
+                        freeze(text_encoder_2)
+                        
+                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                            torch_dtype=dtype)
+                        pipe.transformer = transformer
+                        pipe.text_encoder_2 = text_encoder_2
                 
                 pipe.enable_model_cpu_offload()
                 if lora:
-                    if not "Hyper" in lora_path: #can't support Hyper now
-                        pipe.load_lora_weights(lora_path)
-                        pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
-                    
+                    if not "Hyper" in lora_path : #can't support Hyper now
+                        if not NF4:
+                            pipe.load_lora_weights(lora_path)
+                            pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
+                       
             else: # SD dif_repo
                 pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
                                     photomaker_path=photomaker_path, lora=lora,
