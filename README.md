@@ -7,6 +7,7 @@ You can using StoryDiffusion in ComfyUI.
 
 ## Updates:
 **2024/08/31**     
+* when easy_function fill in NF4 or nf4 ,can try NF4 FLUX ,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";   
 * Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
 
 **Previous updates：**  
