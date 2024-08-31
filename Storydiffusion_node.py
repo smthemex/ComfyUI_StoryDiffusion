@@ -1428,12 +1428,14 @@ class Storydiffusion_Model_Loader:
         else:
             char_files = ""
         
+        easy_function=easy_function.strip().lower()
+        
         if easy_function=="auraface":
             auraface=True
         else:
             auraface = False
             
-        if easy_function=="NF4":
+        if easy_function=="nf4":
             NF4=True
         else:
             NF4 = False
