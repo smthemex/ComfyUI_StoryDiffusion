@@ -3,8 +3,8 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 ## 更新:
-**2024/09/09**  
-* 加载nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) 
+**2024/09/03**  
+* 加载nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
 * 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
 
 **既往更新**  
