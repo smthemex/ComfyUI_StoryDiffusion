@@ -6,11 +6,12 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/08/31**     
+**2024/09/03**  
+*The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
+    
+**Previous updates：**  
 * when easy_function fill in NF4 or nf4 ,can try NF4 FLUX ,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";   
 * Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
-
-**Previous updates：**  
 * Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
 * fix some bug,Changing the loading method of Msdiffusion, reducing meaningless buttons, and removing the int4 mode of flux did not make it much faster;  
 * support mps again...
@@ -134,6 +135,9 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
+txt2img mode use NF4 FLUX (Latest version)        
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
+
 img2img mode use auraface photomake V2  (Latest version)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newest.png)
 
