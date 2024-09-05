@@ -1,7 +1,7 @@
 # ComfyUI_StoryDiffusion
 You can using StoryDiffusion in ComfyUI.
 
-* [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/edit/main/README-CN.md)  
+* [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 
