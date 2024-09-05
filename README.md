@@ -6,10 +6,11 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/03**  
-*The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
-    
+**2024/09/05**   
+*When using the SDXL monolithic model, errors may occur because the “runway” has deleted their model library. The solution is to upgrade to the latest version of diffusers or modify the diffuser code content. The modification method can be found in the link: [link](https://github.com/huggingface/diffusers/commit/d8a16635f47ac455abd61879bcc6be32dfeaa561)
+
 **Previous updates：**  
+*The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
 * when easy_function fill in NF4 or nf4 ,can try NF4 FLUX ,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";   
 * Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
 * Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
