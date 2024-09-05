@@ -1656,7 +1656,7 @@ class Storydiffusion_Model_Loader:
                             transformer.eval()
                         else:
                             #config_file = f"{repo_id}/transformer/config.json"
-                            config_file = os.path.join(dir_path,"utils" "config.json")
+                            config_file = os.path.join(dir_path,"utils", "config.json")
                             transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
                                                                                   torch_dtype=dtype)
                             quantize(transformer, weights=qfloat8)
