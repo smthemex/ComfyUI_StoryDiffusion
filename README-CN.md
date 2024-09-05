@@ -3,11 +3,13 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 ## 更新:
-**2024/09/03**  
+**2024/09/05**  
+*使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，解决版本是升级到最新版的diffusers或者修改diffuser的代码内容，修改方法见链接：[link](https://github.com/huggingface/diffusers/commit/d8a16635f47ac455abd61879bcc6be32dfeaa561)
+
+**既往更新**  
 * 加载nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
 * 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
 
-**既往更新**  
 * 修复bug，修改MS的一些代码，去掉flux模型加载节点，  
 * 如果单独运行flux的repo，会自动保存pt模型（fp8)的，你可以运行至模型保存后就中断，然后用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
 * 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃！！！！  
