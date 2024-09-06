@@ -6,8 +6,8 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/05**   
-*When using the SDXL monolithic model, errors may occur because the “runway” has deleted their model library. The solution is to upgrade to the latest version of diffusers or modify the diffuser code content. The modification method can be found in the link: [link](https://github.com/huggingface/diffusers/commit/d8a16635f47ac455abd61879bcc6be32dfeaa561)
+**2024/09/06**   
+*fix runway error,when loader single model.  
 
 **Previous updates：**  
 *The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
