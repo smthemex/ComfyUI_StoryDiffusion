@@ -1191,7 +1191,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     cleanup_models(keep_clone_weights_loaded=False)
     gc.collect()
     torch.cuda.empty_cache()
-    add_config="stabilityai/stable-diffusion-xl-base-1.0"
+    add_config = os.path.join(dir_path, "local_repo")
     if single_files:
         try:
             pipe = StableDiffusionXLPipeline.from_single_file(

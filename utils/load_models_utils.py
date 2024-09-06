@@ -18,9 +18,8 @@ def get_instance_path(path):
 
 original_config_file=get_instance_path(os.path.join(path_dir,'config','sd_xl_base.yaml'))
 loras_path = get_instance_path(os.path.join(path_dir,"config","lora.yaml"))
+add_config=os.path.join(path_dir,"local_repo")
 
-add_config="stabilityai/stable-diffusion-xl-base-1.0"
-#print(add_config)
 def get_lora_dict():
     # 打开并读取YAML文件
     with open(loras_path, 'r', encoding="UTF-8") as stream:
