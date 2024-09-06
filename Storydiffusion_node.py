@@ -1191,15 +1191,16 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
     cleanup_models(keep_clone_weights_loaded=False)
     gc.collect()
     torch.cuda.empty_cache()
+    add_config="stabilityai/stable-diffusion-xl-base-1.0"
     if single_files:
         try:
             pipe = StableDiffusionXLPipeline.from_single_file(
-                ckpt_path, original_config=original_config_file,
+                ckpt_path,config=add_config, original_config=original_config_file,
                 torch_dtype=torch.float16)
         except:
             try:
                 pipe = StableDiffusionXLPipeline.from_single_file(
-                    ckpt_path, original_config_file=original_config_file,
+                    ckpt_path,config=add_config, original_config_file=original_config_file,
                     torch_dtype=torch.float16)
             except:
                 raise "load pipe error!,check you diffusers"
@@ -1213,13 +1214,13 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         controlnet.load_state_dict(cn_state_dict, strict=False)
         controlnet.to(torch.float16)
         try:
-            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
+            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,config=add_config,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
                                                                         controlnet=controlnet,
                                                                         original_config=original_config_file,
                                                                         torch_dtype=torch.float16)
         except:
             try:
-                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
+                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,config=add_config,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
                                                                             controlnet=controlnet,
                                                                             original_config_file=original_config_file,
                                                                             torch_dtype=torch.float16)
