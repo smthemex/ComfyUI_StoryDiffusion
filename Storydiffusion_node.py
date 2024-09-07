@@ -1688,7 +1688,8 @@ class Storydiffusion_Model_Loader:
         if vae_id != "none":
             if not use_flux:
                 vae_id = folder_paths.get_full_path("vae", vae_id)
-                pipe.vae=AutoencoderKL.from_single_file(vae_id, torch_dtype=torch.float16)
+                vae_config=os.path.join(dir_path, "local_repo","vae")
+                pipe.vae=AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
         load_chars = False
         if not use_kolor and not use_flux:
             pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
