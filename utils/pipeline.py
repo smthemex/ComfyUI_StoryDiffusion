@@ -140,7 +140,15 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         print(f"Loading PhotoMaker components [1] id_encoder from [{pretrained_model_name_or_path_or_dict}]...")
         id_encoder = PhotoMakerIDEncoder()
         id_encoder.load_state_dict(state_dict["id_encoder"], strict=False)
-        id_encoder = id_encoder.to("cuda", dtype=self.unet.dtype)
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
+        )
+        if device!="mps":
+            id_encoder = id_encoder.to( "cuda", dtype=self.unet.dtype)
+        else:
+            id_encoder = id_encoder.to(device)
         self.id_encoder = id_encoder
         self.id_image_processor = CLIPImageProcessor()
 
