@@ -1695,10 +1695,13 @@ class Storydiffusion_Model_Loader:
             pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
             pipe.enable_vae_slicing()
-            unet = pipe.unet
-            load_chars = load_character_files_on_running(unet, character_files=char_files)
-            if device != "mps":
-               pipe.to("cuda")
+            load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
+            device = (
+                "cuda"
+                if torch.cuda.is_available()
+                else "mps" if torch.backends.mps.is_available() else "cpu"
+            )
+            pipe.to(device)
         # if device != "mps":
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
