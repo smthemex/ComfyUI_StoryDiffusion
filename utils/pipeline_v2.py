@@ -264,7 +264,15 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
             raise NotImplementedError(f"The PhotoMaker version [{pm_version}] does not support")
 
         id_encoder.load_state_dict(state_dict["id_encoder"], strict=False)
-        id_encoder = id_encoder.to("cuda", dtype=self.unet.dtype)
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
+        )
+        if device != "mps":
+            id_encoder = id_encoder.to("cuda", dtype=self.unet.dtype)
+        else:
+            id_encoder = id_encoder.to(device)
         self.id_encoder = id_encoder
         # id_encoderv1 = PhotoMakerIDEncoder()
         # #id_encoderv1.load_state_dict(state_dict["id_encoder"], strict=False)
