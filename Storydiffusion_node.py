@@ -56,6 +56,7 @@ from .utils.style_template import styles
 from .utils.load_models_utils import  load_models, get_instance_path, get_lora_dict
 import folder_paths
 from comfy.utils import common_upscale
+from comfy.model_management import cleanup_models
 
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
@@ -81,49 +82,7 @@ fonts_lists = os.listdir(fonts_path)
 
 lora_get = get_lora_dict()
 lora_lightning_list = lora_get["lightning_xl_lora"]
-diff_paths = []
-for search_path in folder_paths.get_folder_paths("diffusers"):
-    if os.path.exists(search_path):
-        for root, subdir, files in os.walk(search_path, followlinks=True):
-            if "model_index.json" in files:
-                diff_paths.append(os.path.relpath(root, start=search_path))
 
-if diff_paths:
-    diff_paths = ["none"] + [x for x in diff_paths if x]
-else:
-    diff_paths = ["none", ]
-
-
-clip_lists = folder_paths.get_filename_list("clip_vision")
-if clip_lists:
-    clip_paths = ["none"] + [x for x in clip_lists if x]
-else:
-    clip_paths = ["none",]
-
-
-control_paths = []
-paths_a = []
-for search_path in folder_paths.get_folder_paths("diffusers"):
-    if os.path.exists(search_path):
-        for root, subdir, files in os.walk(search_path, followlinks=True):
-            if "model_index.json" in files:
-                control_paths.append(os.path.relpath(root, start=search_path))
-            if "config.json" in files:
-                paths_a.append(os.path.relpath(root, start=search_path))
-                paths_a = ([z for z in paths_a if "controlnet-canny-sdxl-1.0" in z]
-                           + [p for p in paths_a if "MistoLine" in p]
-                           + [o for o in paths_a if "lcm-sdxl" in o]
-                           + [Q for Q in paths_a if "controlnet-openpose-sdxl-1.0" in Q]
-                           + [Z for Z in paths_a if "controlnet-scribble-sdxl-1.0" in Z]
-                           + [a for a in paths_a if "controlnet-depth-sdxl-1.0" in a]
-                           +[b for b in paths_a if "controlnet-tile-sdxl-1.0" in b]
-                           +[c for c in paths_a if "controlnet-zoe-depth-sdxl-1.0" in c]
-                           +[d for d in paths_a if "sdxl-controlnet-seg " in d])
-
-if control_paths != [] or paths_a != []:
-    control_paths = ["none"] + [x for x in control_paths if x] + [y for y in paths_a if y]
-else:
-    control_paths = ["none", ]
 
 scheduler_list = [
     "Euler", "Euler a", "DDIM", "DDPM", "DPM++ 2M", "DPM++ 2M Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Karras",
@@ -1169,10 +1128,10 @@ def get_float(str_in):
     float_box=[float(x) for x in list_str]
     return float_box
     
-def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
+def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed, style_name,char_describe,char_origin,negative_prompt,
                      clip_vision, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path,dif_repo,
                       role_scale, mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,scheduler_choice):
-    from comfy.model_management import cleanup_models
+    
     from comfy.clip_vision import load
     tensor_a = phi2narry(image_1.copy())
     tensor_b = phi2narry(image_2.copy())
@@ -1187,10 +1146,7 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         single_files = False
     else:
         raise "no model"
-    del pipe
-    cleanup_models(keep_clone_weights_loaded=False)
-    gc.collect()
-    torch.cuda.empty_cache()
+    
     add_config = os.path.join(dir_path, "local_repo")
     if single_files:
         try:
@@ -1213,19 +1169,8 @@ def msdiffusion_main(pipe, image_1, image_2, prompts_dual, width, height, steps,
         cn_state_dict = load_file(controlnet_model_path, device="cpu")
         controlnet.load_state_dict(cn_state_dict, strict=False)
         controlnet.to(torch.float16)
-        try:
-            pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,config=add_config,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
-                                                                        controlnet=controlnet,
-                                                                        original_config=original_config_file,
-                                                                        torch_dtype=torch.float16)
-        except:
-            try:
-                pipe = StableDiffusionXLControlNetPipeline.from_single_file(ckpt_path,config=add_config,unet=pipe.unet,vae=pipe.vae, text_encoder=pipe.text_encoder,
-                                                                            controlnet=controlnet,
-                                                                            original_config_file=original_config_file,
-                                                                            torch_dtype=torch.float16)
-            except:
-                raise "load pipe error!,check you diffusers"
+        pipe=StableDiffusionXLControlNetPipeline.from_pipe(pipe,controlnet=controlnet)
+       
     if lora:
         if lora in lora_lightning_list:
             pipe.load_lora_weights(lora_path)
@@ -1741,7 +1686,7 @@ class Storydiffusion_Sampler:
                 "cfg": ("FLOAT", {"default": 7, "min": 0.1, "max": 10.0, "step": 0.1, "round": 0.01}),
                 "ip_adapter_strength": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "style_strength_ratio": ("INT", {"default": 20, "min": 10, "max": 50, "step": 1, "display": "number"}),
-                "clip_vision": (clip_paths,),
+                "clip_vision": (["none"]+folder_paths.get_filename_list("clip_vision"),),
                 "role_scale": (
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "mask_threshold": (
@@ -1876,7 +1821,12 @@ class Storydiffusion_Sampler:
                 control_image = kwargs["control_image"]
             image_a = image_pil_list_ms[positions_char_1]
             image_b = image_pil_list_ms[positions_char_2]
-            image_dual = msdiffusion_main(pipe, image_a, image_b, prompts_dual, width, height, steps, seed,
+            
+            del pipe
+            cleanup_models(keep_clone_weights_loaded=False)
+            gc.collect()
+            torch.cuda.empty_cache()
+            image_dual = msdiffusion_main(image_a, image_b, prompts_dual, width, height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, clip_vision, model_type, lora, lora_path, lora_scale,
                                         trigger_words, ckpt_path,repo_id, role_scale,
                                           mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,scheduler_choice)
