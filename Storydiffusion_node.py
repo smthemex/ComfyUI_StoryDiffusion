@@ -61,7 +61,7 @@ from comfy.model_management import cleanup_models
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
 global write
-global height, width
+global height_s, width_s
 STYLE_NAMES = list(styles.keys())
 
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
@@ -437,7 +437,7 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
         global total_count, attn_count, cur_step, indices1024, indices4096
         global sa32, sa64
         global write
-        global height, width
+        global height_s, width_s
         global character_dict
         global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, cur_character
         if attn_count == 0 and cur_step == 0:
@@ -446,14 +446,14 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
                 self.id_length,
                 sa32,
                 sa64,
-                height,
-                width,
+                height_s,
+                width_s,
                 device=self.device,
                 dtype=self.dtype,
             )
         if write:
             assert len(cur_character) == 1
-            if hidden_states.shape[1] == (height // 32) * (width // 32):
+            if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
                 indices = indices1024
             else:
                 indices = indices4096
@@ -494,7 +494,7 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
                 rand_num = 0.1
             # print(f"hidden state shape {hidden_states.shape[1]}")
             if random_number > rand_num:
-                if hidden_states.shape[1] == (height // 32) * (width // 32):
+                if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
                     indices = indices1024
                 else:
                     indices = indices4096
@@ -566,8 +566,8 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
                 self.id_length,
                 sa32,
                 sa64,
-                height,
-                width,
+                height_s,
+                width_s,
                 device=self.device,
                 dtype=self.dtype,
             )
@@ -590,9 +590,9 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
         input_ndim = hidden_states.ndim
 
         if input_ndim == 4:
-            batch_size, channel, height, width = hidden_states.shape
+            batch_size, channel, height_s, width_s = hidden_states.shape
             hidden_states = hidden_states.view(
-                batch_size, channel, height * width
+                batch_size, channel, height_s * width_s
             ).transpose(1, 2)
 
         batch_size, sequence_length, channel = hidden_states.shape
@@ -648,7 +648,7 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
 
         if input_ndim == 4:
             hidden_states = hidden_states.transpose(-1, -2).reshape(
-                batch_size, channel, height, width
+                batch_size, channel, height_s, width_s
             )
 
         if attn.residual_connection:
@@ -844,6 +844,7 @@ def process_generation(
                         generator=generator,
                     ).images
                 elif  use_flux:
+                  
                     id_images = pipe(
                         prompt=cur_positive_prompts,
                         latents=None,
@@ -1380,14 +1381,14 @@ class Storydiffusion_Model_Loader:
             auraface=True
         else:
             auraface = False
-            
         if easy_function=="nf4":
             NF4=True
         else:
             NF4 = False
-        
-        
-        
+        if "save" in easy_function:
+            save_model=True
+        else:
+            save_model = False
         
         photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
         if photomake_mode=="v1":
@@ -1418,7 +1419,7 @@ class Storydiffusion_Model_Loader:
        
         # global
         global  attn_procs
-        global sa32, sa64, write, height, width
+        global sa32, sa64, write, height_s, width_s
         global attn_count, total_count, id_length, total_length, cur_step
 
         sa32 = sa32_degree
@@ -1430,8 +1431,8 @@ class Storydiffusion_Model_Loader:
         total_length = 5
         attn_procs = {}
         write = False
-        height = img_height
-        width = img_width
+        height_s = img_height
+        width_s = img_width
 
         # load model
         use_kolor = False
@@ -1536,11 +1537,13 @@ class Storydiffusion_Model_Loader:
                                                                          torch_dtype=dtype, revision=revision)
                     quantize(transformer, weights=qfloat8)
                     freeze(transformer)
-                    print(f"saving fp8 pt on '{weight_transformer}'")
-                    torch.save(transformer,
-                               weight_transformer)  # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
+                    if save_model:
+                        print(f"saving fp8 pt on '{weight_transformer}'")
+                        torch.save(transformer,
+                                   weight_transformer)  # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
+
                     pipe = FluxPipeline(
                         scheduler=scheduler,
                         text_encoder=text_encoder,
@@ -1550,6 +1553,7 @@ class Storydiffusion_Model_Loader:
                         vae=vae,
                         transformer=None,
                     )
+                        
                     pipe.text_encoder_2 = text_encoder_2
                     pipe.transformer = transformer
                     
@@ -1594,7 +1598,7 @@ class Storydiffusion_Model_Loader:
                         
                         del original_state_dict
                         gc.collect()
-                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=model,torch_dtype=dtype)
+                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
                         
                     else:
                         if os.path.splitext(ckpt_path)[-1] == ".pt":
@@ -1611,9 +1615,9 @@ class Storydiffusion_Model_Loader:
                                                                         torch_dtype=dtype)
                         quantize(text_encoder_2, weights=qfloat8)
                         freeze(text_encoder_2)
-                        
+
                         pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                            torch_dtype=dtype)
+                                                                torch_dtype=dtype)
                         pipe.transformer = transformer
                         pipe.text_encoder_2 = text_encoder_2
                 
@@ -1651,7 +1655,7 @@ class Storydiffusion_Model_Loader:
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
-               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,"scheduler":scheduler,"auraface":auraface}
+               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,"scheduler":scheduler,"auraface":auraface,"width":img_width,"height":img_height}
         return (model,)
 
 
@@ -1707,7 +1711,24 @@ class Storydiffusion_Sampler:
     RETURN_NAMES = ("image", "prompt_array",)
     FUNCTION = "story_sampler"
     CATEGORY = "Storydiffusion"
-
+    
+    def center_crop(self,img):
+        width, height = img.size
+        square=min(width, height)
+        left = (width - square) / 2
+        top = (height - square) / 2
+        right = (width + square) / 2
+        bottom = (height + square) / 2
+        return img.crop((left, top, right, bottom))
+    
+    def center_crop_s(self,img, new_width, new_height):
+        width, height = img.size
+        left = (width - new_width) / 2
+        top = (height - new_height) / 2
+        right = (width + new_width) / 2
+        bottom = (height + new_height) / 2
+        return img.crop((left, top, right, bottom))
+    
     def story_sampler(self, model, character_prompt,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio,clip_vision,
                   role_scale, mask_threshold, start_step,save_character,controlnet_model_path,controlnet_scale,guidance_list,**kwargs):
@@ -1726,6 +1747,8 @@ class Storydiffusion_Sampler:
         lora_scale =model.get("lora_scale")
         auraface=model.get("auraface")
         scheduler=model.get("scheduler")
+        height=model.get("height")
+        width = model.get("width")
         scheduler_choice = get_scheduler(scheduler)
         image = kwargs.get("image")
         # 格式化文字内容
@@ -1821,18 +1844,28 @@ class Storydiffusion_Sampler:
                 control_image = kwargs["control_image"]
             image_a = image_pil_list_ms[positions_char_1]
             image_b = image_pil_list_ms[positions_char_2]
-            
+            if width!=height:
+                square=max(height,width)
+                new_height,new_width=square,square
+                image_a = self.center_crop(image_a)
+                image_b = self.center_crop(image_b)
+            else:
+                new_width=width
+                new_height=height
             del pipe
             cleanup_models(keep_clone_weights_loaded=False)
             gc.collect()
             torch.cuda.empty_cache()
-            image_dual = msdiffusion_main(image_a, image_b, prompts_dual, width, height, steps, seed,
+            image_dual = msdiffusion_main(image_a, image_b, prompts_dual, new_width, new_height, steps, seed,
                                           img_style, char_describe,char_origin,negative_prompt, clip_vision, model_type, lora, lora_path, lora_scale,
                                         trigger_words, ckpt_path,repo_id, role_scale,
                                           mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,scheduler_choice)
             j = 0
             for i in positions_dual: #重新将双人场景插入原序列
-                img = image_dual[j]
+                if width != height:
+                    img = self.center_crop_s(image_dual[j],width, height)
+                else:
+                    img = image_dual[j]
                 image_pil_list.insert(int(i), img)
                 j += 1
             image_list = narry_list(image_pil_list)
