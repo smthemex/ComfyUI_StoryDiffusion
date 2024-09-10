@@ -3,16 +3,18 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 ## 更新:
-**2024/09/05**  
-*使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，解决版本是升级到最新版的diffusers或者修改diffuser的代码内容，修改方法见链接：[link](https://github.com/huggingface/diffusers/commit/d8a16635f47ac455abd61879bcc6be32dfeaa561)
+**2024/09/10**  
+* 双角色因为方法的原因无法使用非正方形图片，所以用了讨巧的方法，先裁切成方形，然后再裁切回来；
+* 高宽的全局变量名会导致一些啼笑皆非的错误，所以改成特别点的；
+* 现在如果只使用flux的repo模型，不再自动保存一个pt文件，除非你在easy function输入save；
 
 **既往更新**  
+* 使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，所以加入了内置的config文件，避免加载出错，这样的另一个好处，就是首次使用时，不用连外网了。
 * 加载nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
 * 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
-
 * 修复bug，修改MS的一些代码，去掉flux模型加载节点，  
 * 如果单独运行flux的repo，会自动保存pt模型（fp8)的，你可以运行至模型保存后就中断，然后用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
-* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃！！！！  
+* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！  
 * 加入实验版的FLUX diffusers pippline流程,repo填写black-forest-labs/FLUX.1-dev或者X:/XXX/black-forest-labs/FLUX.1-dev 开启,需要高版本的diffusers和optimum-quanto,请谨慎测试.  
 * 特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
 * 加入可灵kolor模型的支持，支持文生图和可灵ipadapter的图生图，需要的模型文件见下方；   
