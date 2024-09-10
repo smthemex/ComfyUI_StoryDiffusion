@@ -6,11 +6,14 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/06**   
-*fix runway error,when loader single model.  
+**2024/09/10**   
+* using img crop to fix ms_diffusion only using square's error;
+* change W and H global names,it cause some error;
+* if using flux repo only,It will not automatically save a *.pt file unless you input 'save' in the easy function;
 
 **Previous updates：**  
-*The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
+* fix runway error,when loader single model. 
+* The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
 * when easy_function fill in NF4 or nf4 ,can try NF4 FLUX ,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";   
 * Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
 * Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
