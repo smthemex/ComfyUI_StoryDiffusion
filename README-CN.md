@@ -3,25 +3,22 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 ## 更新:
-**2024/09/10**  
+**2024/09/11**  
+* 加入diffuser尚未PR的图生图代码，fp8和fn4都能跑，还是fn4吧，快很多。图生图的噪声控制，由ip_adapter_strength的参数控制，越大噪声越多，当然图片不像原图，反之亦然。然后生成的实际步数是 你输入的步数*ip_adapter_strength的参数，也就是说，你输入50步，strength是0.8，实际只会跑40步。  
+
+**既往更新**  
 * 双角色因为方法的原因无法使用非正方形图片，所以用了讨巧的方法，先裁切成方形，然后再裁切回来；
 * 高宽的全局变量名会导致一些啼笑皆非的错误，所以改成特别点的；
 * 现在如果只使用flux的repo模型，不再自动保存一个pt文件，除非你在easy function输入save；
-
-**既往更新**  
 * 使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，所以加入了内置的config文件，避免加载出错，这样的另一个好处，就是首次使用时，不用连外网了。
 * 加载nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
 * 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
-* 修复bug，修改MS的一些代码，去掉flux模型加载节点，  
 * 如果单独运行flux的repo，会自动保存pt模型（fp8)的，你可以运行至模型保存后就中断，然后用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
-* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！  
-* 加入实验版的FLUX diffusers pippline流程,repo填写black-forest-labs/FLUX.1-dev或者X:/XXX/black-forest-labs/FLUX.1-dev 开启,需要高版本的diffusers和optimum-quanto,请谨慎测试.  
+* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！   
 * 特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
 * 加入可灵kolor模型的支持，支持文生图和可灵ipadapter的图生图，需要的模型文件见下方；   
 * 加入photomakerV2的支持，由于V2版需要insight face ，所以不会装的谨慎尝试；     
-* 模型现在只有使用repo输入或者选择社区模型两种方式，修复了一些bug；  
 * controlnet现在使用单体模型；  
-* 调整MS的模型加载，速度更快了；  
 * 修复引入模块的错误，现在模型存放地址改至models/photomaker，重复利用模型，避免浪费硬盘空间(存储的pt模型也会在photomaker下)；   
 * 新增controlnet布局控制按钮，默认是否，为程序自动。   
 * 为双角色同图引入controlnet，并支持多图引入（MS还是保留吧，剔除了有些人又不想装2个插件。 ）  
@@ -35,7 +32,7 @@ StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/S
   git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
   
   ```
-或者用manage 安装。。   
+或者用manager 安装。。   
  
 2.需求文件   
 ----
@@ -199,30 +196,6 @@ control_img图片的预处理，请使用其他节点
 * 图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等；         
 * 如果需要图片不出现角色，场景prompt前面加入[NC] ；     
 * 分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
-
-
-我的其他comfyUI插件：
------
-1、ParlerTTS: （ParlerTTS英文的音频节点）:[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
-2、Llama3_8B: 羊驼3的节点，也兼容了其他基于羊驼3的模型）:[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
-3、HiDiffusion: （高清放大节点）：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
-4、ID_Animator: （零样本单图制作视频）： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
-5、StoryDiffusion:（故事绘本节点）：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
-6、Pops: （材质、融合类节点，基于pops方法）：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
-7、stable-audio-open-1.0: （SD官方的音频节点的简单实现） ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
-8、GLM4: （基于智普AI的api节点，涵盖智普的本地大模型）：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
-9、CustomNet: （基于腾讯的CustomNet做的角度控制节点）：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
-10、Pipeline_Tool: （方便玩家调用镜像抱脸下载） :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
-11、Pic2Story: （基于模型的图像识别） :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)   
-12、ComfyUI_Streamv2v_Plus: （视频转绘，能用，未打磨）:[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
-13、ComfyUI_MS_Diffusion: （基于MS-diffusion做的故事话本）:[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
-14、ComfyUI_AnyDoor: (一键换衣插件): [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
-15、ComfyUI_Stable_Makeup: (一键化妆): [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
-16、ComfyUI_EchoMimic: (音频驱动动画):  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
-17、ComfyUI_FollowYourEmoji: (画面驱动表情包): [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
-18、ComfyUI_Diffree : [超强的一致性的文生图内绘](https://github.com/smthemex/ComfyUI_Diffree)     
-19、ComfyUI_FoleyCrafter : [给视频配音的节点](https://github.com/smthemex/ComfyUI_FoleyCrafter)
-20、ComfyUI_MooERr node: [语音识别加翻译](https://github.com/smthemex/ComfyUI_MooER)
 
 Citation
 ------
