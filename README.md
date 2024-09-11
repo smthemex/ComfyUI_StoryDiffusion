@@ -6,29 +6,23 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/10**   
-* using img crop to fix ms_diffusion only using square's error;
-* change W and H global names,it cause some error;
-* if using flux repo only,It will not automatically save a *.pt file unless you input 'save' in the easy function;
+**2024/09/11**   
+* Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
+* AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
 
 **Previous updates：**  
+* using img crop to fix ms_diffusion only using square's error;
+* change W and H global names,it cause some error;
 * fix runway error,when loader single model. 
 * The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
-* when easy_function fill in NF4 or nf4 ,can try NF4 FLUX ,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";   
 * Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
-* Flux fp8 single weights only support "Kijai/flux-fp8" or auto save's pt weights.
-* fix some bug,Changing the loading method of Msdiffusion, reducing meaningless buttons, and removing the int4 mode of flux did not make it much faster;  
-* support mps again...
-* Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";   
-* Refactoring some code about MS-diffusion,controlnet still normal quality;      
+* support Flux ,1.only using fp8 repo,fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev" and ckpt_name="none";if save .pt,fill easy function "save",2. using unet,fill local repo and choice a fp8 Unet(like Kijai/flux-fp8, AWPortrait-FL-fp8.safetensors. *.pt), 3. using fn4,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  
+* Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";       
 * 2 role in 1 img now using [A]...[B]... mode,  
-* if first using flux repo,will automatically save the PT file on checkpoint dir(name: transform_time.pt),So you only need to run the repo and flux once separately (without completing it) to obtain the PT model, Recommend using "repo+transfomer.pt" or "repo+other fp8.safetensors" or "repo+any_name.pt(rename from transfomer )",
-* 2 ways to using flux，using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  and ckpt_name="none" in new loader node or old,or using repo like :"black-forest-labs/FLUX.1-dev" or "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and using single ckpt like "flux1-dev-fp8.safetensors";      
 * Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
 * support photomaker V2;  
 * ControlNet now uses community models.   
 * The base model now has only two options: using repo input or selecting the community model...  
-* To fix the bug where MS diffusion cannot run continuously in the txt2img, it is necessary to enable the "reset_txt2img" of the loading model node to be Ture;   
 * Introducing Controlnet for dual character co image, supporting multi image introduction, 
 * Add the function of saving and loading character models   
 
@@ -139,6 +133,10 @@ Control_img image preprocessing, please use other nodes
 
 4 Example
 ----
+img2img mode use nf4 flux (Latest version)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img2role.png)
+
 txt2img mode use NF4 FLUX (Latest version)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
@@ -231,30 +229,7 @@ Function Description of Nodes
 * The process of generating images using PhotosMaker requires the IMG keyword in the character prompt column. You can use keywords such as a woman IMG, a man IMG, etc;   
 * No characters appear in the image, add [NC] in front of the scene prompt;   
 * Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
-  
-My ComfyUI node list：
------
 
-1、ParlerTTS :[ComfyUI_ParlerTTS](https://github.com/smthemex/ComfyUI_ParlerTTS)     
-2、Llama3_8B :[ComfyUI_Llama3_8B](https://github.com/smthemex/ComfyUI_Llama3_8B)      
-3、HiDiffusion ：[ComfyUI_HiDiffusion_Pro](https://github.com/smthemex/ComfyUI_HiDiffusion_Pro)   
-4、ID_Animator ： [ComfyUI_ID_Animator](https://github.com/smthemex/ComfyUI_ID_Animator)       
-5、StoryDiffusion ：[ComfyUI_StoryDiffusion](https://github.com/smthemex/ComfyUI_StoryDiffusion)  
-6、Pops ：[ComfyUI_Pops](https://github.com/smthemex/ComfyUI_Pops)   
-7、stable-audio-open-1.0  ：[ComfyUI_StableAudio_Open](https://github.com/smthemex/ComfyUI_StableAudio_Open)        
-8、GLM4 ：[ComfyUI_ChatGLM_API](https://github.com/smthemex/ComfyUI_ChatGLM_API)   
-9、CustomNet ：[ComfyUI_CustomNet](https://github.com/smthemex/ComfyUI_CustomNet)           
-10、Pipeline_Tool :[ComfyUI_Pipeline_Tool](https://github.com/smthemex/ComfyUI_Pipeline_Tool)    
-11、Pic2Story  :[ComfyUI_Pic2Story](https://github.com/smthemex/ComfyUI_Pic2Story)       
-12、ComfyUI_Streamv2v_Plus :[ComfyUI_Streamv2v_Plus](https://github.com/smthemex/ComfyUI_Streamv2v_Plus)   
-13、ComfyUI_MS_Diffusion :[ComfyUI_MS_Diffusion](https://github.com/smthemex/ComfyUI_MS_Diffusion)   
-14、ComfyUI_AnyDoor : [ComfyUI_AnyDoor](https://github.com/smthemex/ComfyUI_AnyDoor)  
-15、ComfyUI_Stable_Makeup : [ComfyUI_Stable_Makeup](https://github.com/smthemex/ComfyUI_Stable_Makeup)  
-16、ComfyUI_EchoMimic :  [ComfyUI_EchoMimic](https://github.com/smthemex/ComfyUI_EchoMimic)   
-17、ComfyUI_FollowYourEmoji : [ComfyUI_FollowYourEmoji](https://github.com/smthemex/ComfyUI_FollowYourEmoji)   
-18、ComfyUI_Diffree : [ComfyUI_Diffree](https://github.com/smthemex/ComfyUI_Diffree)     
-19、ComfyUI_FoleyCrafter : [ComfyUI_FoleyCrafter](https://github.com/smthemex/ComfyUI_FoleyCrafter)
-20、ComfyUI_MooER : [ComfyUI_MooER](https://github.com/smthemex/ComfyUI_MooER)
 
 Citation
 ------
@@ -306,3 +281,5 @@ kolors
   year={2024}
 }
 ```
+FLUX
+![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
