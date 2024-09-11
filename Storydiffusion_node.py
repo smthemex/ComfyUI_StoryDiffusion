@@ -812,7 +812,7 @@ def process_generation(
                         max_sequence_length=256,
                         height=height,
                         width=width,
-                        generator=torch.Generator("cpu").manual_seed(0)
+                        generator=torch.Generator("cpu").manual_seed(seed_)
                     ).images
                 else:
                     if use_kolor:
@@ -844,9 +844,11 @@ def process_generation(
                         generator=generator,
                     ).images
                 elif  use_flux:
-                  
+                    strength=_Ip_Adapter_Strength if _Ip_Adapter_Strength!=1 else 0.9
                     id_images = pipe(
                         prompt=cur_positive_prompts,
+                        image=input_id_images_dict[character_key],
+                        strength=strength,
                         latents=None,
                         num_inference_steps=_num_steps,
                         height=height,
@@ -854,7 +856,7 @@ def process_generation(
                         output_type="pil",
                         max_sequence_length=256,
                         guidance_scale=guidance_scale,
-                        generator=torch.Generator("cpu").manual_seed(0),
+                        generator=torch.Generator("cpu").manual_seed(seed_),
                     ).images
                 else:
                     if photomake_mode == "v2":
@@ -954,8 +956,9 @@ def process_generation(
                 ).images[0]
            
         elif model_type == "img2img":
+            empty_img = Image.new('RGB', (height, width), (255, 255, 255))
             if use_kolor:
-                empty_img=Image.new('RGB', (height, width), (255, 255, 255))
+                
                 results_dict[real_prompts_ind] = pipe(
                 prompt = real_prompt,
                 ip_adapter_image = [(
@@ -973,9 +976,16 @@ def process_generation(
                 nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
                 ).images[0]
             elif use_flux:
+                strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
                 results_dict[real_prompts_ind]=pipe(
                     prompt=real_prompt,
+                    image=(
+                        input_id_images_dict[cur_character[0]]
+                        if real_prompts_ind not in nc_indexs
+                        else empty_img
+                    ),
                     latents=None,
+                    strength=strength,
                     num_inference_steps=_num_steps,
                     height=height,
                     width=width,
@@ -1543,17 +1553,29 @@ class Storydiffusion_Model_Loader:
                                    weight_transformer)  # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
                     quantize(text_encoder_2, weights=qfloat8)
                     freeze(text_encoder_2)
+                    if model_type == "img2img":
+                        #https://github.com/deforum-studio/flux/blob/main/flux_pipeline.py#L536
+                        from .utils.flux_pipeline import FluxImg2ImgPipeline
+                        pipe = FluxImg2ImgPipeline(
+                            scheduler=scheduler,
+                            text_encoder=text_encoder,
+                            tokenizer=tokenizer,
+                            text_encoder_2=None,
+                            tokenizer_2=tokenizer_2,
+                            vae=vae,
+                            transformer=None,
+                        )
+                    else:
+                        pipe = FluxPipeline(
+                            scheduler=scheduler,
+                            text_encoder=text_encoder,
+                            tokenizer=tokenizer,
+                            text_encoder_2=None,
+                            tokenizer_2=tokenizer_2,
+                            vae=vae,
+                            transformer=None,
+                        )
 
-                    pipe = FluxPipeline(
-                        scheduler=scheduler,
-                        text_encoder=text_encoder,
-                        tokenizer=tokenizer,
-                        text_encoder_2=None,
-                        tokenizer_2=tokenizer_2,
-                        vae=vae,
-                        transformer=None,
-                    )
-                        
                     pipe.text_encoder_2 = text_encoder_2
                     pipe.transformer = transformer
                     
@@ -1598,7 +1620,11 @@ class Storydiffusion_Model_Loader:
                         
                         del original_state_dict
                         gc.collect()
-                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
+                        if model_type == "img2img":
+                            from .utils.flux_pipeline import FluxImg2ImgPipeline
+                            pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
+                        else:
+                            pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
                         
                     else:
                         if os.path.splitext(ckpt_path)[-1] == ".pt":
@@ -1615,8 +1641,12 @@ class Storydiffusion_Model_Loader:
                                                                         torch_dtype=dtype)
                         quantize(text_encoder_2, weights=qfloat8)
                         freeze(text_encoder_2)
-
-                        pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                        if model_type == "img2img":
+                            from .utils.flux_pipeline import FluxImg2ImgPipeline
+                            pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                                torch_dtype=dtype)
+                        else:
+                            pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
                                                                 torch_dtype=dtype)
                         pipe.transformer = transformer
                         pipe.text_encoder_2 = text_encoder_2
@@ -1807,9 +1837,8 @@ class Storydiffusion_Sampler:
 
         else:
             upload_images = None
-            _Ip_Adapter_Strength = 0.5
             _style_strength_ratio = 20
-            gen = process_generation(pipe, upload_images, model_type, steps, img_style, _Ip_Adapter_Strength,
+            gen = process_generation(pipe, upload_images, model_type, steps, img_style, ip_adapter_strength,
                                      _style_strength_ratio, cfg,
                                      seed, id_length,
                                      character_prompt,
