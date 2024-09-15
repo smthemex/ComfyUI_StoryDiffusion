@@ -1,0 +1,1164 @@
+{
+  "last_node_id": 28,
+  "last_link_id": 27,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        5587.08985460069,
+        -1514.511170789909
+      ],
+      "size": {
+        "0": 391.4256286621094,
+        "1": 827.854248046875
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": 8,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 12,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            13
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "image"
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[\"张三\"] 一个女人，黄头发，赛博朋克风格.\n[\"李四\"] 一个男人，紫色头发，克苏鲁风格.",
+        "[\"张三\"]走在林间小路上;\n[\"张三\"]穿过一条小溪;\n[\"李四\"] 在机械的迷宫里;\n[\"李四\"] 站在一个巨大的机器下.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        1939941934,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "none",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        5592.08985460069,
+        -1504.511170789909
+      ],
+      "size": {
+        "0": 391.4256286621094,
+        "1": 827.854248046875
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": null,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "image"
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[\"张三\"] 一个女人，黄头发，赛博朋克风格.\n[\"李四\"] 一个男人，紫色头发，克苏鲁风格.",
+        "[\"张三\"]走在林间小路上;\n[\"张三\"]穿过一条小溪;\n[\"李四\"] 在机械的迷宫里;\n[\"李四\"] 站在一个巨大的机器下.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        1939941934,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "none",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        5222.08985460069,
+        -1534.5111707899089
+      ],
+      "size": {
+        "0": 315,
+        "1": 418
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "links": [
+            8
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "model"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
+        "none",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler a",
+        "img2img",
+        2,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        ""
+      ]
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [
+        5242.08985460069,
+        -974.5111707899091
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            11
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1 (1).jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "LoadImage",
+      "pos": [
+        4912.08985460069,
+        -974.5111707899091
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            10
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "微信图片_20240912144707.png",
+        "image"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "ImageBatch",
+      "pos": [
+        5322.08985460069,
+        -1074.5111707899089
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 10,
+          "label": "image1"
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 11,
+          "label": "image2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            12
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      }
+    },
+    {
+      "id": 3,
+      "type": "PreviewImage",
+      "pos": [
+        6012.08985460069,
+        -1514.511170789909
+      ],
+      "size": {
+        "0": 597.3294067382812,
+        "1": 532.5997314453125
+      },
+      "flags": {},
+      "order": 17,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13,
+          "label": "images"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 19,
+      "type": "LoadImage",
+      "pos": [
+        5301.820264189764,
+        84.53754247013924
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            15
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1 (1).jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        6644,
+        -1512
+      ],
+      "size": {
+        "0": 391.4256286621094,
+        "1": 827.854248046875
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": null,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "image"
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;\n[Lecun] drving on the road,medium shot;\n[Lecun]work in the company.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        870397368,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "none",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "ImageBatch",
+      "pos": [
+        5398,
+        -2
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 14,
+          "label": "image1"
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 15,
+          "label": "image2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      }
+    },
+    {
+      "id": 18,
+      "type": "LoadImage",
+      "pos": [
+        4971.820264189764,
+        84.53754247013924
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "_20240912144646.png",
+        "image"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "PreviewImage",
+      "pos": [
+        6086,
+        -458
+      ],
+      "size": {
+        "0": 597.3294067382812,
+        "1": 532.5997314453125
+      },
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 21,
+          "label": "images"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 22,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        5673,
+        -458
+      ],
+      "size": [
+        381.5599471898495,
+        748.2340469453533
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": 19,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 20,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            21
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;\n[Lecun] drving on the road,medium shot;\n[Lecun]work in the company.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        0,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "none",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 16,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        5313,
+        -471
+      ],
+      "size": {
+        "0": 315,
+        "1": 418
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "links": [
+            19
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "model"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/black-forest-labs/FLUX.1-dev",
+        "flux1-kj-dev-fp8.safetensors",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler a",
+        "img2img",
+        2,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        "pulid,fp8,cpu"
+      ]
+    },
+    {
+      "id": 27,
+      "type": "LoadImage",
+      "pos": [
+        7142.314027777769,
+        -1078.1780002169783
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "_20240912144646.png",
+        "image"
+      ]
+    },
+    {
+      "id": 28,
+      "type": "SaveImage",
+      "pos": [
+        8281.314027777767,
+        -1412.1780002169783
+      ],
+      "size": [
+        295.24435476689723,
+        502.2524474692475
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 27,
+          "label": "images"
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 23,
+      "type": "Storydiffusion_Sampler",
+      "pos": [
+        7826.314027777769,
+        -1468.1780002169783
+      ],
+      "size": {
+        "0": 381.5599365234375,
+        "1": 748.2340698242188
+      },
+      "flags": {},
+      "order": 16,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "link": 26,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 25,
+          "label": "image"
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "label": "control_image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            27
+          ],
+          "shape": 3,
+          "label": "image",
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_array",
+          "type": "STRING",
+          "links": null,
+          "shape": 3,
+          "label": "prompt_array"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Sampler"
+      },
+      "widgets_values": [
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor]wake up in the bed,medium shot;\n[Taylor]have breakfast by the window;\n[Lecun] drving on the road,medium shot;\n[Taylor]have breakfast ,[Lecun] drving on the road,medium shot;\n[Lecun]work in the company.",
+        "",
+        "bad anatomy, bad hands, missing fingers, extra fingers, three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "No_style",
+        0,
+        "randomize",
+        20,
+        7,
+        0.5,
+        20,
+        "clip_vision_g.safetensors",
+        0.8,
+        0.5,
+        5,
+        false,
+        "none",
+        0.8,
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "Storydiffusion_Model_Loader",
+      "pos": [
+        7434.314027777769,
+        -1538.1780002169783
+      ],
+      "size": {
+        "0": 315,
+        "1": 418
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "model",
+          "type": "STORY_DICT",
+          "links": [
+            26
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "model"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Storydiffusion_Model_Loader"
+      },
+      "widgets_values": [
+        "",
+        "0SDXL\\juggernautXL_v8Rundiffusion.safetensors",
+        "none",
+        "none",
+        "none",
+        0.8,
+        "best quality",
+        "Euler a",
+        "img2img",
+        2,
+        0.5,
+        0.5,
+        768,
+        768,
+        "v1",
+        ""
+      ]
+    },
+    {
+      "id": 25,
+      "type": "ImageBatch",
+      "pos": [
+        7586.314027777769,
+        -1066.1780002169783
+      ],
+      "size": {
+        "0": 210,
+        "1": 46
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 23,
+          "label": "image1"
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 24,
+          "label": "image2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            25
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      }
+    },
+    {
+      "id": 26,
+      "type": "LoadImage",
+      "pos": [
+        7461.314027777769,
+        -949.1780002169783
+      ],
+      "size": {
+        "0": 315,
+        "1": 314
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 4,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            24
+          ],
+          "slot_index": 0,
+          "shape": 3,
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1 (1).jpg",
+        "image"
+      ]
+    }
+  ],
+  "links": [
+    [
+      8,
+      1,
+      0,
+      10,
+      0,
+      "STORY_DICT"
+    ],
+    [
+      10,
+      5,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      8,
+      0,
+      12,
+      1,
+      "IMAGE"
+    ],
+    [
+      12,
+      12,
+      0,
+      10,
+      1,
+      "IMAGE"
+    ],
+    [
+      13,
+      10,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      18,
+      0,
+      20,
+      0,
+      "IMAGE"
+    ],
+    [
+      15,
+      19,
+      0,
+      20,
+      1,
+      "IMAGE"
+    ],
+    [
+      19,
+      16,
+      0,
+      22,
+      0,
+      "STORY_DICT"
+    ],
+    [
+      20,
+      20,
+      0,
+      22,
+      1,
+      "IMAGE"
+    ],
+    [
+      21,
+      22,
+      0,
+      17,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      27,
+      0,
+      25,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      26,
+      0,
+      25,
+      1,
+      "IMAGE"
+    ],
+    [
+      25,
+      25,
+      0,
+      23,
+      1,
+      "IMAGE"
+    ],
+    [
+      26,
+      24,
+      0,
+      23,
+      0,
+      "STORY_DICT"
+    ],
+    [
+      27,
+      23,
+      0,
+      28,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "kolor face id/ip adpapter",
+      "bounding": [
+        4874,
+        -1636,
+        2193,
+        1029
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "flux pulid fp8",
+      "bounding": [
+        4879,
+        -551,
+        1866,
+        1015
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "ms_diffusion 2 role in 1 image",
+      "bounding": [
+        7113,
+        -1639,
+        1491,
+        1041
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5445000000000187,
+      "offset": [
+        -4326.006444666979,
+        1067.9388513898002
+      ]
+    }
+  },
+  "version": 0.4
+}
