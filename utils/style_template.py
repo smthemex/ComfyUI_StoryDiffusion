@@ -6,17 +6,17 @@ style_list = [
     },
     {
         "name": "Realistic",
-        "prompt": "{prompt}8k, RAW photo, best quality, masterpiece, ultra high res, (photorealistic:1.4), golden hour, dramatic shadows,uhd, high quality, dramatic, cinematic",
+        "prompt": "{prompt}, (photorealistic:1.4),8k,RAW photo, best quality, masterpiece,dramatic shadows,uhd, high quality,dramatic,cinematic",
         "negative_prompt": "(worst quality, low quality, normal quality, lowres), (bad teeth, deformed teeth, deformed lips), (bad proportions), (deformed eyes, bad eyes), (deformed face, ugly face), (deformed hands,fused fingers), morbid, mutilated, mutation, disfigured",
     },
     {
         "name": "Japanese_Anime",
-        "prompt": "{prompt}. anime artwork illustrating,best quality, high resolution, (Anime Style, Manga Style:1.3), line art, webtoon, manhua, hand drawn, defined lines, simple shades, Linear compositions, Digital art,",
+        "prompt": "{prompt}.(Anime Style, Manga Style:1.3)anime artwork illustrating,best quality,webtoon,manhua,Linear compositions",
         "negative_prompt": "lowres,text, error, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
     },
     {
         "name": "Digital_Oil_Painting",
-        "prompt": "{prompt} . (Extremely Detailed Oil Painting:1.2), glow effects, godrays, Hand drawn, render, 8k, octane render, cinema 4d, blender, dark, atmospheric 4k ultra detailed, cinematic sensual, Sharp focus, humorous illustration, big depth of field",
+        "prompt": "{prompt} . (Extremely Detailed Oil Painting:1.2), glow effects, godrays,render, 8k, octane render, cinema 4d, blender, dark, atmospheric 4k ultra detailed, cinematic sensual,humorous illustration,",
         "negative_prompt": "anime, cartoon, graphic, text, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured, lowres, error, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
     },
     {
@@ -26,13 +26,13 @@ style_list = [
     },
     {
         "name": "Photographic",
-        "prompt": "cinematic photo {prompt} . Hyperrealistic, Hyperdetailed, detailed skin, matte skin, soft lighting, realistic, best quality, ultra realistic, 8k, golden ratio, Intricate, High Detail, film photography, soft focus",
-        "negative_prompt": "drawing, painting, crayon, sketch, graphite, impressionist, noisy, blurry, soft, deformed, ugly, lowres, text, error,  extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username",
+        "prompt": "cinematic photo {prompt} . Hyperrealistic, Hyperdetailed, detailed skin,soft lighting, best quality, ultra realistic, 8k, golden ratio, Intricate, High Detail, film photography",
+        "negative_prompt": "drawing, painting, crayon, sketch, graphite, impressionist, noisy, blurry, soft, deformed, ugly, lowres, text, error,  extra digit, fewer digits, cropped, worst quality, low quality,signature, watermark, username",
     },
     {
         "name": "Comic_book",
         "prompt": "comic {prompt} . graphic illustration, comic art, graphic novel art, vibrant, highly detailed",
-        "negative_prompt": "photograph, deformed, glitch, noisy, realistic, stock photo, lowres,text, error,extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+        "negative_prompt": "photograph, deformed, glitch, noisy, realistic, stock photo, lowres,text, error,extra digit, fewer digits, cropped, worst quality, low quality, normal quality,signature, watermark, username, blurry",
     },
     {
         "name": "Line_art",
@@ -46,7 +46,7 @@ style_list = [
     },
     {
         "name": "Isometric_Rooms",
-        "prompt": "Tiny cute isometric {prompt} . in a cutaway box, soft smooth lighting, soft colors, 100mm lens, 3d blender render",
+        "prompt": "Tiny cute isometric {prompt} .in a cutaway box, soft smooth lighting, soft colors, 100mm lens, 3d blender render",
         "negative_prompt": "photorealistic,35mm film,deformed,glitch,blurry,noisy,off-center,deformed,cross-eyed,closed eyes,ugly,disfigured,mutated,realism,realistic,impressionism,expressionism,acrylic,lowres,text,error,extra digit,fewer digits,cropped, worst quality, low quality, normal quality, jpeg artifacts, signature,watermark, username,",
     },
 ]

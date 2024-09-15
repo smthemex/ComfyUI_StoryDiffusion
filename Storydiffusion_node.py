@@ -16,6 +16,7 @@ from PIL import ImageFont
 
 from safetensors.torch import load_file
 
+from .PuLID.pulid.utils import resize_numpy_image_long
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
 import re
@@ -279,6 +280,7 @@ def get_scheduler(name):
     return scheduler
 
 
+
 def set_attention_processor(unet, id_length, is_ipadapter=False):
     global attn_procs
     attn_procs = {}
@@ -374,7 +376,20 @@ def save_single_character_weights(unet, character, description, filepath):
     # 使用torch.save保存权重
     torch.save(weights_to_save, filepath)
 
+def face_bbox_to_square(bbox):
+    ## l, t, r, b to square l, t, r, b
+    l,t,r,b = bbox
+    cent_x = (l + r) / 2
+    cent_y = (t + b) / 2
+    w, h = r - l, b - t
+    r = max(w, h) / 2
 
+    l0 = cent_x - r
+    r0 = cent_x + r
+    t0 = cent_y - r
+    b0 = cent_y + r
+
+    return [l0, t0, r0, b0]
 
 def save_results(unet):
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -677,7 +692,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux,auraface
+        trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -787,7 +802,16 @@ def process_generation(
             face_detector = FaceAnalysis2(providers=['CUDAExecutionProvider'],
                                           allowed_modules=['detection', 'recognition'])
         face_detector.prepare(ctx_id=0, det_size=(640, 640))
-        
+    if use_kolor:
+        if kolor_face:
+            from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
+            from huggingface_hub import snapshot_download
+            snapshot_download(
+                'DIAMONIK7777/antelopev2',
+                local_dir='models/antelopev2',
+            )
+            face_info_generator = FaceInfoGenerator(root_dir=".")
+    
     global cur_character
     if not load_chars:
         for character_key in character_dict.keys():# 先生成角色对应第一句场景提示词的图片
@@ -800,8 +824,6 @@ def process_generation(
             cur_positive_prompts, cur_negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            if use_kolor:
-                cur_negative_prompt=[cur_negative_prompt]
             if model_type == "txt2img":
                 if use_flux:
                     id_images = pipe(
@@ -816,8 +838,9 @@ def process_generation(
                     ).images
                 else:
                     if use_kolor:
-                        cur_negative_prompt =  cur_negative_prompt * len(cur_positive_prompts) if len( cur_negative_prompt) != len(
-                            cur_positive_prompts) else  cur_negative_prompt
+                        cur_negative_prompt=[cur_negative_prompt]
+                        cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
+                            cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
                     id_images = pipe(
                         cur_positive_prompts,
                         num_inference_steps=_num_steps,
@@ -830,34 +853,81 @@ def process_generation(
                 
             elif model_type == "img2img":
                 if use_kolor:
-                    pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
-                    cur_negative_prompt=  cur_negative_prompt*len(cur_positive_prompts) if len( cur_negative_prompt)!=len(cur_positive_prompts) else  cur_negative_prompt
-                    id_images = pipe(
-                        prompt=cur_positive_prompts,
-                        ip_adapter_image=input_id_images_dict[character_key],
-                        negative_prompt= cur_negative_prompt,
-                        num_inference_steps=_num_steps,
-                        height=height,
-                        width=width,
-                        guidance_scale=guidance_scale,
-                        num_images_per_prompt=1,
-                        generator=generator,
-                    ).images
+                    cur_negative_prompt = [cur_negative_prompt]
+                    cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
+                        cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
+                    if kolor_face:
+                        img_=input_id_images_dict[character_key][0]
+                        face_info = face_info_generator.get_faceinfo_one_img(img_)
+                        face_bbox_square = face_bbox_to_square(face_info["bbox"])
+                        crop_image = img_.crop(face_bbox_square)
+                        crop_image = crop_image.resize((336, 336))
+                        crop_image = [crop_image]*len(cur_positive_prompts)
+                        face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
+                        face_embeds=torch.cat((face_embeds,)*len(cur_positive_prompts),dim=0)
+                        face_embeds = face_embeds.to(device, dtype=torch.float16)
+                        id_images = pipe(
+                            prompt=cur_positive_prompts,
+                            negative_prompt=cur_negative_prompt,
+                            height=height,
+                            width=width,
+                            num_inference_steps=_num_steps,
+                            guidance_scale=guidance_scale,
+                            num_images_per_prompt=1,
+                            generator=  generator,
+                            face_crop_image=crop_image,
+                            face_insightface_embeds=face_embeds,
+                        ).images
+                    else:
+                        pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
+                        id_images = pipe(
+                            prompt=cur_positive_prompts,
+                            ip_adapter_image=input_id_images_dict[character_key],
+                            negative_prompt=cur_negative_prompt,
+                            num_inference_steps=_num_steps,
+                            height=height,
+                            width=width,
+                            guidance_scale=guidance_scale,
+                            num_images_per_prompt=1,
+                            generator=generator,
+                        ).images
                 elif  use_flux:
-                    strength=_Ip_Adapter_Strength if _Ip_Adapter_Strength!=1 else 0.9
-                    id_images = pipe(
-                        prompt=cur_positive_prompts,
-                        image=input_id_images_dict[character_key],
-                        strength=strength,
-                        latents=None,
-                        num_inference_steps=_num_steps,
-                        height=height,
-                        width=width,
-                        output_type="pil",
-                        max_sequence_length=256,
-                        guidance_scale=guidance_scale,
-                        generator=torch.Generator("cpu").manual_seed(seed_),
-                    ).images
+                    if pulid:
+                        id_image = resize_numpy_image_long(input_id_images_dict[character_key][0], 1024)
+                        use_true_cfg = abs(1.0 - 1.0) > 1e-2
+                        
+                        id_embeddings, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
+                       
+                        strength = _Ip_Adapter_Strength
+                        id_images= pipe.generate_image(
+                            prompt=cur_positive_prompts,
+                            seed=seed_,
+                            start_step=2,
+                            num_steps=_num_steps,
+                            height=height,
+                            width=width,
+                            id_embeddings=id_embeddings,
+                            uncond_id_embeddings=uncond_id_embeddings,
+                            id_weight=strength,
+                            guidance=guidance_scale,
+                            true_cfg=1.0,
+                            max_sequence_length=128,
+                        )
+                    else:
+                        strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
+                        id_images = pipe(
+                            prompt=cur_positive_prompts,
+                            image=input_id_images_dict[character_key],
+                            strength=strength,
+                            latents=None,
+                            num_inference_steps=_num_steps,
+                            height=height,
+                            width=width,
+                            output_type="pil",
+                            max_sequence_length=256,
+                            guidance_scale=guidance_scale,
+                            generator=torch.Generator("cpu").manual_seed(seed_),
+                        ).images
                 else:
                     if photomake_mode == "v2":
                         # 提取id
@@ -919,7 +989,7 @@ def process_generation(
     #print(real_prompts_inds)
     real_prompt_no, negative_prompt_style = apply_style_positive(style_name, "real_prompt")
     negative_prompt=str(negative_prompt)+str(negative_prompt_style)
-
+    #print(123,negative_prompt,)
     for real_prompts_ind in real_prompts_inds:  # 非角色流程
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
@@ -930,7 +1000,7 @@ def process_generation(
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt ,negative_prompt_style_no= apply_style_positive(style_name, real_prompt)
-        #print(real_prompt)
+        #print(real_prompt,333)
         if model_type == "txt2img":
            # print(results_dict,real_prompts_ind)
             if use_flux:
@@ -958,42 +1028,88 @@ def process_generation(
         elif model_type == "img2img":
             empty_img = Image.new('RGB', (height, width), (255, 255, 255))
             if use_kolor:
+                if kolor_face:
+                    #print(real_prompt,negative_prompt)
+                    img_1= input_id_images_dict[cur_character[0]]if real_prompts_ind not in nc_indexs else empty_img
+                    #print(img_1)
+                    face_info = face_info_generator.get_faceinfo_one_img(img_1)
+                    face_bbox_square = face_bbox_to_square(face_info["bbox"])
+                    crop_image = img_1.crop(face_bbox_square)
+                    crop_image = crop_image.resize((336, 336))
+                    crop_image = [crop_image]
+                    face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
+                    face_embeds = face_embeds.to(device, dtype=torch.float16)
+                    results_dict[real_prompts_ind] = pipe(
+                        prompt=real_prompt,
+                        negative_prompt=negative_prompt,
+                        height=height,
+                        width=width,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        num_images_per_prompt=1,
+                        generator= torch.Generator(device = "cuda").manual_seed(seed_),
+                        face_crop_image=crop_image,
+                        face_insightface_embeds=face_embeds,
+                        nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
+                    ).images[0]
+                else:
+                    results_dict[real_prompts_ind] = pipe(
+                        prompt=real_prompt,
+                        ip_adapter_image=(
+                            input_id_images_dict[cur_character[0]]
+                            if real_prompts_ind not in nc_indexs
+                            else empty_img
+                        ),
+                        negative_prompt=negative_prompt,
+                        height=height,
+                        width=width,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        num_images_per_prompt=1,
+                        generator=generator,
+                        nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
+                    ).images[0]
                 
-                results_dict[real_prompts_ind] = pipe(
-                prompt = real_prompt,
-                ip_adapter_image = [(
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else empty_img
-                    ),],
-                negative_prompt = negative_prompt,
-                height = height,
-                width = width,
-                num_inference_steps = _num_steps,
-                guidance_scale = guidance_scale,
-                num_images_per_prompt = 1,
-                generator = generator,
-                nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
-                ).images[0]
             elif use_flux:
-                strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
-                results_dict[real_prompts_ind]=pipe(
-                    prompt=real_prompt,
-                    image=(
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else empty_img
-                    ),
-                    latents=None,
-                    strength=strength,
-                    num_inference_steps=_num_steps,
-                    height=height,
-                    width=width,
-                    output_type="pil",
-                    max_sequence_length=256,
-                    guidance_scale=guidance_scale,
-                    generator=torch.Generator("cpu").manual_seed(seed_),
-                ).images[0]
+                if pulid:
+                    strength = _Ip_Adapter_Strength
+                    results_dict[real_prompts_ind] = pipe.generate_image(
+                        prompt=real_prompt,
+                        id_image=(
+                            input_id_images_dict[cur_character[0]]
+                            if real_prompts_ind not in nc_indexs
+                            else empty_img
+                        ),
+                        seed=seed_,
+                        start_step=2,
+                        num_steps=_num_steps,
+                        height=height,
+                        width=width,
+                        id_weight=strength,
+                        guidance=guidance_scale,
+                        true_cfg=1.0,
+                        max_sequence_length=128,
+                    )
+                else:
+                    strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
+                    results_dict[real_prompts_ind] = pipe(
+                        prompt=real_prompt,
+                        image=(
+                            input_id_images_dict[cur_character[0]]
+                            if real_prompts_ind not in nc_indexs
+                            else empty_img
+                        ),
+                        latents=None,
+                        strength=strength,
+                        num_inference_steps=_num_steps,
+                        height=height,
+                        width=width,
+                        output_type="pil",
+                        max_sequence_length=256,
+                        guidance_scale=guidance_scale,
+                        generator=torch.Generator("cpu").manual_seed(seed_),
+                    ).images[0]
+                
             else:
                 if photomake_mode == "v2":
                     # V2版本必须要有id_embeds，只能用input_id_images作为风格参考
@@ -1366,8 +1482,9 @@ class Storydiffusion_Model_Loader:
                 model_path = get_local_path(file_path, path)
                 repo = get_instance_path(model_path)
         return repo
-    def story_model_loader(self,repo_id, ckpt_name,vae_id, character_weights, lora, lora_scale, trigger_words, scheduler,
-                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height,photomake_mode,easy_function):
+    def story_model_loader(self, repo_id, ckpt_name, vae_id, character_weights, lora, lora_scale, trigger_words, scheduler,
+                           model_type, id_number, sa32_degree, sa64_degree, img_width, img_height, photomake_mode, easy_function,
+                           ):
         
         scheduler_choice = get_scheduler(scheduler)
         if ckpt_name=="none":
@@ -1387,18 +1504,57 @@ class Storydiffusion_Model_Loader:
         
         easy_function=easy_function.strip().lower()
         
-        if easy_function=="auraface":
+        if "auraface" in easy_function:
             auraface=True
         else:
             auraface = False
-        if easy_function=="nf4":
+        if "nf4" in easy_function:
             NF4=True
         else:
             NF4 = False
+            
         if "save" in easy_function:
             save_model=True
         else:
             save_model = False
+            
+        if "face" in easy_function:
+            kolor_face=True
+            face_ckpt=os.path.join(photomaker_dir, "ipa-faceid-plus.bin")
+            if not os.path.exists(face_ckpt):
+                hf_hub_download(
+                    repo_id="Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus",
+                    filename="ipa-faceid-plus.bin",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            kolor_face = False
+            face_ckpt=""
+        
+        if "pulid" in easy_function:
+            pulid=True
+            pulid_ckpt=os.path.join(photomaker_dir, "pulid_flux_v0.9.0.safetensors")
+            if not os.path.exists(pulid_ckpt):
+                hf_hub_download(
+                    repo_id="guozinan/PuLID",
+                    filename="pulid_flux_v0.9.0.safetensors",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            pulid = False
+            pulid_ckpt=""
+        
+        if "fp8" in easy_function:
+            quantized_mode="fp8"
+        else:
+            quantized_mode = "fp16"
+        
+        if "cpu" in easy_function:
+            aggressive_offload=True
+        else:
+            aggressive_offload = False
+        
+        
         
         photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
         if photomake_mode=="v1":
@@ -1497,26 +1653,49 @@ class Storydiffusion_Model_Loader:
                         force_zeros_for_empty_prompt=False, )
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
                 else:
-                    image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-                        f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(dtype=torch.float16)
-                    ip_img_size = 336
-                    clip_image_processor = CLIPImageProcessor(size=ip_img_size, crop_size=ip_img_size)
-                    unet = UNet2DConditionModelkolor.from_pretrained(f"{repo_id}/unet", revision=None,).half()
-                    pipe=StableDiffusionXLPipelinekoloripadapter(
-                        vae=vae,
-                        text_encoder=text_encoder,
-                        tokenizer=tokenizer,
-                        unet=unet,
-                        scheduler=scheduler,
-                        image_encoder=image_encoder,
-                        feature_extractor=clip_image_processor,
-                        force_zeros_for_empty_prompt=False
-                    )
-                    if hasattr(pipe.unet, 'encoder_hid_proj'):
-                        pipe.unet.text_encoder_hid_proj = pipe.unet.encoder_hid_proj
-                    
-                    pipe.load_ip_adapter(f'{repo_id}/Kolors-IP-Adapter-Plus', subfolder="",
-                                         weight_name=["ip_adapter_plus_general.bin"])
+                    if kolor_face is False:
+                        image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+                            f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(
+                            dtype=torch.float16)
+                        ip_img_size = 336
+                        clip_image_processor = CLIPImageProcessor(size=ip_img_size, crop_size=ip_img_size)
+                        unet = UNet2DConditionModelkolor.from_pretrained(f"{repo_id}/unet", revision=None, ).half()
+                        pipe = StableDiffusionXLPipelinekoloripadapter(
+                            vae=vae,
+                            text_encoder=text_encoder,
+                            tokenizer=tokenizer,
+                            unet=unet,
+                            scheduler=scheduler,
+                            image_encoder=image_encoder,
+                            feature_extractor=clip_image_processor,
+                            force_zeros_for_empty_prompt=False
+                        )
+                        if hasattr(pipe.unet, 'encoder_hid_proj'):
+                            pipe.unet.text_encoder_hid_proj = pipe.unet.encoder_hid_proj
+                        
+                        pipe.load_ip_adapter(f'{repo_id}/Kolors-IP-Adapter-Plus', subfolder="",
+                                             weight_name=["ip_adapter_plus_general.bin"])
+                    else: #kolor ip faceid
+                        from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter_FaceID import StableDiffusionXLPipeline as StableDiffusionXLPipelineFaceID
+                        unet = UNet2DConditionModel.from_pretrained(f'{repo_id}/unet', revision=None).half()
+                        clip_image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+                            f'{repo_id}/clip-vit-large-patch14-336', ignore_mismatched_sizes=True)
+                        clip_image_encoder.to("cuda")
+                        clip_image_processor = CLIPImageProcessor(size=336, crop_size=336)
+                        pipe = StableDiffusionXLPipelineFaceID(
+                            vae=vae,
+                            text_encoder=text_encoder,
+                            tokenizer=tokenizer,
+                            unet=unet,
+                            scheduler=scheduler,
+                            face_clip_encoder=clip_image_encoder,
+                            face_clip_processor=clip_image_processor,
+                            force_zeros_for_empty_prompt=False,
+                        )
+                        pipe = pipe.to("cuda")
+                        pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
+                        scale = 0.8
+                        pipe.set_face_fidelity_scale(scale)
                 pipe.enable_model_cpu_offload()
             elif use_flux:
                 # pip install optimum-quanto
@@ -1578,80 +1757,89 @@ class Storydiffusion_Model_Loader:
 
                     pipe.text_encoder_2 = text_encoder_2
                     pipe.transformer = transformer
-                    
+                    pipe.enable_model_cpu_offload()
                 else: # flux diff unet ,diff 0.30
                     from diffusers import FluxTransformer2DModel, FluxPipeline
                     from transformers import T5EncoderModel, CLIPTextModel
                     from optimum.quanto import freeze, qfloat8, quantize
-                    if NF4:
-                        #https://github.com/huggingface/diffusers/issues/9165
-                        from accelerate.utils import set_module_tensor_to_device, compute_module_sizes
-                        from accelerate import init_empty_weights
-                        from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
-                            check_quantized_param
-                        import safetensors.torch
-                        import gc
-                        dtype = torch.bfloat16
-                        is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
-                        original_state_dict = safetensors.torch.load_file(ckpt_path)
-                        config_file = os.path.join(dir_path, "config.json")
-                        with init_empty_weights():
-                            config = FluxTransformer2DModel.load_config(config_file)
-                            model = FluxTransformer2DModel.from_config(config).to(dtype)
-                            expected_state_dict_keys = list(model.state_dict().keys())
-                        
-                        _replace_with_bnb_linear(model, "nf4")
-                        
-                        for param_name, param in original_state_dict.items():
-                            if param_name not in expected_state_dict_keys:
-                                continue
-                            
-                            is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
-                            if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
-                                param = param.to(dtype)
-                            
-                            if not check_quantized_param(model, param_name):
-                                set_module_tensor_to_device(model, param_name, device=0, value=param)
-                            else:
-                                create_quantized_param(
-                                    model, param, param_name, target_device=0, state_dict=original_state_dict,
-                                    pre_quantized=True
-                                )
-                        
-                        del original_state_dict
-                        gc.collect()
-                        if model_type == "img2img":
-                            from .utils.flux_pipeline import FluxImg2ImgPipeline
-                            pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
-                        else:
-                            pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
-                        
+                    if pulid:
+                        from .PuLID.app_flux import FluxGenerator
+                        if NF4:
+                            quantized_mode="nf4"
+                        pipe = FluxGenerator(repo_id, ckpt_path, "cuda", offload=True,
+                                             aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
+                                             quantized_mode=quantized_mode)
                     else:
-                        if os.path.splitext(ckpt_path)[-1] == ".pt":
-                            transformer = torch.load(ckpt_path)
-                            transformer.eval()
+                        if NF4:
+                            # https://github.com/huggingface/diffusers/issues/9165
+                            from accelerate.utils import set_module_tensor_to_device, compute_module_sizes
+                            from accelerate import init_empty_weights
+                            from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
+                                check_quantized_param
+                            import safetensors.torch
+                            import gc
+                            dtype = torch.bfloat16
+                            is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
+                            original_state_dict = safetensors.torch.load_file(ckpt_path)
+                            
+                            config_file = os.path.join(dir_path, "config.json")
+                            with init_empty_weights():
+                                config = FluxTransformer2DModel.load_config(config_file)
+                                model = FluxTransformer2DModel.from_config(config).to(dtype)
+                                expected_state_dict_keys = list(model.state_dict().keys())
+                            
+                            _replace_with_bnb_linear(model, "nf4")
+                            
+                            for param_name, param in original_state_dict.items():
+                                if param_name not in expected_state_dict_keys:
+                                    continue
+                                
+                                is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
+                                if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
+                                    param = param.to(dtype)
+                                
+                                if not check_quantized_param(model, param_name):
+                                    set_module_tensor_to_device(model, param_name, device=0, value=param)
+                                else:
+                                    create_quantized_param(
+                                        model, param, param_name, target_device=0, state_dict=original_state_dict,
+                                        pre_quantized=True
+                                    )
+                            
+                            del original_state_dict
+                            gc.collect()
+                            if model_type == "img2img":
+                                from .utils.flux_pipeline import FluxImg2ImgPipeline
+                                pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=model,
+                                                                           torch_dtype=dtype)
+                            else:
+                                pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
                         else:
-                            #config_file = f"{repo_id}/transformer/config.json"
-                            config_file = os.path.join(dir_path,"utils", "config.json")
-                            transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
-                                                                                  torch_dtype=dtype)
-                            quantize(transformer, weights=qfloat8)
-                            freeze(transformer)
-                        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                        torch_dtype=dtype)
-                        quantize(text_encoder_2, weights=qfloat8)
-                        freeze(text_encoder_2)
-                        if model_type == "img2img":
-                            from .utils.flux_pipeline import FluxImg2ImgPipeline
-                            pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                                torch_dtype=dtype)
-                        else:
-                            pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
-                                                                torch_dtype=dtype)
-                        pipe.transformer = transformer
-                        pipe.text_encoder_2 = text_encoder_2
-                
-                pipe.enable_model_cpu_offload()
+                            if os.path.splitext(ckpt_path)[-1] == ".pt":
+                                transformer = torch.load(ckpt_path)
+                                transformer.eval()
+                            else:
+                                # config_file = f"{repo_id}/transformer/config.json"
+                                config_file = os.path.join(dir_path, "utils", "config.json")
+                                transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
+                                                                                      torch_dtype=dtype)
+                                quantize(transformer, weights=qfloat8)
+                                freeze(transformer)
+                            text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
+                                                                            torch_dtype=dtype)
+                            quantize(text_encoder_2, weights=qfloat8)
+                            freeze(text_encoder_2)
+                            if model_type == "img2img":
+                                from .utils.flux_pipeline import FluxImg2ImgPipeline
+                                pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=None,
+                                                                           text_encoder_2=None,
+                                                                           torch_dtype=dtype)
+                            else:
+                                pipe = FluxPipeline.from_pretrained(repo_id, transformer=None, text_encoder_2=None,
+                                                                    torch_dtype=dtype)
+                            pipe.transformer = transformer
+                            pipe.text_encoder_2 = text_encoder_2
+                        pipe.enable_model_cpu_offload()
                 if lora:
                     if not "Hyper" in lora_path : #can't support Hyper now
                         if not NF4:
@@ -1685,7 +1873,8 @@ class Storydiffusion_Model_Loader:
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
-               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,"scheduler":scheduler,"auraface":auraface,"width":img_width,"height":img_height}
+               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
+               "scheduler":scheduler,"auraface":auraface,"width":img_width,"height":img_height,"kolor_face":kolor_face,"pulid":pulid}
         return (model,)
 
 
@@ -1779,6 +1968,8 @@ class Storydiffusion_Sampler:
         scheduler=model.get("scheduler")
         height=model.get("height")
         width = model.get("width")
+        kolor_face= model.get("kolor_face")
+        pulid= model.get("pulid")
         scheduler_choice = get_scheduler(scheduler)
         image = kwargs.get("image")
         # 格式化文字内容
@@ -1833,7 +2024,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid)
 
         else:
             upload_images = None
@@ -1848,7 +2039,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid)
 
         for value in gen:
             print(type(value))

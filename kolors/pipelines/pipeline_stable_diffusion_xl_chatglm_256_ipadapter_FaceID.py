@@ -14,8 +14,8 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from kolors.models.modeling_chatglm import ChatGLMModel
-from kolors.models.tokenization_chatglm import ChatGLMTokenizer
+from ..models.modeling_chatglm import ChatGLMModel
+from ..models.tokenization_chatglm import ChatGLMTokenizer
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import torch
@@ -45,10 +45,16 @@ try:
 except:
     from diffusers.utils.torch_utils import randn_tensor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline
-from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
+try:
+    from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput
+except:
+    try:
+        from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
+    except:
+        raise "error"
 
-from kolors.models.ipa_faceid_plus.ipa_faceid_plus import ProjPlusModel
-from kolors.models.ipa_faceid_plus.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
+from ..models.ipa_faceid_plus.ipa_faceid_plus import ProjPlusModel
+from ..models.ipa_faceid_plus.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -628,8 +634,8 @@ class StableDiffusionXLPipeline(DiffusionPipeline, FromSingleFileMixin, LoraLoad
     def get_fused_face_embedds(self, face_insightface_embeds, face_crop_image, num_images_per_prompt, device):
         with torch.inference_mode():
             face_clip_embeds = self.get_clip_feat(face_crop_image, device)
-            face_clip_embeds = face_clip_embeds.to(device = device, dtype = torch.float16)
-
+            face_clip_embeds = face_clip_embeds.clone().to("cuda", dtype = torch.float16)
+            face_insightface_embeds =  face_insightface_embeds.clone().to("cuda", dtype = torch.float16)
             image_prompt_embeds = self.image_proj_model(face_insightface_embeds, face_clip_embeds)
             uncond_image_prompt_embeds = self.image_proj_model(torch.zeros_like(face_insightface_embeds), torch.zeros_like(face_clip_embeds))
             bs_embed, seq_len, _ = image_prompt_embeds.shape
@@ -830,7 +836,6 @@ class StableDiffusionXLPipeline(DiffusionPipeline, FromSingleFileMixin, LoraLoad
                 num_images_per_prompt = num_images_per_prompt, 
                 device = device
             )
-            
             prompt_embeds = torch.cat([prompt_embeds, image_prompt_embeds], dim=1)
             negative_prompt_embeds = torch.cat([negative_prompt_embeds, uncond_image_prompt_embeds], dim=1)
 
@@ -947,5 +952,5 @@ class StableDiffusionXLPipeline(DiffusionPipeline, FromSingleFileMixin, LoraLoad
         return StableDiffusionXLPipelineOutput(images=image)
 
 
-if __name__ == "__main__":
-    pass
+# if __name__ == "__main__":
+#     pass
