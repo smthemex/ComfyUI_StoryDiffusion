@@ -6,11 +6,15 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/11**   
-* Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
-* AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
+**2024/09/15**   
+* Happy Mid-autumn Festival！！！
+* Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
+ 
+* Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
 
 **Previous updates：**  
+* Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
+* AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
 * using img crop to fix ms_diffusion only using square's error;
 * change W and H global names,it cause some error;
 * fix runway error,when loader single model. 
@@ -46,7 +50,7 @@ If the module is missing, please pip install
 
 3 Need  model 
 ----
-3.1.1base   
+3.1.1base:   
 You can directly fill in the repo, such as:"stablityai/table diffusion xl base-1.0", or select the corresponding model in the local diffuser menu (provided that you have the model in the "models/diffuser" directory), or you can directly select a single SDXL community model. The priority of repo or local diffusers is higher than that of individual community models.    
 
 Supports all SDXL based diffusion models (such as "G161222/RealVisXL_V4.0", "sd-community/sdxl-flash"）， It also supports non SD models, such as ("stablediffusionapi/sdxl-unstable-diffusers-y", playground-v2.5-1024px-aesthetic）   
@@ -76,6 +80,8 @@ Need clip_vision model "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14
 3.2 if using kolors:  
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+
 The file structure is shown in the following figure:
 ```
 ├── any path/Kwai-Kolors/Kolors
@@ -104,7 +110,7 @@ The file structure is shown in the following figure:
 |          ├── pytorch_model-00001-of-00007.bin to pytorch_model-00007-of-00007.bin
 |       ├── scheduler
 |          ├── scheduler_config.json
-|       ├── Kolors-IP-Adapter-Plus
+|       ├── Kolors-IP-Adapter-Plus  # if using Kolors-IP-Adapter-Plus
 |          ├──model_index.json
 |          ├──ip_adapter_plus_general.bin
 |          ├──config.json
@@ -115,6 +121,22 @@ The file structure is shown in the following figure:
 |               ├──tokenizer.json
 |               ├──tokenizer_config.json
 |               ├──vocab.json
+|       ├── clip-vit-large-patch14-336  # if using Kolors-IP-Adapter-FaceID-Plus
+|          ├──config.json
+|          ├──merges.txt
+|          ├──preprocessor_config.json
+|          ├──pytorch_model.bin
+|          ├──special_tokens_map.json
+|          ├──tokenizer.json
+|          ├──tokenizer_config.json
+|          ├──vocab.json
+```
+and if using  Kolors-IP-Adapter-FaceID-Plus:  
+will auto download "DIAMONIK7777/antelopev2" insightface models....
+ipa-faceid-plus.bin :Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+```
+├── ComfyUI/models/photomaker/
+|             ├── ipa-faceid-plus.bin
 ```
 
 3.3 The model file example for dual role controllnet is as follows, which only supports SDXL community controllnet    
@@ -127,12 +149,64 @@ The file structure is shown in the following figure:
 |     ├──controlnet-zoe-depth-sdxl-1.0  
 |     ├──TheMistoAI/MistoLine 
 |     ├──xinsir/controlnet-tile-sdxl-1.0
-
 ```
 Control_img image preprocessing, please use other nodes     
 
+3.4 using flux pulid  .   
+torch must > 0.24.0   
+```
+pip install optimum-quanto==0.2.4  
+```
+EVA02_CLIP_L_336_psz14_s6B.pt auto downlaod....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main) #迟点改成不自动下载      
+DIAMONIK7777/antelopev2 auto downlaod....[https://huggingface.co/DIAMONIK7777/antelopev2/tree/main)    
+"pulid_flux_v0.9.0.safetensors" download from [link](https://huggingface.co/guozinan/PuLID/tree/main)     
+fp8 using flux1-dev-fp8.safetensors  from [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
+```
+├── ComfyUI/models/photomaker/
+|             ├── pulid_flux_v0.9.0.safetensors
+```
+make sure ae.safetensors in you FLUX.1-dev dir,example:  
+```
+├──any_path/black-forest-labs/FLUX.1-dev
+|      ├──model_index.json
+|      ├──ae.safetensors
+|      ├──vae
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors 
+|      ├──transformer
+|          ├── config.json
+|          ├──diffusion_pytorch_model-00001-of-00003.safetensors
+|          ├──diffusion_pytorch_model-00002-of-00003.safetensors
+|          ├──diffusion_pytorch_model-00003-of-00003.safetensors
+|          ├── diffusion_pytorch_model.safetensors.index.json
+|      ├──tokenizer
+|          ├── special_tokens_map.json
+|          ├── tokenizer_config.json
+|          ├── vocab.json
+|          ├── merges.txt
+|      ├──tokenizer_2
+|          ├── special_tokens_map.json
+|          ├── tokenizer_config.json
+|          ├── spiece.model
+|          ├── tokenizer.json
+|       ├── text_encoder
+|          ├── config.json
+|          ├── model.safetensors
+|       ├── text_encoder_2
+|          ├── config.json
+|          ├── model-00001-of-00002.safetensors
+|          ├── model-00002-of-00002.safetensors
+|          ├── model.safetensors.index.json
+|       ├── scheduler
+|          ├── scheduler_config.json
+```
+
 4 Example
 ----
+
+img2img mode use flux pulid  12G Vram,cpu(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_fp8_12GVR.png)
+
 img2img mode use nf4 flux (Latest version)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img2role.png)
@@ -143,29 +217,24 @@ txt2img mode use NF4 FLUX (Latest version)
 img2img mode use auraface photomake V2  (Latest version)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newest.png)
 
-txt2img mode uses kolors model using chinese prompt (Outdated version examples)        
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/new.png)
+img2img model use kolors ip adapter,and using chinese prompt  (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter_use_chinese.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter.png)
 
-img2img mode, uses kolors model using chinese prompt (Outdated version examples)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolorsimg2img.png)
+img2img model use kolors ip adapter face id  (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_faceid.png)
 
-img2img mode, uses photomakeV1 (Outdated version examples)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV1.png)
+img2img sdxl mode, uses photomakeV1 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev1.png)
 
-img2img mode, uses photomakeV2 (Outdated version examples)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newimg2imgV2.png)
+img2img sdxl  mode, uses photomakeV2 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev2.png)
 
-flux model,repo+pt txt2img/img2img(Outdated version examples)     
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_transfomerpy.png)
-
-txt2img2role in 1 image (Outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newtxt2img2role.png)
+txt2img using lora and comic node (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_lora_comic.png)
 
 img2img2role in 1 image (Outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
-
-img2img2role in 1 image lora (Outdated version examples)    
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1imglora.png)
 
 ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
@@ -281,5 +350,15 @@ kolors
   year={2024}
 }
 ```
+PuLID
+```
+@article{guo2024pulid,
+  title={PuLID: Pure and Lightning ID Customization via Contrastive Alignment},
+  author={Guo, Zinan and Wu, Yanze and Chen, Zhuowei and Chen, Lang and He, Qian},
+  journal={arXiv preprint arXiv:2404.16022},
+  year={2024}
+}
+```
+
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
