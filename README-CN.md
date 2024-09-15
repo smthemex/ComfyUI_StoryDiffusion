@@ -3,10 +3,13 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion)
 
 ## 更新:
-**2024/09/11**  
-* 加入diffuser尚未PR的图生图代码，fp8和fn4都能跑，还是fn4吧，快很多。图生图的噪声控制，由ip_adapter_strength的参数控制，越大噪声越多，当然图片不像原图，反之亦然。然后生成的实际步数是 你输入的步数*ip_adapter_strength的参数，也就是说，你输入50步，strength是0.8，实际只会跑40步。  
+**2024/09/15**  
+* 中秋节快乐！！
+* 加入flux pulid 支持，目前fp8，和fp16能正常出图，但是fp16需要30G以上显存，可以忽略，需要有flux的diffuser文件(在repo输入)，以及对应的模型，然后easy function 填入pilid,fp8,cpu就可以开启，如果你的显存大于16G可以试试取消cpu，这样会快一点。nf4也能跑通，但是量化的思路不同，无法正常出图
+* 加入kolor face id的支持，开启条件，在easyfunction里输入face，然后repo输入你的kolor diffuser模型的绝对路径地址。
 
 **既往更新**  
+* 加入diffuser尚未PR的图生图代码，fp8和fn4都能跑，还是nf4吧，快很多。图生图的噪声控制，由ip_adapter_strength的参数控制，越大噪声越多，当然图片不像原图，反之亦然。然后生成的实际步数是 你输入的步数*ip_adapter_strength的参数，也就是说，你输入50步，strength是0.8，实际只会跑40步。  
 * 双角色因为方法的原因无法使用非正方形图片，所以用了讨巧的方法，先裁切成方形，然后再裁切回来；
 * 高宽的全局变量名会导致一些啼笑皆非的错误，所以改成特别点的；
 * 现在如果只使用flux的repo模型，不再自动保存一个pt文件，除非你在easy function输入save；
@@ -54,7 +57,7 @@ repo模式 支持所有基于SDXL的扩散模型（如G161222/RealVisXL_V4.0，s
 单体模型支持SDXL,例如：Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors ），    
 
 --(使用双角色功能时):       
-你用全局外网，会自动下载，但是一般是去C盘。  
+你用全局外网，会自动下载。  
 在comfyUI/models/photomaker目录下，确认是否有photomaker-v1.bin，如果没有会自己下载 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker/tree/main)  
 photomaker-v2.bin 虽然也能用，但是新代码没有更新，所以发挥不了其新特性 [离线下载地址](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  
 
@@ -73,6 +76,8 @@ photomaker-v2.bin 虽然也能用，但是新代码没有更新，所以发挥�
 如果要使用kolor（可灵），下载链接如下：
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+
 文件结构如下，注意是有层级的：
 ```
 ├── 你的本地任意地址/Kwai-Kolors/Kolors
@@ -112,6 +117,22 @@ Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adap
 |               ├──tokenizer.json
 |               ├──tokenizer_config.json
 |               ├──vocab.json
+|       ├── clip-vit-large-patch14-336  # if using Kolors-IP-Adapter-FaceID-Plus
+|          ├──config.json
+|          ├──merges.txt
+|          ├──preprocessor_config.json
+|          ├──pytorch_model.bin
+|          ├──special_tokens_map.json
+|          ├──tokenizer.json
+|          ├──tokenizer_config.json
+|          ├──vocab.json
+```
+如果使用kolor的face ip还需要:  
+自动下载的insightface模型 "DIAMONIK7777/antelopev2" insightface models....
+ipa-faceid-plus.bin 模型下载地址，放在如下目录  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+```
+├── ComfyUI/models/photomaker/
+|             ├── ipa-faceid-plus.bin
 ```
 
 3.2 离线模式 
@@ -129,7 +150,58 @@ Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adap
 |     ├──xinsir/controlnet-tile-sdxl-1.0
    
 ```
+
 control_img图片的预处理，请使用其他节点   
+
+3.4 如果要使用 flux pulid  .   
+确保torch must > 0.24.0，并确保optimum-quanto为0.2.4以上版本   
+```
+pip install optimum-quanto==0.2.4  
+```
+EVA02_CLIP_L_336_psz14_s6B.pt 会自动下载....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main) #迟点改成不自动下载      
+DIAMONIK7777/antelopev2 会自动下载，kolor也用这个....[https://huggingface.co/DIAMONIK7777/antelopev2/tree/main)    
+"pulid_flux_v0.9.0.safetensors" 下载至 [link](https://huggingface.co/guozinan/PuLID/tree/main)     
+fp8 using flux1-dev-fp8.safetensors  这个unt很多人应该有，放在checkpoints目录 [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
+```
+├── ComfyUI/models/photomaker/
+|             ├── pulid_flux_v0.9.0.safetensors
+```
+确保 ae.safetensors 在你的 FLUX.1-dev 目录下,以下是文件夹示例:  
+```
+├──any_path/black-forest-labs/FLUX.1-dev
+|      ├──model_index.json
+|      ├──ae.safetensors
+|      ├──vae
+|          ├── config.json
+|          ├── diffusion_pytorch_model.safetensors 
+|      ├──transformer
+|          ├── config.json
+|          ├──diffusion_pytorch_model-00001-of-00003.safetensors
+|          ├──diffusion_pytorch_model-00002-of-00003.safetensors
+|          ├──diffusion_pytorch_model-00003-of-00003.safetensors
+|          ├── diffusion_pytorch_model.safetensors.index.json
+|      ├──tokenizer
+|          ├── special_tokens_map.json
+|          ├── tokenizer_config.json
+|          ├── vocab.json
+|          ├── merges.txt
+|      ├──tokenizer_2
+|          ├── special_tokens_map.json
+|          ├── tokenizer_config.json
+|          ├── spiece.model
+|          ├── tokenizer.json
+|       ├── text_encoder
+|          ├── config.json
+|          ├── model.safetensors
+|       ├── text_encoder_2
+|          ├── config.json
+|          ├── model-00001-of-00002.safetensors
+|          ├── model-00002-of-00002.safetensors
+|          ├── model.safetensors.index.json
+|       ├── scheduler
+|          ├── scheduler_config.json
+```
+
 
 4 Example
 ----
@@ -247,3 +319,16 @@ kolors
   year={2024}
 }
 ```
+```
+PuLID
+```
+@article{guo2024pulid,
+  title={PuLID: Pure and Lightning ID Customization via Contrastive Alignment},
+  author={Guo, Zinan and Wu, Yanze and Chen, Zhuowei and Chen, Lang and He, Qian},
+  journal={arXiv preprint arXiv:2404.16022},
+  year={2024}
+}
+```
+
+FLUX
+![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
