@@ -6,13 +6,12 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/15**   
-* Happy Mid-autumn Festival！！！
-* Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
- 
-* Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
+**2024/09/19**   
+* fix flux import error
 
 **Previous updates：**  
+* Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
+* Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
 * Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
 * AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
 * using img crop to fix ms_diffusion only using square's error;
