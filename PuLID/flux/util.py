@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 
 import torch
-from .transformer_flux import FluxTransformer2DModel
+#from .transformer_flux import FluxTransformer2DModel
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file as load_sft
 import json
