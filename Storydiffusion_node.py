@@ -692,7 +692,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid
+        trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -731,7 +731,7 @@ def process_generation(
     if start_merge_step > 30:
         start_merge_step = 30
     print(f"start_merge_step:{start_merge_step}")
-    generator = torch.Generator(device=device).manual_seed(seed_)
+    #generator = torch.Generator(device=device).manual_seed(seed_)
     clipped_prompts = prompts[:]
     nc_indexs = []
     for ind, prompt in enumerate(clipped_prompts):
@@ -788,29 +788,6 @@ def process_generation(
     id_images = []
     results_dict = {}
     p_num=0
-    if photomake_mode == "v2":
-        from .utils.insightface_package import FaceAnalysis2, analyze_faces
-        if auraface:
-            from huggingface_hub import snapshot_download
-            snapshot_download(
-                "fal/AuraFace-v1",
-                local_dir="models/auraface",
-            )
-            face_detector = FaceAnalysis2(name="auraface",providers=["CUDAExecutionProvider", "CPUExecutionProvider"],root=".",
-                                          allowed_modules=['detection', 'recognition'])
-        else:
-            face_detector = FaceAnalysis2(providers=['CUDAExecutionProvider'],
-                                          allowed_modules=['detection', 'recognition'])
-        face_detector.prepare(ctx_id=0, det_size=(640, 640))
-    if use_kolor:
-        if kolor_face:
-            from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
-            from huggingface_hub import snapshot_download
-            snapshot_download(
-                'DIAMONIK7777/antelopev2',
-                local_dir='models/antelopev2',
-            )
-            face_info_generator = FaceInfoGenerator(root_dir=".")
     
     global cur_character
     if not load_chars:
@@ -858,7 +835,7 @@ def process_generation(
                         cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
                     if kolor_face:
                         img_=input_id_images_dict[character_key][0]
-                        face_info = face_info_generator.get_faceinfo_one_img(img_)
+                        face_info = app_face.get_faceinfo_one_img(img_)
                         face_bbox_square = face_bbox_to_square(face_info["bbox"])
                         crop_image = img_.crop(face_bbox_square)
                         crop_image = crop_image.resize((336, 336))
@@ -928,6 +905,30 @@ def process_generation(
                             guidance_scale=guidance_scale,
                             generator=torch.Generator("cpu").manual_seed(seed_),
                         ).images
+                elif story_maker and not make_dual_only:
+                    img = input_id_images_dict[character_key][0]
+                    mask_image = pipeline_mask(img, return_mask=True) .convert('RGB')# outputs a pillow mask
+                    print(type(mask_image))
+                    mask_image.save("asdad.png")
+                    face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                    face_info = \
+                    sorted(face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                        -1]  # only use the maximum face
+                    cur_negative_prompt = [cur_negative_prompt]
+                    cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
+                        cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
+                    id_images = pipe(
+                        image=img,
+                        mask_image=mask_image,
+                        face_info=face_info,
+                        prompt=cur_positive_prompts,
+                        negative_prompt=cur_negative_prompt,
+                        ip_adapter_scale=_Ip_Adapter_Strength, lora_scale=0.8,
+                        num_inference_steps=_num_steps,
+                        guidance_scale=guidance_scale,
+                        height=height, width=width,
+                        generator=generator,
+                    ).images
                 else:
                     if photomake_mode == "v2":
                         # 提取id
@@ -936,8 +937,8 @@ def process_generation(
                             0]  # input_id_images_dict {'[Taylor]': [pil], '[Lecun]': [pil]}
                         img = np.array(img)
                         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                        
-                        faces = analyze_faces(face_detector, img, )
+                        from .utils.insightface_package import analyze_faces
+                        faces = analyze_faces(app_face, img, )
                         id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
                         id_embeds = torch.stack(id_embed_list)
                             
@@ -1032,7 +1033,7 @@ def process_generation(
                     #print(real_prompt,negative_prompt)
                     img_1= input_id_images_dict[cur_character[0]]if real_prompts_ind not in nc_indexs else empty_img
                     #print(img_1)
-                    face_info = face_info_generator.get_faceinfo_one_img(img_1)
+                    face_info = app_face.get_faceinfo_one_img(img_1)
                     face_bbox_square = face_bbox_to_square(face_info["bbox"])
                     crop_image = img_1.crop(face_bbox_square)
                     crop_image = crop_image.resize((336, 336))
@@ -1109,7 +1110,26 @@ def process_generation(
                         guidance_scale=guidance_scale,
                         generator=torch.Generator("cpu").manual_seed(seed_),
                     ).images[0]
-                
+            elif  story_maker and not make_dual_only:
+                img_2= input_id_images_dict[cur_character[0]]if real_prompts_ind not in nc_indexs else empty_img
+                mask_image = pipeline_mask(img_2, return_mask=True).convert('RGB')  # outputs a pillow mask
+                mask_image.save("A2.png")
+                face_info = app_face.get(cv2.cvtColor(np.array(img_2), cv2.COLOR_RGB2BGR))
+                face_info = \
+                    sorted(face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                        -1]  # only use the maximum face
+                results_dict[real_prompts_ind] = pipe(
+                    image=img_2,
+                    mask_image=mask_image,
+                    face_info=face_info,
+                    prompt=real_prompt,
+                    negative_prompt=negative_prompt,
+                    ip_adapter_scale=_Ip_Adapter_Strength, lora_scale=0.8,
+                    num_inference_steps=_num_steps,
+                    guidance_scale=guidance_scale,
+                    height=height, width=width,
+                    generator=generator,
+                ).images[0]
             else:
                 if photomake_mode == "v2":
                     # V2版本必须要有id_embeds，只能用input_id_images作为风格参考
@@ -1122,7 +1142,8 @@ def process_generation(
                     
                     img = np.array(img[0][0])
                     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    faces = analyze_faces(face_detector, img, )
+                    from .utils.insightface_package import analyze_faces
+                    faces = analyze_faces(app_face, img, )
                     nc_flag = True if real_prompts_ind in nc_indexs else False  # 有nc为ture，无则false
                     if not nc_flag:
                         id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
@@ -1422,7 +1443,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
                                       image_encoder_type, drop_grounding_tokens, controlnet_scale,  control_image,
                                       phrase_idxes, eot_idxes,in_img,use_repo)
             
-            image_ouput += image_main
+            image_ouput.append(image_main)
             torch.cuda.empty_cache()
     else:
         for i, prompt in enumerate(prompts_dual):
@@ -1434,7 +1455,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
                                           negative_prompt, role_scale, image_encoder, cfg, image_processor,
                                           boxes, mask_threshold, start_step, image_proj_type, image_encoder_type,
                                           drop_grounding_tokens, height, width, phrase_idxes, eot_idxes,in_img,use_repo)
-            image_ouput += image_main
+            image_ouput .append(image_main)
             torch.cuda.empty_cache()
     torch.cuda.empty_cache()
     return image_ouput
@@ -1553,8 +1574,23 @@ class Storydiffusion_Model_Loader:
             aggressive_offload=True
         else:
             aggressive_offload = False
-        
-        
+        make_dual_only = False
+        if "maker" in easy_function:
+            story_maker = True
+            if "dual" in easy_function:
+                make_dual_only = True
+            image_encoder_path='laion/CLIP-ViT-H-14-laion2B-s32B-b79K'
+            face_adapter=os.path.join(photomaker_dir, "mask.bin")
+            if not os.path.exists(face_adapter):
+                hf_hub_download(
+                    repo_id="RED-AIGC/StoryMaker",
+                    filename="mask.bin",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            story_maker = False
+            face_adapter=""
+            image_encoder_path=""
         
         photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
         if photomake_mode=="v1":
@@ -1604,26 +1640,55 @@ class Storydiffusion_Model_Loader:
         use_kolor = False
         use_flux = False
         if repo_id:
-            if repo_id.rsplit("/")[-1] in "Kwai-Kolors/Kolors":
+            if "\\" in repo_id:
+                repo_id.replace("\\","/")
+            if repo_id.rsplit("/")[-1].lower() in "kwai-kolors/kolors":
                 use_kolor=True
-            if repo_id.rsplit("/")[-1] in "black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-schnell":
+            if repo_id.rsplit("/")[-1] .lower() in "black-forest-labs/flux.1-dev,black-forest-labs/flux.1-schnell":
                 use_flux = True
         
         if not repo_id and not ckpt_path:
             raise "you need choice a model or repo_id"
         elif not repo_id and ckpt_path: # load ckpt
-            pipe = load_models(ckpt_path, model_type=model_type,single_files=True,use_safetensors=True, photomake_mode=photomake_mode,photomaker_path=photomaker_path, lora=lora,
-                               lora_path=lora_path,
-                               trigger_words=trigger_words, lora_scale=lora_scale)
-            set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            if story_maker:
+                if not make_dual_only:
+                    from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
+                    original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
+                    add_config = os.path.join(dir_path, "local_repo")
+                    try:
+                        pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
+                            ckpt_path, config=add_config, original_config=original_config_file,
+                            torch_dtype=torch.float16)
+                    except:
+                        try:
+                            pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
+                                ckpt_path, config=add_config, original_config_file=original_config_file,
+                                torch_dtype=torch.float16)
+                        except:
+                            raise "load pipe error!,check you diffusers"
+                    pipe.cuda()
+                    pipe.load_storymaker_adapter(image_encoder_path, face_adapter, scale=0.8, lora_scale=0.8)
+                    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+                else:
+                    pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
+                                       photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
+                                       lora_path=lora_path,
+                                       trigger_words=trigger_words, lora_scale=lora_scale)
+                    set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            else:
+                pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
+                                   photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
+                                   lora_path=lora_path,
+                                   trigger_words=trigger_words, lora_scale=lora_scale)
+                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
         else: #if repo or  no ckpt,choice repo
-            if repo_id.rsplit("/")[-1]=="playground-v2.5-1024px-aesthetic":
+            if repo_id.rsplit("/")[-1].lower()=="playground-v2.5-1024px-aesthetic":
                 pipe = DiffusionPipeline.from_pretrained(
                     repo_id,
                     torch_dtype=torch.float16,
                 )
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif repo_id.rsplit("/")[-1]=="sdxl-unstable-diffusers-y":
+            elif repo_id.rsplit("/")[-1].lower()=="sdxl-unstable-diffusers-y":
                 pipe = StableDiffusionXLPipeline.from_pretrained(
                     repo_id, torch_dtype=torch.float16,use_safetensors=False
                 )
@@ -1847,11 +1912,22 @@ class Storydiffusion_Model_Loader:
                             pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
                        
             else: # SD dif_repo
-                pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,photomake_mode=photomake_mode,
-                                    photomaker_path=photomaker_path, lora=lora,
-                                   lora_path=lora_path,
-                                   trigger_words=trigger_words, lora_scale=lora_scale)
-                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+                if  story_maker:
+                    if not make_dual_only:
+                        from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
+                        pipe = StableDiffusionXLStoryMakerPipeline.from_pretrained(
+                            repo_id, torch_dtype=torch.float16)
+                        pipe.cuda()
+                        pipe.load_storymaker_adapter(image_encoder_path, face_adapter, scale=0.8, lora_scale=0.8)
+                        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+                else:
+                    pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,
+                                       photomake_mode=photomake_mode,
+                                       photomaker_path=photomaker_path, lora=lora,
+                                       lora_path=lora_path,
+                                       trigger_words=trigger_words, lora_scale=lora_scale)
+                    set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+                    
         if vae_id != "none":
             if not use_flux:
                 vae_id = folder_paths.get_full_path("vae", vae_id)
@@ -1859,10 +1935,11 @@ class Storydiffusion_Model_Loader:
                 pipe.vae=AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
         load_chars = False
         if not use_kolor and not use_flux:
-            pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
+            if not story_maker:
+                pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
+                load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
             pipe.enable_vae_slicing()
-            load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
             device = (
                 "cuda"
                 if torch.cuda.is_available()
@@ -1874,7 +1951,8 @@ class Storydiffusion_Model_Loader:
         torch.cuda.empty_cache()
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
-               "scheduler":scheduler,"auraface":auraface,"width":img_width,"height":img_height,"kolor_face":kolor_face,"pulid":pulid}
+               "scheduler":scheduler,"auraface":auraface,"width":img_width,"height":img_height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
+               "make_dual_only":make_dual_only,"image_encoder_path":image_encoder_path,"face_adapter":face_adapter}
         return (model,)
 
 
@@ -1969,9 +2047,51 @@ class Storydiffusion_Sampler:
         height=model.get("height")
         width = model.get("width")
         kolor_face= model.get("kolor_face")
+        story_maker=model.get("story_maker")
+        face_adapter=model.get("face_adapter")
+        image_encoder_path=model.get("image_encoder_path")
         pulid= model.get("pulid")
+        make_dual_only= model.get("make_dual_only")
         scheduler_choice = get_scheduler(scheduler)
         image = kwargs.get("image")
+        
+        if story_maker:
+            from insightface.app import FaceAnalysis
+            app_face = FaceAnalysis(name='buffalo_l', root='./',
+                               providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+            app_face.prepare(ctx_id=0, det_size=(640, 640))
+            from transformers import pipeline
+            pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4", trust_remote_code=True)
+            # pillow_mask = pipe(image_path, return_mask=True)  # outputs a pillow mask
+        elif use_kolor:
+            if kolor_face:
+                from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
+                from huggingface_hub import snapshot_download
+                snapshot_download(
+                    'DIAMONIK7777/antelopev2',
+                    local_dir='models/antelopev2',
+                )
+                app_face = FaceInfoGenerator(root_dir=".")
+            pipeline_mask = None
+        elif photomake_mode == "v2":
+            from .utils.insightface_package import FaceAnalysis2, analyze_faces
+            if auraface:
+                from huggingface_hub import snapshot_download
+                snapshot_download(
+                    "fal/AuraFace-v1",
+                    local_dir="models/auraface",
+                )
+                app_face = FaceAnalysis2(name="auraface",
+                                              providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
+                                              allowed_modules=['detection', 'recognition'])
+            else:
+                app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                              allowed_modules=['detection', 'recognition'])
+            app_face.prepare(ctx_id=0, det_size=(640, 640))
+            pipeline_mask = None
+        else:
+            app_face=None
+            pipeline_mask=None
         # 格式化文字内容
         if split_prompt:
             scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
@@ -2024,9 +2144,11 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,)
 
         else:
+            if story_maker:
+                raise "story maker only suppport img2img now"
             upload_images = None
             _style_strength_ratio = 20
             gen = process_generation(pipe, upload_images, model_type, steps, img_style, ip_adapter_strength,
@@ -2039,7 +2161,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,auraface,kolor_face,pulid)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,)
 
         for value in gen:
             print(type(value))
@@ -2054,36 +2176,125 @@ class Storydiffusion_Sampler:
         else:
             clip_vision = folder_paths.get_full_path("clip_vision", clip_vision)
         if prompts_dual:
-            if not clip_vision:
-                raise "need a clip_vison weight."
             if use_flux or use_kolor:
                 raise "flux or kolor don't support MS diffsion."
-            print("start sampler dual prompt")
-            control_image = None
-            if controlnet_model_path!="none":
-                control_image = kwargs["control_image"]
             image_a = image_pil_list_ms[positions_char_1]
             image_b = image_pil_list_ms[positions_char_2]
-            if width!=height:
-                square=max(height,width)
-                new_height,new_width=square,square
-                image_a = self.center_crop(image_a)
-                image_b = self.center_crop(image_b)
-            else:
-                new_width=width
-                new_height=height
-            del pipe
-            cleanup_models(keep_clone_weights_loaded=False)
-            gc.collect()
-            torch.cuda.empty_cache()
-            image_dual = msdiffusion_main(image_a, image_b, prompts_dual, new_width, new_height, steps, seed,
-                                          img_style, char_describe,char_origin,negative_prompt, clip_vision, model_type, lora, lora_path, lora_scale,
-                                        trigger_words, ckpt_path,repo_id, role_scale,
-                                          mask_threshold, start_step,controlnet_model_path,control_image,controlnet_scale,cfg,guidance_list,scheduler_choice)
-            j = 0
-            for i in positions_dual: #重新将双人场景插入原序列
+            if story_maker:
+                print("start sampler dual prompt using story maker")
+                if make_dual_only:
+                    if model_type == "img2img":
+                        image_a = image_load[0]
+                        image_b = image_load[1]
+                    del pipe
+                    cleanup_models(keep_clone_weights_loaded=False)
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
+                    if repo_id:
+                        pipe = StableDiffusionXLStoryMakerPipeline.from_pretrained(
+                            repo_id, torch_dtype=torch.float16)
+                        pipe.cuda()
+                        pipe.load_storymaker_adapter(image_encoder_path, face_adapter, scale=0.8, lora_scale=0.8)
+                        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+                    else:
+                        original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
+                        add_config = os.path.join(dir_path, "local_repo")
+                        try:
+                            pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
+                                ckpt_path, config=add_config, original_config=original_config_file,
+                                torch_dtype=torch.float16)
+                        except:
+                            try:
+                                pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
+                                    ckpt_path, config=add_config, original_config_file=original_config_file,
+                                    torch_dtype=torch.float16)
+                            except:
+                                raise "load pipe error!,check you diffusers"
+                        pipe.cuda()
+                        pipe.load_storymaker_adapter(image_encoder_path, face_adapter, scale=0.8, lora_scale=0.8)
+                        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+        
+                mask_image_1 = pipeline_mask(image_a, return_mask=True).convert('RGB')  # applies mask on input and returns a pillow image
+                mask_image_2 = pipeline_mask(image_b, return_mask=True).convert('RGB')  # applies mask on input and returns a pillow image
+                #mask_image_1.save("asdad1.png")
+               
+                face_info_1 = app_face.get(cv2.cvtColor(np.array(image_a), cv2.COLOR_RGB2BGR))
+                face_info_1 = \
+                sorted(face_info_1, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                    -1]  # only use the maximum face
+                face_info_2 = app_face.get(cv2.cvtColor(np.array(image_b), cv2.COLOR_RGB2BGR))
+                face_info_2 = \
+                sorted(face_info_2, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                    -1]  # only use the maximum face
+                
+                # get n p prompt
+                prompts_dual, negative_prompt = apply_style(
+                    img_style, prompts_dual, negative_prompt
+                )
+                # 添加Lora trigger
+                add_trigger_words = "," + trigger_words + " " + "style" + ";"
+                if lora:
+                    prompts_dual = remove_punctuation_from_strings(prompts_dual)
+                    if lora not in lora_lightning_list:  # 加速lora不需要trigger
+                        prompts_dual = [item + add_trigger_words for item in prompts_dual]
+                
+                prompts_dual = [item.replace(char_origin[0], char_describe[0]) for item in prompts_dual if
+                                char_origin[0] in item]
+                prompts_dual = [item.replace(char_origin[1], char_describe[1]) for item in prompts_dual if
+                                char_origin[1] in item]
+                
+                prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
+                image_dual = []
+                setup_seed(seed)
+                generator = torch.Generator(device='cuda').manual_seed(seed)
+                #print(negative_prompt,"1and1",prompts_dual)
+                for i,prompt in enumerate(prompts_dual):
+                    output = pipe(
+                        image=image_a, mask_image=mask_image_1, face_info=face_info_1,  # first person
+                        image_2=image_b, mask_image_2=mask_image_2, face_info_2=face_info_2,  # second person
+                        prompt=prompt,
+                        negative_prompt=negative_prompt,
+                        ip_adapter_scale=ip_adapter_strength, lora_scale=0.8,
+                        num_inference_steps=steps,
+                        guidance_scale=cfg,
+                        height=height, width=width,
+                        generator=generator,
+                    ).images[0]
+                    image_dual.append(output)
+                    #output.save(f'examples/results/ldh_tsy666_{i}.jpg')
+            else: #using ms diffusion
+                if not clip_vision:
+                    raise "need a clip_vison weight."
+                print("start sampler dual prompt using ms-diffusion")
+                control_image = None
+                if controlnet_model_path != "none":
+                    control_image = kwargs["control_image"]
+                if model_type == "img2img":
+                    image_a = image_load[0]
+                    image_b = image_load[1]
                 if width != height:
-                    img = self.center_crop_s(image_dual[j],width, height)
+                    square = max(height, width)
+                    new_height, new_width = square, square
+                    image_a = self.center_crop(image_a)
+                    image_b = self.center_crop(image_b)
+                else:
+                    new_width = width
+                    new_height = height
+                del pipe
+                cleanup_models(keep_clone_weights_loaded=False)
+                gc.collect()
+                torch.cuda.empty_cache()
+                image_dual = msdiffusion_main(image_a, image_b, prompts_dual, new_width, new_height, steps, seed,
+                                              img_style, char_describe, char_origin, negative_prompt, clip_vision,
+                                              model_type, lora, lora_path, lora_scale,
+                                              trigger_words, ckpt_path, repo_id, role_scale,
+                                              mask_threshold, start_step, controlnet_model_path, control_image,
+                                              controlnet_scale, cfg, guidance_list, scheduler_choice)
+            j = 0
+            for i in positions_dual:  # 重新将双人场景插入原序列
+                if width != height:
+                    img = self.center_crop_s(image_dual[j], width, height)
                 else:
                     img = image_dual[j]
                 image_pil_list.insert(int(i), img)
