@@ -2,13 +2,13 @@
 You can using StoryDiffusion in ComfyUI.
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
-* StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)
+* StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 
 ## Updates:
-**2024/09/19**   
-* fix flux import error
-
+**2024/09/21**   
+* add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
+  
 **Previous updates：**  
 * Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
 * Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
@@ -199,9 +199,25 @@ make sure ae.safetensors in you FLUX.1-dev dir,example:
 |       ├── scheduler
 |          ├── scheduler_config.json
 ```
-
+3.5 using storymake..    
+mask.bin from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#可以自动下载   
+buffalo_l from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#自动下载   
+RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动下载   
+laion/CLIP-ViT-H-14-laion2B-s32B-b79K  from  [link](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/tree/main)#自动下载   
+```
+├── ComfyUI/models/photomaker/
+|         ├── mask.bin
+├── ComfyUI/models/buffalo_l/
+|         ├── 1k3d68.onnx
+|         ├── 2d106det.onnx
+|         ├── det_10g.onnx
+|         ├── genderage.onnx
+|         ├── w600k_r50.onnx
+```
 4 Example
 ----
+img2img mode use storymaker for dual role(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual_onlyA.png)
 
 img2img mode use flux pulid  12G Vram,cpu(Latest version) 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_fp8_12GVR.png)
