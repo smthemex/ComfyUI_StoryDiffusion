@@ -140,9 +140,10 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         if hasattr(self, 'image_proj_model'):
             self.image_proj_model.to(self.unet.device).to(self.unet.dtype)
         
-    def load_storymaker_adapter(self, image_encoder_path, model_ckpt, image_emb_dim=512, num_tokens=20, scale=0.8, lora_scale=0.8):     
+    def load_storymaker_adapter(self, image_encoder, model_ckpt, image_emb_dim=512, num_tokens=20, scale=0.8, lora_scale=0.8):
         self.clip_image_processor = CLIPImageProcessor()
-        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(image_encoder_path).to(self.device, dtype=self.dtype)
+        #self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(image_encoder_path).to(self.device, dtype=self.dtype)
+        self.image_encoder=image_encoder
         self.set_image_proj_model(model_ckpt, image_emb_dim, num_tokens)
         self.set_ip_adapter(model_ckpt, num_tokens)
         self.set_ip_adapter_scale(scale, lora_scale)
@@ -236,10 +237,15 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
             clip_img = self.clip_image_processor(images=cloth_2.resize((224, 224)), return_tensors="pt").pixel_values
             crop_list.append(clip_img)
         assert len(crop_list)>0, f"input error, images is None"
+        
         clip_image = torch.cat(crop_list, dim=0).to(device, dtype=dtype)
-        clip_image_embeds = self.image_encoder(clip_image, output_hidden_states=True).hidden_states[-2] 
+        #clip_image_embeds = self.image_encoder(clip_image, output_hidden_states=True).hidden_states[-2]
+        clip_image_embeds= self.image_encoder.model(pixel_values=clip_image, intermediate_output=-2)[1].to(device)
+
         clip_face = torch.cat(face_list, dim=0).to(device, dtype=dtype)
-        clip_face_embeds = self.image_encoder(clip_face, output_hidden_states=True).hidden_states[-2] 
+        clip_face_embeds= self.image_encoder.model(pixel_values= clip_face, intermediate_output=-2)[1].to(device)
+        #clip_face_embeds = self.image_encoder(clip_face, output_hidden_states=True).hidden_states[-2]
+
         id_embeds = torch.cat(id_list, dim=0).to(device, dtype=dtype)
         # print(f'clip_image_embeds: {clip_image_embeds.shape}, clip_face_embeds:{clip_face_embeds.shape}, id_embeds:{id_embeds.shape}')
         #print(do_classifier_free_guidance)
