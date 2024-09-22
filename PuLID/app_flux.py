@@ -21,19 +21,20 @@ def get_models(name: str,ckpt_path, device: torch.device, offload: bool,quantize
 
 
 class FluxGenerator:
-    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode):
+    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path):
         self.device = torch.device(device)
         self.offload = offload
         self.model_name = model_name
         self.aggressive_offload= aggressive_offload
         self.ckpt_path=ckpt_path
+        self.clip_vision_path=clip_vision_path
         self.quantized_mode=quantized_mode
         self.model, self.ae, self.t5, self.clip = get_models(
             model_name,self.ckpt_path,
             device=self.device,
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
-        self.pulid_model = PuLIDPipeline(self.model, device, weight_dtype=torch.bfloat16)
+        self.pulid_model = PuLIDPipeline(self.model, device, self.clip_vision_path,weight_dtype=torch.bfloat16)
         self.pulid_model.load_pretrain(pretrained_model)
 
     @torch.inference_mode()
