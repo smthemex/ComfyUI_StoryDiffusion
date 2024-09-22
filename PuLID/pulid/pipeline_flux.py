@@ -109,10 +109,11 @@ def img2tensor(imgs, bgr2rgb=True, float32=True):
 
 
 class PuLIDPipeline(nn.Module):
-    def __init__(self, dit, device, weight_dtype=torch.bfloat16, *args, **kwargs):
+    def __init__(self, dit, device,clip_vision_path, weight_dtype=torch.bfloat16, *args, **kwargs):
         super().__init__()
         self.device = device
         self.weight_dtype = weight_dtype
+        self.clip_vision_path=clip_vision_path
         double_interval = 2
         single_interval = 4
 
@@ -145,7 +146,7 @@ class PuLIDPipeline(nn.Module):
         self.face_helper.face_parse = None
         self.face_helper.face_parse = init_parsing_model(model_name='bisenet', device=self.device)
         # clip-vit backbone
-        model, _, _ = create_model_and_transforms('EVA02-CLIP-L-14-336', 'eva_clip', force_custom_clip=True)
+        model, _, _ = create_model_and_transforms('EVA02-CLIP-L-14-336', clip_vision_path, force_custom_clip=True)
         model = model.visual
         self.clip_vision_model = model.to(self.device, dtype=self.weight_dtype)
         eva_transform_mean = getattr(self.clip_vision_model, 'image_mean', OPENAI_DATASET_MEAN)
