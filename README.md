@@ -6,10 +6,12 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/21**   
-* add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
+**2024/09/22**   
+* For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
+* Now,using story_maker or pulid_flux function ,need choice clip vision model (use 'clip_vision' menu);   
   
 **Previous updates：**  
+* add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
 * Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
 * Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
 * Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
@@ -156,13 +158,17 @@ torch must > 0.24.0
 ```
 pip install optimum-quanto==0.2.4  
 ```
-EVA02_CLIP_L_336_psz14_s6B.pt auto downlaod....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main) #迟点改成不自动下载      
+EVA02_CLIP_L_336_psz14_s6B.pt auto downlaod....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main)      
 DIAMONIK7777/antelopev2 auto downlaod....[https://huggingface.co/DIAMONIK7777/antelopev2/tree/main)    
 "pulid_flux_v0.9.0.safetensors" download from [link](https://huggingface.co/guozinan/PuLID/tree/main)     
 fp8 using flux1-dev-fp8.safetensors  from [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
 ```
 ├── ComfyUI/models/photomaker/
 |             ├── pulid_flux_v0.9.0.safetensors
+├── ComfyUI/models/clip_vision/
+|             ├── EVA02_CLIP_L_336_psz14_s6B.pt
+├── ComfyUI/models/checkpoints/
+|             ├── flux1-dev-fp8.safetensors
 ```
 make sure ae.safetensors in you FLUX.1-dev dir,example:  
 ```
@@ -203,10 +209,11 @@ make sure ae.safetensors in you FLUX.1-dev dir,example:
 mask.bin from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#可以自动下载   
 buffalo_l from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#自动下载   
 RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动下载   
-laion/CLIP-ViT-H-14-laion2B-s32B-b79K  from  [link](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/tree/main)#自动下载   
 ```
 ├── ComfyUI/models/photomaker/
 |         ├── mask.bin
+├── ComfyUI/models/clip_vision/
+|             ├── clip_vision_H.safetensors  #2.4G base in laion/CLIP-ViT-H-14-laion2B-s32B-b79K
 ├── ComfyUI/models/buffalo_l/
 |         ├── 1k3d68.onnx
 |         ├── 2d106det.onnx
@@ -216,36 +223,39 @@ laion/CLIP-ViT-H-14-laion2B-s32B-b79K  from  [link](https://huggingface.co/laion
 ```
 4 Example
 ----
-img2img mode use storymaker for dual role(Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual_onlyA.png)
+img2img mode only use storymaker  只用storymaker生成(包括双角色),最新 (Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual.png)
 
-img2img mode use flux pulid  12G Vram,cpu(Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_fp8_12GVR.png)
+img2img mode use storymaker for dual role only,只用storymaker生成双角色,单角色用diffusion生成,最新(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual_only.png)
 
-img2img mode use nf4 flux (Latest version)  
+img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/pulid_flux.png)
+
+img2img mode use nf4 flux  开启flux nf4模式,速度最快,示例图为旧节点(outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img2role.png)
 
-txt2img mode use NF4 FLUX (Latest version)        
+txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快,示例图为旧节点 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
-img2img mode use auraface photomake V2  (Latest version)        
+img2img mode use auraface photomake V2  开启v2模式,示例图为旧节点 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newest.png)
 
-img2img model use kolors ip adapter,and using chinese prompt  (Latest version)   
+img2img model use kolors ip adapter,and using chinese prompt 开启kolor模式,使用中文提示词,示例图为旧节点 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter_use_chinese.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter.png)
 
-img2img model use kolors ip adapter face id  (Latest version)   
+img2img model use kolors ip adapter face id  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_faceid.png)
 
-img2img sdxl mode, uses photomakeV1 (Latest version)   
+img2img sdxl mode, uses photomakeV1 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev1.png)
 
-img2img sdxl  mode, uses photomakeV2 (Latest version)   
+img2img sdxl  mode, uses photomakeV2 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev2.png)
 
-txt2img using lora and comic node (Latest version)   
+txt2img using lora and comic node (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_lora_comic.png)
 
 img2img2role in 1 image (Outdated version examples)   
@@ -260,37 +270,36 @@ Translate the text into other language examples, and the translation nodes in th
 Function Description of Nodes  
 ---   
 **<Storydiffusion_Model_Loader>**    
-* repo: using diffuser models ;     
-* ckptname:  using  community SDLX model selection;   
-* vae_id: some model need fb16 vae,
+* image: optional,The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI; 
+* controlnet:only ms function support;  
+* character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;if using  chinese prompt, need["角色名"] or ['角色名']  
+* repo_id: using diffuser models ;     
+* ckpt_name:  using  community SDLX model selection;   
+* vae_id: some model need fb16 vae,keep none is fine,
 * character_weights: Character weights saved using the save_character feature of the sampler node. Selecting "none/none" does not take effect! (Note that the saved character weights cannot be immediately recognized and require a restart of comfyUI);   
 * lora: Selecting SDXL Lora does not take effect when set to "none";   
-* lora_scale: The weight of Lora, which is enabled when Lora takes effect;   
+* lora_scale: The weight of Lora, which is enabled when Lora takes effect;
+* clip_vison: ms diffusion,story_maker,pulid_flux need clip_vision models;
+* controlnet_model_path: ms diffusion use only;    
 * trigger_words: The keyword for Lora will be automatically added to the prompt. When enabling Lora, please fill in the corresponding trigger_words for Lora;   
-* Scheduler: When selecting a sampler and adding characters to the same frame in the text and animation, if running continuously, an error will be reported. At this time, changing a sampler can continue running, but this bug has not been fixed yet;   
-* model_type: Select either the txt2img or img2img mode, and when using the txt2img mode, the sampler may not be connected to the image;   
-* id_number: How many roles are used, currently only supporting 1 or 2;   
+* Scheduler: When selecting a sampler and adding characters to the same frame in the text and animation, if running continuously, an error will be reported. At this time, changing a sampler can continue running, but this bug has not been fixed yet;      
 * sa32_degree/sa64_degree: an adjustable parameter for the attention layer;   
 * img_width/img_height: The height and width dimensions of the drawing.   
 * photomake_mode: choice v1 or v2 model;  
 * easy_function: try some new function... 
 
 **<Storydiffusion_Sampler>**      
-* pipe/info: The interface that must be linked;   
-* image: The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI;   
-* character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;if using  chinese prompt, need["角色名"] or ['角色名']  
+* model: The interface that must be linked;   
 * Scene prompts: The prompt for the scene description, [character name], must start at the beginning. It is best for both characters to appear once in the first two lines. [NC] At the beginning, the character does not appear (suitable for non character scenes). When [character A] and [character B], MS diffusion's dual character mode is enabled, and and the spaces before and after it cannot be ignored# Used for segmented prompt, rendering the entire segment, but only outputting the prompt after #;    
 * split prompt: The symbol for splitting the prompt, which does not take effect when it is empty. It is used to normalize paragraphs when the prompt is external. For example, when you pass in 10 lines of text, the hyphen may not be correct, but using a hyphen, such as ";", can effectively distinguish each line.     
 * negative prompt: only effective when img_style is No_style;      
 * seed/steps/cfg: suitable for commonly used functions in comfyUI;     
 * ip-adapter_strength: img2img controls the weight of ip-adapter in graph generation,only using in kolors;   
 * style_strength'ratio: Style weight control, which controls from which step the style takes effect. When the style consistency is not good, you can try increasing or decreasing this parameter;   
-* clip_vison: Only valid when two characters are in the same image ,need "clip_g.safetensors" in models/clip_vison;   
 * role-scale: only effective when two characters are in the same image, controlling the weight of the characters in the image;   
 * Mask_threshold: It is only effective when two roles are in the same picture, and controls the position of the role in the picture (MS system automatically assigns the role position according to prompt, so appropriate role position information description can be added to prompt);   
 * Start_step: Only effective when two characters are in the same image, controlling the number of starting steps for the character's position in the image   
 * Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;  
-* Controlnet_modelpath: Controlnet's community  model );   
 * Controllet_scale: control net weight;   
 * guidance_list: contrlol role's position;     
 
@@ -313,7 +322,6 @@ Function Description of Nodes
 * The process of generating images using PhotosMaker requires the IMG keyword in the character prompt column. You can use keywords such as a woman IMG, a man IMG, etc;   
 * No characters appear in the image, add [NC] in front of the scene prompt;   
 * Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
-
 
 Citation
 ------
