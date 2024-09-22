@@ -51,34 +51,42 @@ If the module is missing, please pip install
 
 3 Need  model 
 ----
-3.1.1base:   
-You can directly fill in the repo, such as:"stablityai/table diffusion xl base-1.0", or select the corresponding model in the local diffuser menu (provided that you have the model in the "models/diffuser" directory), or you can directly select a single SDXL community model. The priority of repo or local diffusers is higher than that of individual community models.    
+**3.1 base 1:(choice repo_id or ckpt_name)**     
+3.1.1 ckpt_name: for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors   
+3.1.2 repo_id:"stablityai/table diffusion xl base-1.0" or local "x:/xx/table diffusion xl base-1.0" # support  playground-v2.5-1024px-aesthetic   
 
-Supports all SDXL based diffusion models (such as "G161222/RealVisXL_V4.0", "sd-community/sdxl-flash"）， It also supports non SD models, such as ("stablediffusionapi/sdxl-unstable-diffusers-y", playground-v2.5-1024px-aesthetic）   
-When using your local SDXL monomer model (for example: Jumpernaut XL_v9-RunDiffusionPhoto_v2. safetensors), please set local_diffusers to none and download the corresponding config files to run.  
-
+**3.2 base 2:**   
 photomaker-v1.bin    [link](https://huggingface.co/TencentARC/PhotoMaker/tree/main)   
 photomaker-v2.bin    [link](https://huggingface.co/TencentARC/PhotoMaker-V2/tree/main)  
 ```
-├── ComfyUI/models/
-|      ├──photomaker/
+├── ComfyUI/models/photomaker/
 |             ├── photomaker-v1.bin
 |             ├── photomaker-v2.bin
 ```
+**3.3 optional function**
 
-3.1.2 using dual role same frame function:      
+**3.3.1 if using dual role same frame function(ms-diffuion)**:   
 Need download "ms_adapter.bin" : [link](https://huggingface.co/doge1516/MS-Diffusion/tree/main)    
 Need clip_vision model "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";   
-
 ```
-├── ComfyUI/models/
-|      ├──photomaker/
+├── ComfyUI/models/photomaker/
 |             ├── ms_adapter.bin
-|      ├──clip_vision/
+├── ComfyUI/models/clip_vision/
 |             ├── clip_vision_g.safetensors(2.35G) or CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors(3.43G)
 ```
+if using controlnet in ms-diffusion(Control_img image preprocessing, please use other nodes     ); 
+```
+├── ComfyUI/models/controlnet/   
+|     ├──xinsir/controlnet-openpose-sdxl-1.0    
+|     ├──xinsir/controlnet-scribble-sdxl-1.0   
+|     ├──diffusers/controlnet-canny-sdxl-1.0   
+|     ├──diffusers/controlnet-depth-sdxl-1.0   
+|     ├──controlnet-zoe-depth-sdxl-1.0  
+|     ├──TheMistoAI/MistoLine 
+|     ├──xinsir/controlnet-tile-sdxl-1.0
+```
 
-3.2 if using kolors:  
+**3.3.2 if using kolors:**     
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
 Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
@@ -140,37 +148,11 @@ ipa-faceid-plus.bin :Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.c
 |             ├── ipa-faceid-plus.bin
 ```
 
-3.3 The model file example for dual role controllnet is as follows, which only supports SDXL community controllnet    
-```
-├── ComfyUI/models/controlne/   
-|     ├──xinsir/controlnet-openpose-sdxl-1.0    
-|     ├──xinsir/controlnet-scribble-sdxl-1.0   
-|     ├──diffusers/controlnet-canny-sdxl-1.0   
-|     ├──diffusers/controlnet-depth-sdxl-1.0   
-|     ├──controlnet-zoe-depth-sdxl-1.0  
-|     ├──TheMistoAI/MistoLine 
-|     ├──xinsir/controlnet-tile-sdxl-1.0
-```
-Control_img image preprocessing, please use other nodes     
+**3.3.3 if using flux**
 
-3.4 using flux pulid  .   
-torch must > 0.24.0   
-```
-pip install optimum-quanto==0.2.4  
-```
-EVA02_CLIP_L_336_psz14_s6B.pt auto downlaod....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main)      
-DIAMONIK7777/antelopev2 auto downlaod....[https://huggingface.co/DIAMONIK7777/antelopev2/tree/main)    
-"pulid_flux_v0.9.0.safetensors" download from [link](https://huggingface.co/guozinan/PuLID/tree/main)     
-fp8 using flux1-dev-fp8.safetensors  from [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
-```
-├── ComfyUI/models/photomaker/
-|             ├── pulid_flux_v0.9.0.safetensors
-├── ComfyUI/models/clip_vision/
-|             ├── EVA02_CLIP_L_336_psz14_s6B.pt
-├── ComfyUI/models/checkpoints/
-|             ├── flux1-dev-fp8.safetensors
-```
-make sure ae.safetensors in you FLUX.1-dev dir,example:  
+**3.3.3.1 if using fp8 repo_id**     
+fill local flux repo dir in repo_id..      
+ 
 ```
 ├──any_path/black-forest-labs/FLUX.1-dev
 |      ├──model_index.json
@@ -205,7 +187,40 @@ make sure ae.safetensors in you FLUX.1-dev dir,example:
 |       ├── scheduler
 |          ├── scheduler_config.json
 ```
-3.5 using storymake..    
+**3.3.3.2 if using fp8 repo_id+ckpt_name**   
+fill local flux repo dir in repo_id and choice fp8 ckpt;  
+```
+├── ComfyUI/models/checkpoints/
+|             ├── flux1-dev-fp8.safetensors
+```
+**3.3.3.3 if using nf4 repo_id+ckpt_name**   
+fill local flux repo dir in repo_id and choice nf4 ckpt;  
+downlaod nf4 model  [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main)
+```
+├── ComfyUI/models/checkpoints/
+|             ├── rename nf4 ckpt
+```
+
+**3.3.3.4 using flux pulid,repo_id+ckpt_name**     .   
+torch must > 0.24.0   
+```
+pip install optimum-quanto==0.2.4  
+```
+EVA02_CLIP_L_336_psz14_s6B.pt auto downlaod....[link](https://huggingface.co/QuanSun/EVA-CLIP/tree/main)      
+DIAMONIK7777/antelopev2 auto downlaod....[https://huggingface.co/DIAMONIK7777/antelopev2/tree/main)    
+"pulid_flux_v0.9.0.safetensors" download from [link](https://huggingface.co/guozinan/PuLID/tree/main)     
+fp8 using flux1-dev-fp8.safetensors  from [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
+make sure ae.safetensors in you FLUX.1-dev dir,example:    
+```
+├── ComfyUI/models/photomaker/
+|             ├── pulid_flux_v0.9.0.safetensors
+├── ComfyUI/models/clip_vision/
+|             ├── EVA02_CLIP_L_336_psz14_s6B.pt
+├── ComfyUI/models/checkpoints/
+|             ├── flux1-dev-fp8.safetensors
+```
+
+**3.5 if using storymake..**    
 mask.bin from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#可以自动下载   
 buffalo_l from  [link](https://huggingface.co/RED-AIGC/StoryMaker/tree/main)#自动下载   
 RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动下载   
