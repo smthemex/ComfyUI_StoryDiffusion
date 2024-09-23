@@ -691,7 +691,7 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,
+        trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
@@ -810,7 +810,7 @@ def process_generation(
                         max_sequence_length=256,
                         height=height,
                         width=width,
-                        generator=torch.Generator("cpu").manual_seed(seed_)
+                        generator=generator
                     ).images
                 else:
                     if use_kolor:
@@ -870,10 +870,8 @@ def process_generation(
                 elif  use_flux:
                     if pulid:
                         id_image = resize_numpy_image_long(input_id_images_dict[character_key][0], 1024)
-                        use_true_cfg = abs(1.0 - 1.0) > 1e-2
-                        
+                        use_true_cfg = abs(role_scale - 1.0) > 1e-2
                         id_embeddings, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
-                       
                         strength = _Ip_Adapter_Strength
                         id_images= pipe.generate_image(
                             prompt=cur_positive_prompts,
@@ -886,7 +884,7 @@ def process_generation(
                             uncond_id_embeddings=uncond_id_embeddings,
                             id_weight=strength,
                             guidance=guidance_scale,
-                            true_cfg=1.0,
+                            true_cfg=role_scale,
                             max_sequence_length=128,
                         )
                     else:
@@ -902,7 +900,7 @@ def process_generation(
                             output_type="pil",
                             max_sequence_length=256,
                             guidance_scale=guidance_scale,
-                            generator=torch.Generator("cpu").manual_seed(seed_),
+                            generator=generator,
                         ).images
                 elif story_maker and not make_dual_only:
                     img = input_id_images_dict[character_key][0]
@@ -1046,7 +1044,7 @@ def process_generation(
                         num_inference_steps=_num_steps,
                         guidance_scale=guidance_scale,
                         num_images_per_prompt=1,
-                        generator= torch.Generator(device = "cuda").manual_seed(seed_),
+                        generator= generator,
                         face_crop_image=crop_image,
                         face_insightface_embeds=face_embeds,
                         nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
@@ -1073,7 +1071,7 @@ def process_generation(
                 if pulid:
                     img_id = input_id_images_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else empty_img
                     id_image = resize_numpy_image_long(img_id, 1024)
-                    use_true_cfg = abs(1.0 - 1.0) > 1e-2
+                    use_true_cfg = abs(role_scale - 1.0) > 1e-2
                     id_embeddings, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
                     strength = _Ip_Adapter_Strength
                     results_dict[real_prompts_ind] =pipe.generate_image(
@@ -1087,7 +1085,7 @@ def process_generation(
                         uncond_id_embeddings=uncond_id_embeddings,
                         id_weight=strength,
                         guidance=guidance_scale,
-                        true_cfg=1.0,
+                        true_cfg=role_scale,
                         max_sequence_length=128,
                     )
                 else:
@@ -1107,7 +1105,7 @@ def process_generation(
                         output_type="pil",
                         max_sequence_length=256,
                         guidance_scale=guidance_scale,
-                        generator=torch.Generator("cpu").manual_seed(seed_),
+                        generator=generator,
                     ).images[0]
             elif  story_maker and not make_dual_only:
                 img_2= input_id_images_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else input_id_images_dict[character_list[0]]
@@ -2180,7 +2178,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale)
 
         else:
             if story_maker:
@@ -2196,7 +2194,7 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale)
 
         for value in gen:
             print(type(value))
