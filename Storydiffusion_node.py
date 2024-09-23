@@ -2109,6 +2109,8 @@ class Storydiffusion_Sampler:
                     local_dir='models/antelopev2',
                 )
                 app_face = FaceInfoGenerator(root_dir=".")
+            else:
+                app_face=None
             pipeline_mask = None
         elif photomake_mode == "v2":
             from .utils.insightface_package import FaceAnalysis2, analyze_faces
