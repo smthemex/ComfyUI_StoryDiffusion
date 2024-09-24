@@ -800,6 +800,7 @@ def process_generation(
             cur_positive_prompts, cur_negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
+            print(f"sampler:{cur_positive_prompts}")
             if model_type == "txt2img":
                 if use_flux:
                     id_images = pipe(
@@ -983,10 +984,10 @@ def process_generation(
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
         
-    #print(real_prompts_inds)
+
     real_prompt_no, negative_prompt_style = apply_style_positive(style_name, "real_prompt")
     negative_prompt=str(negative_prompt)+str(negative_prompt_style)
-    #print(123,negative_prompt,)
+   
     for real_prompts_ind in real_prompts_inds:  # 非角色流程
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
@@ -997,7 +998,7 @@ def process_generation(
         generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt ,negative_prompt_style_no= apply_style_positive(style_name, real_prompt)
-        #print(real_prompt,333)
+        print(f"sampler:{real_prompt}")
         if model_type == "txt2img":
            # print(results_dict,real_prompts_ind)
             if use_flux:
@@ -1676,7 +1677,17 @@ class Storydiffusion_Model_Loader:
                 use_kolor=True
             if repo_id.rsplit("/")[-1] .lower() in "black-forest-labs/flux.1-dev,black-forest-labs/flux.1-schnell":
                 use_flux = True
-        
+ 
+        if use_kolor:
+            if model_type=="img2img" and not kolor_face:
+                kolor_ip_path=os.path.join(photomaker_dir, "ip_adapter_plus_general.bin")
+                if not os.path.exists(kolor_ip_path):
+                    hf_hub_download(
+                        repo_id="Kwai-Kolors/Kolors-IP-Adapter-Plus",
+                        filename="ip_adapter_plus_general.bin",
+                        local_dir=photomaker_dir,
+                    )
+                
         if not repo_id and not ckpt_path:
             raise "you need choice a model or repo_id"
         elif not repo_id and ckpt_path: # load ckpt
@@ -1730,8 +1741,7 @@ class Storydiffusion_Model_Loader:
                 from .kolors.models.modeling_chatglm import ChatGLMModel
                 from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
                 from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
-                from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import \
-                    StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
+                
                 text_encoder = ChatGLMModel.from_pretrained(
                     f'{repo_id}/text_encoder',torch_dtype=torch.float16).half()
                 vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
@@ -1750,10 +1760,18 @@ class Storydiffusion_Model_Loader:
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
                 else:
                     if kolor_face is False:
-                        image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-                            f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(
-                            dtype=torch.float16)
-                        ip_img_size = 336
+                        from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import \
+                            StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
+                        if clip_vision_path:
+                            image_encoder = clip_load(clip_vision_path).model
+                            ip_img_size = 224  # comfyUI defualt is use 224
+                            use_singel_clip = True
+                        else:
+                            image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+                                f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(
+                                dtype=torch.float16)
+                            ip_img_size = 336
+                            use_singel_clip = False
                         clip_image_processor = CLIPImageProcessor(size=ip_img_size, crop_size=ip_img_size)
                         unet = UNet2DConditionModelkolor.from_pretrained(f"{repo_id}/unet", revision=None, ).half()
                         pipe = StableDiffusionXLPipelinekoloripadapter(
@@ -1764,20 +1782,27 @@ class Storydiffusion_Model_Loader:
                             scheduler=scheduler,
                             image_encoder=image_encoder,
                             feature_extractor=clip_image_processor,
-                            force_zeros_for_empty_prompt=False
+                            force_zeros_for_empty_prompt=False,
+                            use_single_clip=use_singel_clip
                         )
                         if hasattr(pipe.unet, 'encoder_hid_proj'):
                             pipe.unet.text_encoder_hid_proj = pipe.unet.encoder_hid_proj
-                        
-                        pipe.load_ip_adapter(f'{repo_id}/Kolors-IP-Adapter-Plus', subfolder="",
-                                             weight_name=["ip_adapter_plus_general.bin"])
+                        pipe.load_ip_adapter(photomaker_dir,subfolder="",weight_name=["ip_adapter_plus_general.bin"])
                     else: #kolor ip faceid
                         from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter_FaceID import StableDiffusionXLPipeline as StableDiffusionXLPipelineFaceID
                         unet = UNet2DConditionModel.from_pretrained(f'{repo_id}/unet', revision=None).half()
-                        clip_image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-                            f'{repo_id}/clip-vit-large-patch14-336', ignore_mismatched_sizes=True)
-                        clip_image_encoder.to("cuda")
-                        clip_image_processor = CLIPImageProcessor(size=336, crop_size=336)
+        
+                        if clip_vision_path:
+                            clip_image_encoder = clip_load(clip_vision_path).model
+                            clip_image_processor = CLIPImageProcessor(size=224, crop_size=224)
+                            use_singel_clip=True
+                        else:
+                            clip_image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+                                f'{repo_id}/clip-vit-large-patch14-336', ignore_mismatched_sizes=True)
+                            clip_image_encoder.to("cuda")
+                            clip_image_processor = CLIPImageProcessor(size=336, crop_size=336)
+                            use_singel_clip = False
+                            
                         pipe = StableDiffusionXLPipelineFaceID(
                             vae=vae,
                             text_encoder=text_encoder,
@@ -1787,6 +1812,7 @@ class Storydiffusion_Model_Loader:
                             face_clip_encoder=clip_image_encoder,
                             face_clip_processor=clip_image_processor,
                             force_zeros_for_empty_prompt=False,
+                            use_single_clip=use_singel_clip,
                         )
                         pipe = pipe.to("cuda")
                         pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
@@ -1987,11 +2013,50 @@ class Storydiffusion_Model_Loader:
         # if device != "mps":
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
+        if story_maker:
+            from insightface.app import FaceAnalysis
+            app_face = FaceAnalysis(name='buffalo_l', root='./',
+                               providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+            app_face.prepare(ctx_id=0, det_size=(640, 640))
+            from transformers import pipeline
+            pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4", trust_remote_code=True)
+            # pillow_mask = pipe(image_path, return_mask=True)  # outputs a pillow mask
+        elif use_kolor:
+            if kolor_face:
+                from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
+                from huggingface_hub import snapshot_download
+                snapshot_download(
+                    'DIAMONIK7777/antelopev2',
+                    local_dir='models/antelopev2',
+                )
+                app_face = FaceInfoGenerator(root_dir=".")
+            else:
+                app_face=None
+            pipeline_mask = None
+        elif photomake_mode == "v2":
+            from .utils.insightface_package import FaceAnalysis2, analyze_faces
+            if auraface:
+                from huggingface_hub import snapshot_download
+                snapshot_download(
+                    "fal/AuraFace-v1",
+                    local_dir="models/auraface",
+                )
+                app_face = FaceAnalysis2(name="auraface",
+                                              providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
+                                              allowed_modules=['detection', 'recognition'])
+            else:
+                app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                              allowed_modules=['detection', 'recognition'])
+            app_face.prepare(ctx_id=0, det_size=(640, 640))
+            pipeline_mask = None
+        else:
+            app_face=None
+            pipeline_mask=None
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
                "scheduler":scheduler,"auraface":auraface,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
-               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image}
+               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image,"app_face":app_face,"pipeline_mask":pipeline_mask}
         return (model,)
 
 
@@ -2089,46 +2154,8 @@ class Storydiffusion_Sampler:
         character_prompt=model.get("character_prompt")
         control_image=model.get("control_image")
         image=model.get("image")
-        
-        if story_maker:
-            from insightface.app import FaceAnalysis
-            app_face = FaceAnalysis(name='buffalo_l', root='./',
-                               providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-            app_face.prepare(ctx_id=0, det_size=(640, 640))
-            from transformers import pipeline
-            pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4", trust_remote_code=True)
-            # pillow_mask = pipe(image_path, return_mask=True)  # outputs a pillow mask
-        elif use_kolor:
-            if kolor_face:
-                from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
-                from huggingface_hub import snapshot_download
-                snapshot_download(
-                    'DIAMONIK7777/antelopev2',
-                    local_dir='models/antelopev2',
-                )
-                app_face = FaceInfoGenerator(root_dir=".")
-            else:
-                app_face=None
-            pipeline_mask = None
-        elif photomake_mode == "v2":
-            from .utils.insightface_package import FaceAnalysis2, analyze_faces
-            if auraface:
-                from huggingface_hub import snapshot_download
-                snapshot_download(
-                    "fal/AuraFace-v1",
-                    local_dir="models/auraface",
-                )
-                app_face = FaceAnalysis2(name="auraface",
-                                              providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
-                                              allowed_modules=['detection', 'recognition'])
-            else:
-                app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
-                                              allowed_modules=['detection', 'recognition'])
-            app_face.prepare(ctx_id=0, det_size=(640, 640))
-            pipeline_mask = None
-        else:
-            app_face=None
-            pipeline_mask=None
+        pipeline_mask=model.get("pipeline_mask")
+        app_face=model.get("app_face")
         # 格式化文字内容
         if split_prompt:
             scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
