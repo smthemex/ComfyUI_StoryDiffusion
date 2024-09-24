@@ -6,11 +6,13 @@ You can using StoryDiffusion in ComfyUI.
 
 
 ## Updates:
-**2024/09/22**   
-* For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
-* Now,using story_maker or pulid_flux function ,need choice clip vision model (use 'clip_vision' menu);   
+**2024/09/24**   
+* Now if using Kolor's "ip-adapter" or "face ID", you can choose the monolithic model of clip_vision (such as :"clip-vit-large-patch14.safetensors") to load the image encoder. The change this brings is that Kolor's local directory can delete all files in the "clip-vit-large-patch14-336" and "Kolors-IP-Adapter-Plus" folders. Of course, because comfyUI defaults to clip image processing of "224" size , while Kolor defaults to 336 size, there will be a loss of accuracy and quality. Please refer to the image comparison in readme for details.
+* Another change is that we now need to port the model of "ip_adapter_plus_general.bin" in "kolor-ipadapter" to the "comfyUI/models/photomaker" directory;  
   
 **Previous updates：**  
+* For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
+* Now,using story_maker or pulid_flux function ,need choice clip vision model (use 'clip_vision' menu);   
 * add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
 * Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
 * Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
@@ -89,7 +91,17 @@ if using controlnet in ms-diffusion(Control_img image preprocessing, please use 
 **3.3.2 if using kolors:**     
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+```
+├── ComfyUI/models/photomaker/
+|             ├── ip_adapter_plus_general.bin
+```
 Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+```
+├── ComfyUI/models/photomaker/
+|             ├── ipa-faceid-plus.bin
+```
+and if using  Kolors-IP-Adapter-FaceID-Plus:  
+will auto download "DIAMONIK7777/antelopev2" insightface models....
 
 The file structure is shown in the following figure:
 ```
@@ -119,9 +131,17 @@ The file structure is shown in the following figure:
 |          ├── pytorch_model-00001-of-00007.bin to pytorch_model-00007-of-00007.bin
 |       ├── scheduler
 |          ├── scheduler_config.json
-|       ├── Kolors-IP-Adapter-Plus  # if using Kolors-IP-Adapter-Plus
+```
+if using monolithic model,choice a clip vision such as: "clip-vit-large-patch14.safetensors:   
+```
+├── ComfyUI/models/clip_vision/
+|             ├── clip-vit-large-patch14.safetensors  # Kolors-IP-Adapter-Plus or Kolors-IP-Adapter-FaceID-Plus using same checkpoints. 
+```
+or using default file such as below:   
+```
+├── any path/Kwai-Kolors/Kolors/
+|       ├──Kolors-IP-Adapter-Plus  # if using Kolors-IP-Adapter-Plus
 |          ├──model_index.json
-|          ├──ip_adapter_plus_general.bin
 |          ├──config.json
 |          ├──image_encoder
 |               ├──config.json
@@ -139,13 +159,6 @@ The file structure is shown in the following figure:
 |          ├──tokenizer.json
 |          ├──tokenizer_config.json
 |          ├──vocab.json
-```
-and if using  Kolors-IP-Adapter-FaceID-Plus:  
-will auto download "DIAMONIK7777/antelopev2" insightface models....
-ipa-faceid-plus.bin :Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
-```
-├── ComfyUI/models/photomaker/
-|             ├── ipa-faceid-plus.bin
 ```
 
 **3.3.3 if using flux**
@@ -203,6 +216,7 @@ downlaod nf4 model  [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/
 
 **3.3.3.4 using flux pulid,repo_id+ckpt_name**     .   
 torch must > 0.24.0   
+optimum-quanto must >=0.2.4 
 ```
 pip install optimum-quanto==0.2.4  
 ```
@@ -256,6 +270,9 @@ txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快,示例图为旧节�
 
 img2img mode use auraface photomake V2  开启v2模式,示例图为旧节点 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newest.png)
+
+img2img mode  kolors ip-adapter using monolithic model   可图使用单体模型来解码图片 最新 (Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_using_comfyclip.png)
 
 img2img model use kolors ip adapter,and using chinese prompt 开启kolor模式,使用中文提示词,示例图为旧节点 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter_use_chinese.png)
