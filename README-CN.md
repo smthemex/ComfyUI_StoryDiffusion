@@ -3,12 +3,14 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
-**2024/09/22**  
+**2024/09/24**  
+* 现在如果使用kolor的ipadapter 或者face ID，可以选择clip_vsion的单体模型（比如：clip-vit-large-patch14.safetensors）来加载image encoder，由此带来的改变是：kolor的本地目录可以删掉“clip-vit-large-patch14-336” 和“Kolors-IP-Adapter-Plus” 2个文件夹的所有文件，当然，因为comfyUI默认的clip图片处理是224，而kolor默认的是336，会有精度和质量的损失，详细看readme里的图片对比。
+* 另一个改动是，现在需要将”kolor ipadapter“的“ip_adapter_plus_general.bin“的模型移到了ComfyUI/models/photomaker目录下；  
+
+**既往更新**  
 * 更新了插件的布局,具体看示例,主要变动有,现在根据输入的角色的提示词行数,来判断是单角色还是双角色,我看有些自媒体说我这个只能生成2张图片,完全无语,生成多少张是看你的电脑配置的;
 * 去掉了图生图和文生图的菜单,如果模型加载节点有图片输入就是图生图,没有就是文生图.
 * 把pulid_flux和storymaker的clip_vision模型改成单体模型加载方式,避免自动下载爆C盘
-
-**既往更新**  
 * 加入小红书storymaker方法的功能，开始方式，在easy function输入 maker,dual(是只用它来生成双角色同框),输入maker就是完全用storymaker来跑,相当于story_maker插件;  
 * 加入flux pulid 支持，目前fp8，和fp16能正常出图，但是fp16需要30G以上显存，可以忽略，需要有flux的diffuser文件(在repo输入)，以及对应的模型，然后easy function 填入pilid,fp8,cpu就可以开启，如果你的显存大于16G可以试试取消cpu，这样会快一点。nf4也能跑通，但是量化的思路不同，无法正常出图
 * 加入kolor face id的支持，开启条件，在easyfunction里输入face，然后repo输入你的kolor diffuser模型的绝对路径地址。
@@ -20,8 +22,8 @@ StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/S
 * 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
 * Flux模式,可以用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
 * 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！   
-* 特别注意，因为可灵模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
-* 加入可灵kolor模型的支持，支持文生图和可灵ipadapter的图生图，需要的模型文件见下方；   
+* 特别注意，因为可图的文本编码模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
+* 加入可图kolor模型的支持，支持文生图和可图ipadapter的图生图，需要的模型文件见下方；   
 * 加入photomakerV2的支持，由于V2版需要insight face ，所以不会装的谨慎尝试；     
 * controlnet现在使用单体模型；  
 * 新增ms-diffsion的自动布局控制按钮，默认是否，为程序自动。   
@@ -88,12 +90,23 @@ pip install insightface==0.7.3
    
 ```
 
-**3.3.2 如果要使用kolor（可灵），下载链接如下**      
+**3.3.2 如果要使用kolor（可图），下载链接如下**      
 Kwai-Kolors    [link](https://huggingface.co/Kwai-Kolors/Kolors/tree/main)    
 Kolors-IP-Adapter-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-Plus/tree/main)   
+```
+├── ComfyUI/models/photomaker/
+|             ├── ip_adapter_plus_general.bin
+```
 Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
+```
+├── ComfyUI/models/photomaker/
+|             ├── ipa-faceid-plus.bin
+```
 
-文件结构如下，注意是有层级的：
+如果使用kolor的face ip还需要:  
+自动下载的insightface模型 "DIAMONIK7777/antelopev2" insightface models....
+
+Kolor文件结构如下，注意是有层级的：
 ```
 ├── 你的本地任意地址/Kwai-Kolors/Kolors
 |      ├──model_index.json
@@ -121,9 +134,17 @@ Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-
 |          ├── pytorch_model-00001-of-00007.bin to pytorch_model-00007-of-00007.bin（7个模型，别下少了）
 |       ├── scheduler
 |          ├── scheduler_config.json
-|       ├── Kolors-IP-Adapter-Plus
+```
+如果使用单体的clip_vision模型，
+```
+├── ComfyUI/models/clip_vision/
+|             ├── clip-vit-large-patch14.safetensors  # Kolors-IP-Adapter-Plus or Kolors-IP-Adapter-FaceID-Plus using same checkpoints. 
+```
+如果不使用单体clip_vision模型，
+```
+├── any path/Kwai-Kolors/Kolors/
+|       ├──Kolors-IP-Adapter-Plus  # if using Kolors-IP-Adapter-Plus
 |          ├──model_index.json
-|          ├──ip_adapter_plus_general.bin
 |          ├──config.json
 |          ├──image_encoder
 |               ├──config.json
@@ -141,13 +162,6 @@ Kolors-IP-Adapter-FaceID-Plus  [link](https://huggingface.co/Kwai-Kolors/Kolors-
 |          ├──tokenizer.json
 |          ├──tokenizer_config.json
 |          ├──vocab.json
-```
-如果使用kolor的face ip还需要:  
-自动下载的insightface模型 "DIAMONIK7777/antelopev2" insightface models....
-ipa-faceid-plus.bin 模型下载地址，放在如下目录  [link](https://huggingface.co/Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus)
-```
-├── ComfyUI/models/photomaker/
-|             ├── ipa-faceid-plus.bin
 ```
 
 **3.3.3 如果要使用 flux**   
