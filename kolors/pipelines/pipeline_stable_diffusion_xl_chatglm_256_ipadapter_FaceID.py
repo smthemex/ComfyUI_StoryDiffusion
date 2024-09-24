@@ -133,15 +133,24 @@ class StableDiffusionXLPipeline(DiffusionPipeline, FromSingleFileMixin, LoraLoad
         force_zeros_for_empty_prompt: bool = True,
         face_clip_encoder: CLIPVisionModelWithProjection = None,
         face_clip_processor: CLIPImageProcessor = None,
+        use_single_clip=None,
     ):
         super().__init__()
-
+        
+        self.use_single_clip=use_single_clip
         #### image project with Q-former for FaceID-Plus
         if face_clip_encoder is not None:
-            self.image_proj_model = self.init_ip_adapter_proj_layer(
-                clip_embeddings_dim = face_clip_encoder.config.hidden_size,
-                num_tokens = 6
-            )
+            if self.use_single_clip:
+                self.image_proj_model = self.init_ip_adapter_proj_layer(
+                    clip_embeddings_dim=1024,
+                    num_tokens=6
+                )
+            else:
+                self.image_proj_model = self.init_ip_adapter_proj_layer(
+                    clip_embeddings_dim=face_clip_encoder.config.hidden_size,  #
+                    num_tokens=6
+                )
+                
         else:
             raise NotImplemented("face clip encoder is not provided...")
             self.image_proj_model = None
@@ -623,12 +632,12 @@ class StableDiffusionXLPipeline(DiffusionPipeline, FromSingleFileMixin, LoraLoad
     def get_clip_feat(self, face_crop_image, device):
         face_clip_images = self.face_clip_processor(images = face_crop_image, return_tensors = "pt").pixel_values
         face_clip_images = face_clip_images.to(device, dtype = torch.float16)
-
         with torch.no_grad():
-            face_clip_embeddings = self.face_clip_encoder(
-                face_clip_images, 
-                output_hidden_states = True
-            ).hidden_states[-2]
+            if self.use_single_clip:
+                face_clip_embeddings = self.face_clip_encoder(pixel_values=face_clip_images, intermediate_output=-2)[1]
+            else:
+                face_clip_embeddings = \
+                self.face_clip_encoder(face_clip_images, output_hidden_states=True).hidden_states[-2]
         return face_clip_embeddings
 
     def get_fused_face_embedds(self, face_insightface_embeds, face_crop_image, num_images_per_prompt, device):
