@@ -140,9 +140,12 @@ class StableDiffusionXLPipeline(DiffusionPipeline,  FromSingleFileMixin, LoraLoa
         image_encoder: CLIPVisionModelWithProjection = None,
         feature_extractor: CLIPImageProcessor = None,
         force_zeros_for_empty_prompt: bool = True,
+        use_single_clip=False
     ):
         super().__init__()
-
+        
+        self.use_single_clip=use_single_clip
+        
         self.register_modules(
             vae=vae,
             text_encoder=text_encoder,
@@ -450,17 +453,27 @@ class StableDiffusionXLPipeline(DiffusionPipeline,  FromSingleFileMixin, LoraLoa
 
         image = image.to(device=device, dtype=dtype)
         if output_hidden_states:
-            image_enc_hidden_states = self.image_encoder(image, output_hidden_states=True).hidden_states[-2]
+            if self.use_single_clip:
+                image_enc_hidden_states=self.image_encoder(pixel_values=image, intermediate_output=-2)[1]
+            else:
+                image_enc_hidden_states = self.image_encoder(image, output_hidden_states=True).hidden_states[-2]
             image_enc_hidden_states = image_enc_hidden_states.repeat_interleave(num_images_per_prompt, dim=0)
-            uncond_image_enc_hidden_states = self.image_encoder(
-                torch.zeros_like(image), output_hidden_states=True
-            ).hidden_states[-2]
+            if self.use_single_clip:
+                uncond_image_enc_hidden_states =self.image_encoder(pixel_values=torch.zeros_like(image), intermediate_output=-2)[1]
+            else:
+                uncond_image_enc_hidden_states = self.image_encoder(
+                    torch.zeros_like(image), output_hidden_states=True
+                ).hidden_states[-2]
+
             uncond_image_enc_hidden_states = uncond_image_enc_hidden_states.repeat_interleave(
                 num_images_per_prompt, dim=0
             )
             return image_enc_hidden_states, uncond_image_enc_hidden_states
         else:
-            image_embeds = self.image_encoder(image).image_embeds
+            if self.use_single_clip:
+                image_embeds=self.image_encoder(pixel_values=image, intermediate_output=-2)[2]
+            else:
+                image_embeds = self.image_encoder(image).image_embeds
             image_embeds = image_embeds.repeat_interleave(num_images_per_prompt, dim=0)
             uncond_image_embeds = torch.zeros_like(image_embeds)
 
@@ -950,5 +963,3 @@ class StableDiffusionXLPipeline(DiffusionPipeline,  FromSingleFileMixin, LoraLoa
         return StableDiffusionXLPipelineOutput(images=image)
 
 
-if __name__ == "__main__":
-    pass
