@@ -1,4 +1,3 @@
-<div align="center">
 <h1> ComfyUI_StoryDiffusion：You can using StoryDiffusion in ComfyUI.</h1>
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
@@ -9,32 +8,32 @@
 * make easy and comfy
   
 ## Function introduction  
-**story-diffusion**  
+**story-diffusion**    
 * Support img2img & txt2img，All you need to do is select an SDXL model in“ckpt_name”menu  to get started, support sdxl lora;  
 * If using img2img,You can choose between the v1 or v2 version of PhotoMaker checkpoints(Automatic downloads);  phtomaker v2 need insightface and the models that go with it;
 
-**ms-diffusion**  
+**ms-diffusion**    
 * Enabled when 2 characters are required to appear in the same image, When [roleA] and [roleB] appear in a scene prompt at the same time, it will be automatically enabled;
 * Of course the "ms_adapter.bin" model is also required, and the "clip_vision_g.safetensors"I is selected in the clip_vision;
 * MS supports ControlNet, and a dual-role prompt requires a preprocessed ControlNet picture.
 
-**story-maker**
+**story-maker**  
 * "story-maker“ is similar to "story-diffusion", currently only supports img2img, which features the ability to migrate the character's clothing and supports dual characters with the same picture;
 * To turn on this function, you need to enter 'maker' in easy-function; Then select an sdxl model and select the "clip_vision_H.safetensors" model in the clip-vision,The companion “mask.bin” model and“insightface"model are automatically downloaded;   
 * If you enter 'maker,dual', the function of using 'story-diffusion'  in the front section and using 'story-maker' in the same picture for both characters will be enabled
 * The method requires a mask, so “RMBG-1.4” is built-in, which can be downloaded automatically；
 
-**kolor**
+**kolor**  
 * With kolor, you need to enter the local path of kolor in the repo_id, using '/' splitting the directory;You can use "clip-vit-large-patch14.safetensors", or the image encoder in the repo;
 * Kolor supports img2img (IPadapeter and FaceID), txt2img,The matching model will be automatically downloaded, and the details can be found in the README model content; 
 * Kolor supports prompt input in all Chinese characters, note that the character name needs to be changed to ['张三']；
 * using kolor FaceId function, need fill easy function "face",
 
-**Flux and PULID-FLUX**
+**Flux and PULID-FLUX**  
 * Flux supports img2img and txt2img, and supports FP8 and NF4 (recommended) quantization models；To enable it, enter the local path of flux diffuser in 'repo_id' and select the corresponding model in 'ckpt-name';example fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"; 
 * PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.ptin ' clip-vision, 'ae.safetensors' in vae, fill in 'pulid, fp8, cpu' in 'easy-function' , if your VRAM is about 24G, you can try to remove the cpu;The accompanying 'insightface' model will be automatically downloaded; 
 
-1.Installation
+1.Installation  
 -----
   In the ./ComfyUI /custom_node directory, run the following:   
 ```
@@ -257,31 +256,31 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
-**story-make**
+**story-make**   
 img2img  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
-**flux-pulid**
+**flux-pulid**   
 img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新示例(Latest version) 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
 
-**kolor-face**
+**kolor-face**   
 img2img kolor face，参数输入没变化，非最新示例  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
 
-**flux-nf4**
+**flux-nf4**   
 * txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快，非最新示例 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 * flux img2img 图生图，注意用ip的参数来控制噪声（多样性），非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 
-**ms-diffusion**
+**ms-diffusion**   
 * img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
 * ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
-**story-diffusion**
+**story-diffusion**   
 * photomake v2 in img2img normal 最基础的story流程，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/phtomakev2.png)
 * txt2img using lora and comic node (outdated version examples)   
@@ -346,7 +345,8 @@ Function Description of Nodes
 * No characters appear in the image, add [NC] in front of the scene prompt;   
 * Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
 
-**Previous updates**
+Previous updates
+----
 * Now if using Kolor's "ip-adapter" or "face ID", you can choose the monolithic model of clip_vision (such as :"clip-vit-large-patch14.safetensors") to load the image encoder. The change this brings is that Kolor's local directory can delete all files in the "clip-vit-large-patch14-336" and "Kolors-IP-Adapter-Plus" folders. Of course, because comfyUI defaults to clip image processing of "224" size , while Kolor defaults to 336 size, there will be a loss of accuracy and quality. Please refer to the image comparison in readme for details.
 * Another change is that we now need to port the model of "ip_adapter_plus_general.bin" in "kolor-ipadapter" to the "comfyUI/models/photomaker" directory;  
 * For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
