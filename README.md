@@ -1,37 +1,38 @@
-# ComfyUI_StoryDiffusion
-You can using StoryDiffusion in ComfyUI.
+<div align="center">
+<h1> ComfyUI_StoryDiffusion：You can using StoryDiffusion in ComfyUI.</h1>
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
-
 ## Updates:
-**2024/09/24**   
-* Now if using Kolor's "ip-adapter" or "face ID", you can choose the monolithic model of clip_vision (such as :"clip-vit-large-patch14.safetensors") to load the image encoder. The change this brings is that Kolor's local directory can delete all files in the "clip-vit-large-patch14-336" and "Kolors-IP-Adapter-Plus" folders. Of course, because comfyUI defaults to clip image processing of "224" size , while Kolor defaults to 336 size, there will be a loss of accuracy and quality. Please refer to the image comparison in readme for details.
-* Another change is that we now need to port the model of "ip_adapter_plus_general.bin" in "kolor-ipadapter" to the "comfyUI/models/photomaker" directory;  
+**2024/09/27**   
+* make easy and comfy
   
-**Previous updates：**  
-* For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
-* Now,using story_maker or pulid_flux function ,need choice clip vision model (use 'clip_vision' menu);   
-* add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
-* Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
-* Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
-* Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
-* AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
-* using img crop to fix ms_diffusion only using square's error;
-* change W and H global names,it cause some error;
-* fix runway error,when loader single model. 
-* The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
-* Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
-* support Flux ,1.only using fp8 repo,fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev" and ckpt_name="none";if save .pt,fill easy function "save",2. using unet,fill local repo and choice a fp8 Unet(like Kijai/flux-fp8, AWPortrait-FL-fp8.safetensors. *.pt), 3. using fn4,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  
-* Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";       
-* 2 role in 1 img now using [A]...[B]... mode,  
-* Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
-* support photomaker V2;  
-* ControlNet now uses community models.   
-* The base model now has only two options: using repo input or selecting the community model...  
-* Introducing Controlnet for dual character co image, supporting multi image introduction, 
-* Add the function of saving and loading character models   
+## Function introduction  
+**story-diffusion**  
+* Support img2img & txt2img，All you need to do is select an SDXL model in“ckpt_name”menu  to get started, support sdxl lora;  
+* If using img2img,You can choose between the v1 or v2 version of PhotoMaker checkpoints(Automatic downloads);  phtomaker v2 need insightface and the models that go with it;
+
+**ms-diffusion**  
+* Enabled when 2 characters are required to appear in the same image, When [roleA] and [roleB] appear in a scene prompt at the same time, it will be automatically enabled;
+* Of course the "ms_adapter.bin" model is also required, and the "clip_vision_g.safetensors"I is selected in the clip_vision;
+* MS supports ControlNet, and a dual-role prompt requires a preprocessed ControlNet picture.
+
+**story-maker**
+* "story-maker“ is similar to "story-diffusion", currently only supports img2img, which features the ability to migrate the character's clothing and supports dual characters with the same picture;
+* To turn on this function, you need to enter 'maker' in easy-function; Then select an sdxl model and select the "clip_vision_H.safetensors" model in the clip-vision,The companion “mask.bin” model and“insightface"model are automatically downloaded;   
+* If you enter 'maker,dual', the function of using 'story-diffusion'  in the front section and using 'story-maker' in the same picture for both characters will be enabled
+* The method requires a mask, so “RMBG-1.4” is built-in, which can be downloaded automatically；
+
+**kolor**
+* With kolor, you need to enter the local path of kolor in the repo_id, using '/' splitting the directory;You can use "clip-vit-large-patch14.safetensors", or the image encoder in the repo;
+* Kolor supports img2img (IPadapeter and FaceID), txt2img,The matching model will be automatically downloaded, and the details can be found in the README model content; 
+* Kolor supports prompt input in all Chinese characters, note that the character name needs to be changed to ['张三']；
+* using kolor FaceId function, need fill easy function "face",
+
+**Flux and PULID-FLUX**
+* Flux supports img2img and txt2img, and supports FP8 and NF4 (recommended) quantization models；To enable it, enter the local path of flux diffuser in 'repo_id' and select the corresponding model in 'ckpt-name';example fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"; 
+* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.ptin ' clip-vision, 'ae.safetensors' in vae, fill in 'pulid, fp8, cpu' in 'easy-function' , if your VRAM is about 24G, you can try to remove the cpu;The accompanying 'insightface' model will be automatically downloaded; 
 
 1.Installation
 -----
@@ -45,7 +46,7 @@ git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
 ```
 pip install -r requirements.txt
 ```
-if using photomakerV2,need:  
+if using photomaker V2，pulid-flux，kolor，story-make:  
 ```
 pip install insightface==0.7.3  or new   
 ```
@@ -214,7 +215,7 @@ downlaod nf4 model  [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/
 |             ├── rename nf4 ckpt
 ```
 
-**3.3.3.4 using flux pulid,repo_id+ckpt_name**     .   
+**3.3.3.4 using flux pulid,clip+ckpt_name**     .   
 torch must > 0.24.0   
 optimum-quanto must >=0.2.4 
 ```
@@ -225,6 +226,7 @@ DIAMONIK7777/antelopev2 auto downlaod....[https://huggingface.co/DIAMONIK7777/an
 "pulid_flux_v0.9.0.safetensors" download from [link](https://huggingface.co/guozinan/PuLID/tree/main)     
 fp8 using flux1-dev-fp8.safetensors  from [link](https://huggingface.co/Kijai/flux-fp8/tree/main)       
 make sure ae.safetensors in you FLUX.1-dev dir,example:    
+
 ```
 ├── ComfyUI/models/photomaker/
 |             ├── pulid_flux_v0.9.0.safetensors
@@ -232,6 +234,9 @@ make sure ae.safetensors in you FLUX.1-dev dir,example:
 |             ├── EVA02_CLIP_L_336_psz14_s6B.pt
 ├── ComfyUI/models/checkpoints/
 |             ├── flux1-dev-fp8.safetensors
+├── ComfyUI/models/clip/
+|             ├── t5xxl_fp8_e4m3fn.safetensors
+|             ├── clip_l.safetensors
 ```
 
 **3.5 if using storymake..**    
@@ -252,51 +257,36 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
-img2img mode only use storymaker  只用storymaker生成(包括双角色),最新 (Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual.png)
+**story-make**
+img2img  纯storymaker生成，非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
-img2img mode use storymaker for dual role only,只用storymaker生成双角色,单角色用diffusion生成,最新(Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/using_storymake_dual_only.png)
+**flux-pulid**
+img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新示例(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
 
-img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新(Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/pulid_flux.png)
+**kolor-face**
+img2img kolor face，参数输入没变化，非最新示例  (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
 
-img2img mode use nf4 flux  开启flux nf4模式,速度最快,示例图为旧节点(outdated version examples)  
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img2role.png)
-
-txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快,示例图为旧节点 (outdated version examples)        
+**flux-nf4**
+* txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快，非最新示例 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
+* flux img2img 图生图，注意用ip的参数来控制噪声（多样性），非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 
-img2img mode use auraface photomake V2  开启v2模式,示例图为旧节点 (outdated version examples)        
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/newest.png)
-
-img2img mode  kolors ip-adapter using monolithic model   可图使用单体模型来解码图片 最新 (Latest version) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_using_comfyclip.png)
-
-img2img model use kolors ip adapter,and using chinese prompt 开启kolor模式,使用中文提示词,示例图为旧节点 (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter_use_chinese.png)
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_ipadapter.png)
-
-img2img model use kolors ip adapter face id  (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor_faceid.png)
-
-img2img sdxl mode, uses photomakeV1 (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev1.png)
-
-img2img sdxl  mode, uses photomakeV2 (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/photomakev2.png)
-
-txt2img using lora and comic node (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_lora_comic.png)
-
-img2img2role in 1 image (Outdated version examples)   
+**ms-diffusion**
+* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
-
-ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
+* ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
-Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
+**story-diffusion**
+* photomake v2 in img2img normal 最基础的story流程，非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/phtomakev2.png)
+* txt2img using lora and comic node (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_lora_comic.png)
+* Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
 
 Function Description of Nodes  
@@ -304,6 +294,7 @@ Function Description of Nodes
 **<Storydiffusion_Model_Loader>**    
 * image: optional,The interface that must be linked to the image generation diagram. For dual roles, please follow the example and use the built-in image batch node in comfyUI; 
 * controlnet:only ms function support;  
+* clip:Connect the two clip nodes of Comfyui（using flux-pulid）
 * character prompt: The prompt for the character, [character name] must be at the beginning. If using the graphic mode, the keyword "img" must be added, such as a man img;if using  chinese prompt, need["角色名"] or ['角色名']  
 * repo_id: using diffuser models ;     
 * ckpt_name:  using  community SDLX model selection;   
@@ -323,17 +314,16 @@ Function Description of Nodes
 **<Storydiffusion_Sampler>**      
 * model: The interface that must be linked;   
 * Scene prompts: The prompt for the scene description, [character name], must start at the beginning. It is best for both characters to appear once in the first two lines. [NC] At the beginning, the character does not appear (suitable for non character scenes). When [character A] and [character B], MS diffusion's dual character mode is enabled, and and the spaces before and after it cannot be ignored# Used for segmented prompt, rendering the entire segment, but only outputting the prompt after #;    
-* split prompt: The symbol for splitting the prompt, which does not take effect when it is empty. It is used to normalize paragraphs when the prompt is external. For example, when you pass in 10 lines of text, the hyphen may not be correct, but using a hyphen, such as ";", can effectively distinguish each line.     
 * negative prompt: only effective when img_style is No_style;      
 * seed/steps/cfg: suitable for commonly used functions in comfyUI;     
 * ip-adapter_strength: img2img controls the weight of ip-adapter in graph generation,only using in kolors;   
 * style_strength'ratio: Style weight control, which controls from which step the style takes effect. When the style consistency is not good, you can try increasing or decreasing this parameter;   
 * role-scale: only effective when two characters are in the same image, controlling the weight of the characters in the image;   
-* Mask_threshold: It is only effective when two roles are in the same picture, and controls the position of the role in the picture (MS system automatically assigns the role position according to prompt, so appropriate role position information description can be added to prompt);   
+* Mask_threshold: It is only effective when two roles are in the same picture, and controls the position of the role in the picture (MS system automatically assigns the role position according to prompt, so appropriate role position information description can be added to prompt)(ms-diffusion only);   
 * Start_step: Only effective when two characters are in the same image, controlling the number of starting steps for the character's position in the image   
 * Save_character: Whether to save the character weights of the current character, file in/ Under ComfyUI_StoryDiffusion/weights/pt, use time as the file name;  
-* Controllet_scale: control net weight;   
-* guidance_list: contrlol role's position;     
+* Controllet_scale: control net weight,(ms-diffusion only);   
+* guidance_list: contrlol role's position(ms-diffusion only);     
 
 **<Comic_Type>**        
 * Fonts list: The puzzle node supports custom fonts (place the font file in the fonts directory. fonts/you_font. ttf);   
@@ -350,10 +340,37 @@ Function Description of Nodes
 * Playground v2.5 can be effective on txt2img, and there is no Playground v2.5 style Lora available when accelerated Lora can be used;   
 * Role-scale, mask_threshold, and start_step mainly regulate the randomness and style consistency of two characters in the same frame;   
 * The consistency of style can be adjusted between ip-adapter_strength and style_strength'ratio in img2img;   
-* Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);    * By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
-* The process of generating images using PhotosMaker requires the IMG keyword in the character prompt column. You can use keywords such as a woman IMG, a man IMG, etc;   
+* Preprocess translation text nodes, please refer to the example diagram for usage methods. (Pay attention to changing the font for Chinese or other East Asian characters);    
+* By default, use the ";" at the end of each paragraph to divide the paragraph. After translation into Chinese, there is a chance that it will be translated as ";", so remember to change it to ";", otherwise it will be a sentence.   
+* The process of generating images using PhotosMaker requires the "img" keyword in the character prompt column. You can use keywords such as a woman "img" , a man img , etc;   
 * No characters appear in the image, add [NC] in front of the scene prompt;   
 * Segmented prompt, using #, such as AAAA # BBBB, will generate AAAA content, but the text will only display BBBB   
+
+**Previous updates**
+* Now if using Kolor's "ip-adapter" or "face ID", you can choose the monolithic model of clip_vision (such as :"clip-vit-large-patch14.safetensors") to load the image encoder. The change this brings is that Kolor's local directory can delete all files in the "clip-vit-large-patch14-336" and "Kolors-IP-Adapter-Plus" folders. Of course, because comfyUI defaults to clip image processing of "224" size , while Kolor defaults to 336 size, there will be a loss of accuracy and quality. Please refer to the image comparison in readme for details.
+* Another change is that we now need to port the model of "ip_adapter_plus_general.bin" in "kolor-ipadapter" to the "comfyUI/models/photomaker" directory;  
+* For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
+* Now,using story_maker or pulid_flux function ,need choice clip vision model (use 'clip_vision' menu);   
+* add StoryMaker from From: [StoryMaker](https://github.com/RedAIGC/StoryMaker) to make dual role..or normal img2img,as detailed in the following text 3.5 ,fill "maker,dual" in easy function to using StoryMaker for dual role; 
+* Add " PulID FLUX " function, In my testing, a minimum of 12GB of VRAM can run normally,now you can fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev",and fill easy function "pilid,fp8,cpu"(if you Vram>30G,can remove cpu,and using Kijai/flux-fp8,if you Vram>45G,can remove fp8,cpu), although it is a bit slow if using cpu! ,Of course, some models need to be prepared, as detailed in the following text;
+* Add kolor FaceId function, now you can fill "xxx:/xxx/xxx/Kwai-Kolors/Kolors",and fill easy function "face",Of course, some models need to be prepared, as detailed in the following text; 
+* Add diffusers'img2img codes( Not commit diffusers yet),Now you can using flux img2img function. in flux img2img,"guidance_scale" is usually 3.5 ,you can change ip-adapter_strength's number to Control the noise of the output image, the closer the number is to 1, the less it looks like the original image, and the closer it is to 0, the more it looks like the original image. Correspondingly, your generated step count is a multiple of this value, which means that if you enter 50 steps, the actual number of steps taken is 50 * 0.8 (0.8 is the value of change ip-adapter_strength) #you can see exmaple img
+* AWPortrait-FL-fp8.safetensors is support if using fp8 mode,..  
+* using img crop to fix ms_diffusion only using square's error;
+* change W and H global names,it cause some error;
+* fix runway error,when loader single model. 
+* The loading speed of the NF4 model is many times faster than FP8, so I recommend using the NF4 model to run Flux. I have included the workflow of NF4 in the example，
+* Add an "easy_function" for debugging new function. This time, I have added support for "auraface" in "Photomake V2". You can enter "auraface" into the "easy_function" to test this method
+* support Flux ,1.only using fp8 repo,fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev" and ckpt_name="none";if save .pt,fill easy function "save",2. using unet,fill local repo and choice a fp8 Unet(like Kijai/flux-fp8, AWPortrait-FL-fp8.safetensors. *.pt), 3. using fn4,need download weights at [link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main),put weight in "comfyui/models/checkpoints/";fill local "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"  
+* Now clip checkpoints no need diffusers_repo,you can using "clip_g.safetensors" or other base from "CLIP-ViT-bigG-14-laion2B-39B-b160k";       
+* 2 role in 1 img now using [A]...[B]... mode,  
+* Support "kolors" text2img and "kolors"ipadapter img2img,using repo like :"xxx:/xxx/xxx/Kwai-Kolors/Kolors"  (Please refer to the end of the article for detailed file combinations)  
+* support photomaker V2;  
+* ControlNet now uses community models.   
+* The base model now has only two options: using repo input or selecting the community model...  
+* Introducing Controlnet for dual character co image, supporting multi image introduction, 
+* Add the function of saving and loading character models   
+
 
 Citation
 ------

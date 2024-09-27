@@ -43,8 +43,8 @@ def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str) -> dict[
     img_ids[..., 2] = img_ids[..., 2] + torch.arange(w // 2)[None, :]
     img_ids = repeat(img_ids, "h w c -> b (h w) c", b=bs)
 
-    if isinstance(prompt, str):
-        prompt = [prompt]
+    # if isinstance(prompt, str):
+    #     prompt = [prompt]
     txt = t5(prompt)
     if txt.shape[0] == 1 and bs > 1:
         txt = repeat(txt, "1 ... -> bs ...", bs=bs)
@@ -56,10 +56,10 @@ def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str) -> dict[
 
     return {
         "img": img,
-        "img_ids": img_ids.to(img.device),
-        "txt": txt.to(img.device),
-        "txt_ids": txt_ids.to(img.device),
-        "vec": vec.to(img.device),
+        "img_ids": img_ids.to(img.device,torch.bfloat16),
+        "txt": txt.to(img.device,torch.bfloat16),
+        "txt_ids": txt_ids.to(img.device,torch.bfloat16),
+        "vec": vec.to(img.device,torch.bfloat16),
     }
 
 

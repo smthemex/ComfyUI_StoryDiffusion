@@ -48,12 +48,12 @@ from diffusers.utils.import_utils import is_xformers_available
 from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 from insightface.utils import face_align
 
-from .ip_adapter.resampler import Resampler
-from .ip_adapter.utils import is_torch2_available
-from .ip_adapter.ip_adapter_faceid import faceid_plus
+from .ip_adapter_.resampler_ import Resampler
+from .ip_adapter_.utils import is_torch2_available
+from .ip_adapter_.ip_adapter_faceid import faceid_plus
 
-from .ip_adapter.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
-from .ip_adapter.attention_processor_faceid import LoRAIPAttnProcessor2_0 as LoRAIPAttnProcessor, LoRAAttnProcessor2_0 as LoRAAttnProcessor
+from .ip_adapter_.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
+from .ip_adapter_.attention_processor_faceid import LoRAIPAttnProcessor2_0 as LoRAIPAttnProcessor, LoRAAttnProcessor2_0 as LoRAAttnProcessor
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -216,8 +216,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         clip_img = self.clip_image_processor(images=ref_img, return_tensors="pt").pixel_values
         return clip_img, clip_face, torch.from_numpy(face_info.normed_embedding).unsqueeze(0)
 
-    def _encode_prompt_image_emb(self, image, image_2, mask_image, mask_image_2, face_info, face_info_2, cloth, cloth_2, \
-                                 device, num_images_per_prompt, dtype, do_classifier_free_guidance):
+    def _encode_prompt_image_emb(self, image, image_2, mask_image, mask_image_2, face_info, face_info_2, cloth, cloth_2,device, num_images_per_prompt, dtype, do_classifier_free_guidance):
         crop_list = []; face_list = [];  id_list = []
         if image is not None:
             clip_img, clip_face, face_emb = self.crop_image(image, mask_image, face_info)
@@ -252,9 +251,12 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         if do_classifier_free_guidance:
             prompt_image_emb = self.image_proj_model(id_embeds, clip_image_embeds, clip_face_embeds)
             B, C, D = prompt_image_emb.shape
-            prompt_image_emb = prompt_image_emb.view(1, B*C, D)
+            #prompt_image_emb = prompt_image_emb.view(1, B*C, D)
+            prompt_image_emb = prompt_image_emb.view(1, B * C, D)
+            
             neg_emb = self.image_proj_model(torch.zeros_like(id_embeds), torch.zeros_like(clip_image_embeds), torch.zeros_like(clip_face_embeds))
-            neg_emb = neg_emb.view(1, B*C, D)
+            #neg_emb = neg_emb.view(1, B*C, D)
+            neg_emb = neg_emb.view(1, B * C, D)
             prompt_image_emb = torch.cat([neg_emb, prompt_image_emb], dim=0) #torch.Size([2, 40, 2048])
             #print(prompt_image_emb.shape)
         else:
@@ -264,8 +266,9 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         
         #print(f'prompt_image_emb: {prompt_image_emb.shape}')#torch.Size([2, 40, 2048])
         bs_embed, seq_len, _ = prompt_image_emb.shape
-        
         prompt_image_emb = prompt_image_emb.repeat(1, num_images_per_prompt, 1)
+        
+        #prompt_image_emb = prompt_image_emb.repeat(1, num_images_per_prompt, 1)
         prompt_image_emb = prompt_image_emb.view(bs_embed * num_images_per_prompt, seq_len, -1)
         
         return prompt_image_emb.to(device=device, dtype=dtype)
@@ -498,7 +501,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
             batch_size = len(prompt)
         else:
             batch_size = prompt_embeds.shape[0]
-        #print(batch_size)
+        #print(f"batch_size is {batch_size}")
         device = self.unet.device
         # pdb.set_trace()
         # 3.1 Encode input prompt
@@ -598,8 +601,8 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         prompt_embeds = prompt_embeds.to(device)
         add_text_embeds = add_text_embeds.to(device)
         add_time_ids = add_time_ids.to(device).repeat(batch_size * num_images_per_prompt, 1)
-       # print(prompt_embeds.shape, prompt_image_emb.shape) torch.Size([4, 77, 2048])?  torch.Size([2, 40, 2048])
-        prompt_image_emb=torch.cat((prompt_image_emb,) * batch_size, dim=0)
+        #print(prompt_embeds.shape,"and", prompt_image_emb.shape) # torch.Size([4, 77, 2048]) ?  torch.Size([2, 40, 2048])
+        #prompt_image_emb = torch.cat([prompt_image_emb] * batch_size, dim=0)
         #print(prompt_embeds.shape, prompt_image_emb.shape)
         encoder_hidden_states = torch.cat([prompt_embeds, prompt_image_emb], dim=1)
 

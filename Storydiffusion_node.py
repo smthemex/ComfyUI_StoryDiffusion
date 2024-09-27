@@ -16,6 +16,7 @@ from PIL import ImageFont
 
 from safetensors.torch import load_file
 
+import ComfyUI.comfy.model_sampling
 from .PuLID.pulid.utils import resize_numpy_image_long
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
@@ -57,6 +58,7 @@ import folder_paths
 from comfy.utils import common_upscale
 from comfy.model_management import cleanup_models
 from comfy.clip_vision import load as clip_load
+from comfy.model_management import total_vram
 
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
@@ -691,16 +693,17 @@ def process_generation(
         height,
         load_chars,
         lora,
-        trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale
+        trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,
+        input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,role_scale,control_img,empty_emb_zero,miX_mode
 ):  # Corrected font_choice usage
 
     if len(general_prompt.splitlines()) >= 3:
         raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
     # _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
     
-    if not use_kolor and not use_flux:
+    if not use_kolor and not use_flux and not story_maker:
         if model_type == "img2img" and "img" not in general_prompt:
-            raise 'Please choice img2img typle,and add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
+            raise 'if using normal SDXL img2img ,need add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
 
     global total_length, attn_procs, cur_model_type
     global write
@@ -709,11 +712,12 @@ def process_generation(
     #load_chars = load_character_files_on_running(unet, character_files=char_files)
 
     prompts_origin = prompt_array.splitlines()
+    prompts_origin=[i.strip() for i in prompts_origin]
+    prompts_origin=[i for i in prompts_origin if '[' in  i] #删除空行
+    #print(prompts_origin)
     prompts = [prompt for prompt in prompts_origin if not len(extract_content_from_brackets(prompt))>=2]  # 剔除双角色
-    if use_kolor:
-        add_trigger_words = "," + trigger_words + " " + "风格" + ";"
-    else:
-        add_trigger_words = "," + trigger_words + " " + "style" + ";"
+
+    add_trigger_words = " " + trigger_words + " style "
     if lora :
         if lora in lora_lightning_list:
             prompts = remove_punctuation_from_strings(prompts)
@@ -757,7 +761,9 @@ def process_generation(
         prompts = [
             prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
         ]
-
+    img_mode=False
+    if kolor_face or pulid or (story_maker and not make_dual_only) or model_type=="img2img":
+        img_mode=True
     # id_prompts = prompts[:id_length]
     (
         character_index_dict,
@@ -765,15 +771,19 @@ def process_generation(
         replace_prompts,
         ref_indexs_dict,
         ref_totals,
-    ) = process_original_prompt(character_dict, prompts, id_length)
-
+    ) = process_original_prompt(character_dict, prompts, id_length,img_mode)
+    #print(character_index_dict,invert_character_index_dict,replace_prompts,ref_indexs_dict,ref_totals)
+    #character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
+    #invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}
+    #ref_indexs_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0]}
+    #ref_totals: [0, 3, 1, 2]  if 1 role [0]
     if model_type == "img2img":
         # _upload_images = [_upload_images]
         input_id_images_dict = {}
         if len(upload_images) != len(character_dict.keys()):
             raise f"You upload images({len(upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
         for ind, img in enumerate(upload_images):
-            input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load
+            input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load {a:[img],b:[img]}
             # input_id_images_dict[character_list[ind]] = [load_image(img)]
     # real_prompts = prompts[id_length:]
     # if device == "cuda":
@@ -781,8 +791,6 @@ def process_generation(
     write = True
     cur_step = 0
     attn_count = 0
-    #id_prompts_no_using, negative_prompt = apply_style(style_name, ["id_prompts"], negative_prompt)
-    #setup_seed(seed_)
     total_results = []
     id_images = []
     results_dict = {}
@@ -790,17 +798,19 @@ def process_generation(
     
     global cur_character
     if not load_chars:
-        for character_key in character_dict.keys():# 先生成角色对应第一句场景提示词的图片
+        for character_key in character_dict.keys():# 先生成角色对应第一句场景提示词的图片,图生图是批次生成
+            character_key_str=character_key
             cur_character = [character_key]
             ref_indexs = ref_indexs_dict[character_key]
             current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            setup_seed(seed_)
+            if model_type == "txt2img":
+                setup_seed(seed_)
             generator = torch.Generator(device=device).manual_seed(seed_)
             cur_step = 0
             cur_positive_prompts, cur_negative_prompt = apply_style(
                 style_name, current_prompts, negative_prompt
             )
-            print(f"sampler:{cur_positive_prompts}")
+            print(f"Sampler  {character_key_str} 's cur_positive_prompts :{cur_positive_prompts}")
             if model_type == "txt2img":
                 if use_flux:
                     id_images = pipe(
@@ -834,27 +844,38 @@ def process_generation(
                     cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
                         cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
                     if kolor_face:
-                        img_=input_id_images_dict[character_key][0]
-                        face_info = app_face.get_faceinfo_one_img(img_)
-                        face_bbox_square = face_bbox_to_square(face_info["bbox"])
-                        crop_image = img_.crop(face_bbox_square)
-                        crop_image = crop_image.resize((336, 336))
-                        crop_image = [crop_image]*len(cur_positive_prompts)
-                        face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
-                        face_embeds=torch.cat((face_embeds,)*len(cur_positive_prompts),dim=0)
+                        crop_image=input_id_img_s_dict[character_key_str][0]
+                        face_embeds=input_id_emb_s_dict[character_key_str][0]
                         face_embeds = face_embeds.to(device, dtype=torch.float16)
-                        id_images = pipe(
-                            prompt=cur_positive_prompts,
-                            negative_prompt=cur_negative_prompt,
-                            height=height,
-                            width=width,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=guidance_scale,
-                            num_images_per_prompt=1,
-                            generator=  generator,
-                            face_crop_image=crop_image,
-                            face_insightface_embeds=face_embeds,
-                        ).images
+                        if id_length > 1:
+                            id_images=[]
+                            for index, i in enumerate(cur_positive_prompts):
+                                id_image = pipe(
+                                    prompt=i,
+                                    negative_prompt=cur_negative_prompt[index],
+                                    height=height,
+                                    width=width,
+                                    num_inference_steps=_num_steps,
+                                    guidance_scale=guidance_scale,
+                                    num_images_per_prompt=1,
+                                    generator=generator,
+                                    face_crop_image=crop_image,
+                                    face_insightface_embeds=face_embeds,
+                                ).images
+                                id_images.append(id_image)
+                        else:
+                            id_images = pipe(
+                                prompt=cur_positive_prompts,
+                                negative_prompt=cur_negative_prompt,
+                                height=height,
+                                width=width,
+                                num_inference_steps=_num_steps,
+                                guidance_scale=guidance_scale,
+                                num_images_per_prompt=1,
+                                generator=generator,
+                                face_crop_image=crop_image,
+                                face_insightface_embeds=face_embeds,
+                            ).images
                     else:
                         pipe.set_ip_adapter_scale([_Ip_Adapter_Strength])
                         id_images = pipe(
@@ -870,24 +891,42 @@ def process_generation(
                         ).images
                 elif  use_flux:
                     if pulid:
-                        id_image = resize_numpy_image_long(input_id_images_dict[character_key][0], 1024)
-                        use_true_cfg = abs(role_scale - 1.0) > 1e-2
-                        id_embeddings, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
+                        id_embeddings=input_id_emb_s_dict[character_key_str][0]
+                        uncond_id_embeddings=input_id_emb_un_dict[character_key_str][0]
                         strength = _Ip_Adapter_Strength
-                        id_images= pipe.generate_image(
-                            prompt=cur_positive_prompts,
-                            seed=seed_,
-                            start_step=2,
-                            num_steps=_num_steps,
-                            height=height,
-                            width=width,
-                            id_embeddings=id_embeddings,
-                            uncond_id_embeddings=uncond_id_embeddings,
-                            id_weight=strength,
-                            guidance=guidance_scale,
-                            true_cfg=role_scale,
-                            max_sequence_length=128,
-                        )
+                        if id_length > 1:
+                            id_images = []
+                            for index, i in enumerate(cur_positive_prompts):
+                                id_image = pipe.generate_image(
+                                    prompt=i,
+                                    seed=seed_,
+                                    start_step=2,
+                                    num_steps=_num_steps,
+                                    height=height,
+                                    width=width,
+                                    id_embeddings=id_embeddings,
+                                    uncond_id_embeddings=uncond_id_embeddings,
+                                    id_weight=strength,
+                                    guidance=guidance_scale,
+                                    true_cfg=role_scale,
+                                    max_sequence_length=128,
+                                )
+                                id_images.append(id_image)
+                        else:
+                            id_images = pipe.generate_image(
+                                prompt=cur_positive_prompts,
+                                seed=seed_,
+                                start_step=2,
+                                num_steps=_num_steps,
+                                height=height,
+                                width=width,
+                                id_embeddings=id_embeddings,
+                                uncond_id_embeddings=uncond_id_embeddings,
+                                id_weight=strength,
+                                guidance=guidance_scale,
+                                true_cfg=role_scale,
+                                max_sequence_length=128,
+                            )
                     else:
                         strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
                         id_images = pipe(
@@ -903,42 +942,53 @@ def process_generation(
                             guidance_scale=guidance_scale,
                             generator=generator,
                         ).images
+                
                 elif story_maker and not make_dual_only:
                     img = input_id_images_dict[character_key][0]
-                    mask_image = pipeline_mask(img, return_mask=True) .convert('RGB')# outputs a pillow mask
-                    print(type(mask_image))
-                    mask_image.save("asdad.png")
-                    face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-                    face_info = \
-                    sorted(face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                        -1]  # only use the maximum face
+                    #print(character_key_str,input_id_images_dict)
+                    mask_image = input_id_img_s_dict[character_key_str][0]
+                    face_info=input_id_emb_s_dict[character_key_str][0]
+                    cloth_info=None
+                    if isinstance(control_img,torch.Tensor):
+                         cloth_info=input_id_cloth_dict[character_key_str][0]
                     cur_negative_prompt = [cur_negative_prompt]
                     cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
                         cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                    id_images = pipe(
-                        image=img,
-                        mask_image=mask_image,
-                        face_info=face_info,
-                        prompt=cur_positive_prompts,
-                        negative_prompt=cur_negative_prompt,
-                        ip_adapter_scale=_Ip_Adapter_Strength, lora_scale=0.8,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance_scale,
-                        height=height, width=width,
-                        generator=generator,
-                    ).images
+                    if id_length>1:
+                        id_images = []
+                        for index, i in enumerate(cur_positive_prompts):
+                            id_image = pipe(
+                                image=img,
+                                mask_image=mask_image,
+                                face_info=face_info,
+                                prompt=i,
+                                negative_prompt=cur_negative_prompt[index],
+                                ip_adapter_scale=_Ip_Adapter_Strength, lora_scale=0.8,
+                                num_inference_steps=_num_steps,
+                                guidance_scale=guidance_scale,
+                                height=height, width=width,
+                                generator=generator,
+                                cloth=cloth_info,
+                            ).images
+                            id_images.append(id_image)
+                    else:
+                        id_images = pipe(
+                            image=img,
+                            mask_image=mask_image,
+                            face_info=face_info,
+                            prompt=cur_positive_prompts,
+                            negative_prompt=cur_negative_prompt,
+                            ip_adapter_scale=_Ip_Adapter_Strength, lora_scale=0.8,
+                            num_inference_steps=_num_steps,
+                            guidance_scale=guidance_scale,
+                            height=height, width=width,
+                            generator=generator,
+                            cloth=cloth_info,
+                        ).images
+                   
                 else:
                     if photomake_mode == "v2":
-                        # 提取id
-                        # print("v2 mode load_chars", cur_positive_prompts, negative_prompt, character_key)
-                        img = input_id_images_dict[character_key][0]  # input_id_images_dict {'[Taylor]': [pil], '[Lecun]': [pil]}
-                        img = np.array(img)
-                        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                        from .utils.insightface_package import analyze_faces
-                        faces = analyze_faces(app_face, img, )
-                        id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
-                        id_embeds = torch.stack(id_embed_list)
-                            
+                        id_embeds = input_id_emb_s_dict[character_key_str][0]
                         id_images = pipe(
                             cur_positive_prompts,
                             input_id_images=input_id_images_dict[character_key],
@@ -972,8 +1022,18 @@ def process_generation(
             p_num+=1
             # total_results = id_images + total_results
             # yield total_results
-            for ind, img in enumerate(id_images):
-                results_dict[ref_indexs[ind]] = img
+            if story_maker and not make_dual_only and id_length>1 and model_type == "img2img":
+                for index,ind in enumerate(character_index_dict[character_key]):
+                    results_dict[ref_totals[ind]] = id_images[index]
+            elif pulid and id_length>1 and model_type == "img2img":
+                for index,ind in enumerate(character_index_dict[character_key]):
+                    results_dict[ref_totals[ind]] = id_images[index]
+            elif kolor_face and id_length>1 and model_type == "img2img":
+                for index,ind in enumerate(character_index_dict[character_key]):
+                    results_dict[ref_totals[ind]] = id_images[index]
+            else:
+                for ind, img in enumerate(id_images):
+                    results_dict[ref_indexs[ind]] = img
             # real_images = []
             yield [results_dict[ind] for ind in results_dict.keys()]
     write = False
@@ -984,21 +1044,22 @@ def process_generation(
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
         
-
     real_prompt_no, negative_prompt_style = apply_style_positive(style_name, "real_prompt")
     negative_prompt=str(negative_prompt)+str(negative_prompt_style)
-   
-    for real_prompts_ind in real_prompts_inds:  # 非角色流程
+    #print(f"real_prompts_inds is {real_prompts_inds}")
+    for real_prompts_ind in real_prompts_inds:  #
         real_prompt = replace_prompts[real_prompts_ind]
         cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
-        #print(cur_character)
-        setup_seed(seed_)
+       
+        if model_type=="txt2img":
+            setup_seed(seed_)
+        generator = torch.Generator(device=device).manual_seed(seed_)
+        
         if len(cur_character) > 1 and model_type == "img2img":
             raise "Temporarily Not Support Multiple character in Ref Image Mode!"
-        generator = torch.Generator(device=device).manual_seed(seed_)
         cur_step = 0
         real_prompt ,negative_prompt_style_no= apply_style_positive(style_name, real_prompt)
-        print(f"sampler:{real_prompt}")
+        print(f"Sample real_prompt : {real_prompt}")
         if model_type == "txt2img":
            # print(results_dict,real_prompts_ind)
             if use_flux:
@@ -1027,15 +1088,9 @@ def process_generation(
             empty_img = Image.new('RGB', (height, width), (255, 255, 255))
             if use_kolor:
                 if kolor_face:
-                    #print(real_prompt,negative_prompt)
-                    img_1= input_id_images_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else empty_img
-                    #print(img_1)
-                    face_info = app_face.get_faceinfo_one_img(img_1)
-                    face_bbox_square = face_bbox_to_square(face_info["bbox"])
-                    crop_image = img_1.crop(face_bbox_square)
-                    crop_image = crop_image.resize((336, 336))
-                    crop_image = [crop_image]
-                    face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
+                    empty_image = Image.new('RGB', (336, 336), (255, 255, 255))
+                    crop_image=input_id_img_s_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else empty_image
+                    face_embeds=input_id_emb_s_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_emb_zero
                     face_embeds = face_embeds.to(device, dtype=torch.float16)
                     results_dict[real_prompts_ind] = pipe(
                         prompt=real_prompt,
@@ -1048,7 +1103,6 @@ def process_generation(
                         generator= generator,
                         face_crop_image=crop_image,
                         face_insightface_embeds=face_embeds,
-                        nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
                     ).images[0]
                 else:
                     results_dict[real_prompts_ind] = pipe(
@@ -1067,13 +1121,10 @@ def process_generation(
                         generator=generator,
                         nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
                     ).images[0]
-                
             elif use_flux:
                 if pulid:
-                    img_id = input_id_images_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else empty_img
-                    id_image = resize_numpy_image_long(img_id, 1024)
-                    use_true_cfg = abs(role_scale - 1.0) > 1e-2
-                    id_embeddings, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
+                    id_embeddings=input_id_emb_s_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_emb_zero
+                    uncond_id_embeddings=input_id_emb_un_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_emb_zero
                     strength = _Ip_Adapter_Strength
                     results_dict[real_prompts_ind] =pipe.generate_image(
                         prompt=real_prompt,
@@ -1086,7 +1137,7 @@ def process_generation(
                         uncond_id_embeddings=uncond_id_embeddings,
                         id_weight=strength,
                         guidance=guidance_scale,
-                        true_cfg=role_scale,
+                        true_cfg=1.0,
                         max_sequence_length=128,
                     )
                 else:
@@ -1109,15 +1160,13 @@ def process_generation(
                         generator=generator,
                     ).images[0]
             elif  story_maker and not make_dual_only:
-                img_2= input_id_images_dict[cur_character[0]] if real_prompts_ind not in nc_indexs else input_id_images_dict[character_list[0]]
-                img_2=img_2[0]
-                mask_image = pipeline_mask(img_2, return_mask=True)
-                mask_image.save("A2.png")
-                mask_image =  mask_image.convert('RGB')  # outputs a pillow mask
-                face_info = app_face.get(cv2.cvtColor(np.array(img_2), cv2.COLOR_RGB2BGR))
-                face_info = \
-                    sorted(face_info, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                        -1]  # only use the maximum face
+                cloth_info=None
+                if isinstance(control_img, torch.Tensor):
+                    cloth_info = input_id_cloth_dict[cur_character[0]][0]
+                mask_image=input_id_img_s_dict[cur_character[0]][0]
+                img_2= input_id_images_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_img
+                face_info=input_id_emb_s_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_emb_zero
+
                 results_dict[real_prompts_ind] = pipe(
                     image=img_2,
                     mask_image=mask_image,
@@ -1129,30 +1178,13 @@ def process_generation(
                     guidance_scale=guidance_scale,
                     height=height, width=width,
                     generator=generator,
+                    cloth=cloth_info,
                 ).images[0]
             else:
                 if photomake_mode == "v2":
                     # V2版本必须要有id_embeds，只能用input_id_images作为风格参考
-                    img = (
-                        input_id_images_dict[cur_character[0]]
-                        if real_prompts_ind not in nc_indexs
-                        else input_id_images_dict[character_list[0]]
-                    ),
-                    # print(img,type(img[0][0]))
-                    
-                    img = np.array(img[0][0])
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    from .utils.insightface_package import analyze_faces
-                    faces = analyze_faces(app_face, img, )
-                    nc_flag = True if real_prompts_ind in nc_indexs else False  # 有nc为ture，无则false
-                    if not nc_flag:
-                        id_embed_list = [torch.from_numpy((faces[0]['embedding']))]
-                    else:
-                        id_embed_list = [torch.zeros_like(torch.from_numpy((faces[0]['embedding'])))]
-                    id_embeds = torch.stack(id_embed_list)
-                    
-                    # print(real_prompts_ind, real_prompt,"v2 mode")
-                    
+                    print(cur_character)
+                    id_embeds = input_id_emb_s_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_emb_zero
                     results_dict[real_prompts_ind] = pipe(
                         real_prompt,
                         input_id_images=(
@@ -1168,7 +1200,7 @@ def process_generation(
                         negative_prompt=negative_prompt,
                         generator=generator,
                         id_embeds=id_embeds,
-                        nc_flag=True if real_prompts_ind in nc_indexs else False,
+                        nc_flag= True if real_prompts_ind in nc_indexs else False,
                     ).images[0]
                 else:
                     #print(real_prompts_ind, real_prompt, "v1 mode", )
@@ -1392,7 +1424,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     )
     
     # 添加Lora trigger
-    add_trigger_words = "," + trigger_words + " " + "style" + ";"
+    add_trigger_words = " " + trigger_words + " style "
     if lora:
         prompts_dual = remove_punctuation_from_strings(prompts_dual)
         if lora not in lora_lightning_list:  # 加速lora不需要trigger
@@ -1489,7 +1521,8 @@ class Storydiffusion_Model_Loader:
                 "easy_function":("STRING", {"default": ""}),
             },
             "optional": {"image": ("IMAGE",),
-                         "control_image": ("IMAGE",), },
+                         "control_image": ("IMAGE",),
+                         "clip":("CLIP",),},
         }
 
     RETURN_TYPES = ("STORY_DICT", )
@@ -1506,12 +1539,14 @@ class Storydiffusion_Model_Loader:
                 repo = get_instance_path(model_path)
         return repo
     def story_model_loader(self,character_prompt, repo_id, ckpt_name, vae_id, character_weights, lora, lora_scale,controlnet_model, clip_vision,trigger_words, scheduler,
-                           sa32_degree, sa64_degree, width, height, photomake_mode, easy_function,**kwargs
-                           ):
+                           sa32_degree, sa64_degree, width, height, photomake_mode, easy_function,**kwargs):
+        
+        clip=kwargs.get("clip")
+        
         id_number=len(character_prompt.splitlines())
         if id_number > 2:
             id_number=2
-        print(f"run in id number {id_number}")
+        print(f"run in id number ： {id_number}")
         image = kwargs.get("image")
         if isinstance(image,torch.Tensor):
             batch_num,_,_,_=image.size()
@@ -1536,7 +1571,24 @@ class Storydiffusion_Model_Loader:
             control_image=kwargs.get("control_image")
             if not isinstance(control_image, torch.Tensor):
                 raise "if using controlnet,need input a image in control_image"
-                
+        
+        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
+        if photomake_mode=="v1":
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker",
+                    filename="photomaker-v1.bin",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker-V2",
+                    filename="photomaker-v2.bin",
+                    local_dir=photomaker_dir,
+                )
+        photomake_mode_=photomake_mode
+        
         if clip_vision=="none":
             clip_vision_path=None
         else:
@@ -1558,6 +1610,7 @@ class Storydiffusion_Model_Loader:
             auraface=True
         else:
             auraface = False
+            
         if "nf4" in easy_function:
             NF4=True
         else:
@@ -1577,9 +1630,16 @@ class Storydiffusion_Model_Loader:
                     filename="ipa-faceid-plus.bin",
                     local_dir=photomaker_dir,
                 )
+            photomake_mode=""
         else:
             kolor_face = False
             face_ckpt=""
+        
+        if "schnell" in easy_function:
+            flux_pulid_name="flux-schnell"
+        else:
+            flux_pulid_name = "flux-dev"
+        
         
         if "pulid" in easy_function:
             pulid=True
@@ -1590,6 +1650,7 @@ class Storydiffusion_Model_Loader:
                     filename="pulid_flux_v0.9.0.safetensors",
                     local_dir=photomaker_dir,
                 )
+            photomake_mode = ""
         else:
             pulid = False
             pulid_ckpt=""
@@ -1603,9 +1664,11 @@ class Storydiffusion_Model_Loader:
             aggressive_offload=True
         else:
             aggressive_offload = False
+            
         make_dual_only = False
         if "maker" in easy_function:
             story_maker = True
+            photomake_mode = ""
             if "dual" in easy_function:
                 make_dual_only = True
             if not clip_vision_path:
@@ -1621,23 +1684,6 @@ class Storydiffusion_Model_Loader:
         else:
             story_maker = False
             face_adapter=""
-           
-        
-        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
-        if photomake_mode=="v1":
-            if not os.path.exists(photomaker_path):
-                photomaker_path = hf_hub_download(
-                    repo_id="TencentARC/PhotoMaker",
-                    filename="photomaker-v1.bin",
-                    local_dir=photomaker_dir,
-                )
-        else:
-            if not os.path.exists(photomaker_path):
-                photomaker_path = hf_hub_download(
-                    repo_id="TencentARC/PhotoMaker-V2",
-                    filename="photomaker-v2.bin",
-                    local_dir=photomaker_dir,
-                )
 
         if lora != "none":
             lora_path = folder_paths.get_full_path("loras", lora)
@@ -1675,8 +1721,10 @@ class Storydiffusion_Model_Loader:
                 repo_id.replace("\\","/")
             if repo_id.rsplit("/")[-1].lower() in "kwai-kolors/kolors":
                 use_kolor=True
+                photomake_mode = ""
             if repo_id.rsplit("/")[-1] .lower() in "black-forest-labs/flux.1-dev,black-forest-labs/flux.1-schnell":
                 use_flux = True
+                photomake_mode = ""
  
         if use_kolor:
             if model_type=="img2img" and not kolor_face:
@@ -1687,6 +1735,7 @@ class Storydiffusion_Model_Loader:
                         filename="ip_adapter_plus_general.bin",
                         local_dir=photomaker_dir,
                     )
+                photomake_mode = ""
                 
         if not repo_id and not ckpt_path:
             raise "you need choice a model or repo_id"
@@ -1712,11 +1761,30 @@ class Storydiffusion_Model_Loader:
                     pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=0.8)
                     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
                 else:
+                    photomake_mode_1 =  photomake_mode_
                     pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
-                                       photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
+                                       photomake_mode=photomake_mode_1, photomaker_path=photomaker_path, lora=lora,
                                        lora_path=lora_path,
                                        trigger_words=trigger_words, lora_scale=lora_scale)
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
+            elif "flux" in ckpt_path.lower():
+                use_flux=True
+                if pulid:
+                    from .PuLID.app_flux import FluxGenerator
+                    if not clip_vision_path:
+                        raise "need 'EVA02_CLIP_L_336_psz14_s6B.pt' in comfyUI/models/clip_vision"
+                    if NF4:
+                        quantized_mode = "nf4"
+                    if vae_id == "none":
+                        raise "Now,using pulid must choice ae from comfyUI vae menu"
+                    else:
+                        vae_path = folder_paths.get_full_path("vae", vae_id)
+                    pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=True,
+                                         aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
+                                         quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
+                                         vae_cf=vae_path)
+                else:
+                    raise "need choice a SDXL checkpoint"
             else:
                 pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
                                    photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
@@ -1890,9 +1958,13 @@ class Storydiffusion_Model_Loader:
                             raise "need 'EVA02_CLIP_L_336_psz14_s6B.pt' in comfyUI/models/clip_vision"
                         if NF4:
                             quantized_mode="nf4"
-                        pipe = FluxGenerator(repo_id, ckpt_path, "cuda", offload=True,
+                        if vae_id=="none":
+                            raise "Now,using pulid must choice ae from comfyUI vae menu"
+                        else:
+                            vae_path = folder_paths.get_full_path("vae", vae_id)
+                        pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=True,
                                              aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
-                                             quantized_mode=quantized_mode,clip_vision_path=clip_vision_path)
+                                             quantized_mode=quantized_mode,clip_vision_path=clip_vision_path,clip_cf=clip,vae_cf=vae_path)
                     else:
                         if NF4:
                             # https://github.com/huggingface/diffusers/issues/9165
@@ -2013,16 +2085,37 @@ class Storydiffusion_Model_Loader:
         # if device != "mps":
         #     pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
-        if story_maker:
-            from insightface.app import FaceAnalysis
-            app_face = FaceAnalysis(name='buffalo_l', root='./',
-                               providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-            app_face.prepare(ctx_id=0, det_size=(640, 640))
-            from transformers import pipeline
-            pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4", trust_remote_code=True)
-            # pillow_mask = pipe(image_path, return_mask=True)  # outputs a pillow mask
-        elif use_kolor:
-            if kolor_face:
+        # need get emb
+        character_name_dict_, character_list_ = character_to_dict(character_prompt, lora, trigger_words)
+        #print(character_list_)
+        #global input_id_img_s_dict,input_id_emb_s_dict,input_id_emb_un_dict,input_id_cloth_dict
+        miX_mode = False
+        if model_type=="img2img":
+            d1, _, _, _ = image.size()
+            if d1 == 1:
+                image_load = [nomarl_upscale(image, width, height)]
+            else:
+                img_list = list(torch.chunk(image, chunks=d1))
+                image_load = [nomarl_upscale(img, width, height) for img in img_list]
+            
+            if photomake_mode == "v2":
+                from .utils.insightface_package import FaceAnalysis2, analyze_faces
+                if auraface:
+                    from huggingface_hub import snapshot_download
+                    snapshot_download(
+                        "fal/AuraFace-v1",
+                        local_dir="models/auraface",
+                    )
+                    app_face = FaceAnalysis2(name="auraface",
+                                             providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
+                                             allowed_modules=['detection', 'recognition'])
+                else:
+                    app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                             allowed_modules=['detection', 'recognition'])
+                app_face.prepare(ctx_id=0, det_size=(640, 640))
+                pipeline_mask = None
+                app_face_ = None
+            elif kolor_face:
                 from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
                 from huggingface_hub import snapshot_download
                 snapshot_download(
@@ -2030,33 +2123,155 @@ class Storydiffusion_Model_Loader:
                     local_dir='models/antelopev2',
                 )
                 app_face = FaceInfoGenerator(root_dir=".")
+                pipeline_mask=None
+                app_face_ = None
+            elif story_maker:
+                from insightface.app import FaceAnalysis
+                from transformers import pipeline
+                pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4",
+                                         trust_remote_code=True)
+                if make_dual_only:  # 前段用story 双人用maker
+                    if photomake_mode_ == "v2":
+                        from .utils.insightface_package import FaceAnalysis2
+                        if auraface:
+                            from huggingface_hub import snapshot_download
+                            snapshot_download(
+                                "fal/AuraFace-v1",
+                                local_dir="models/auraface",
+                            )
+                            app_face = FaceAnalysis2(name="auraface",
+                                                     providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                                                     root=".",
+                                                     allowed_modules=['detection', 'recognition'])
+                        else:
+                            app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                                     allowed_modules=['detection', 'recognition'])
+                        app_face.prepare(ctx_id=0, det_size=(640, 640))
+                        app_face_ = FaceAnalysis(name='buffalo_l', root='./',
+                                                 providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+                        app_face_.prepare(ctx_id=0, det_size=(640, 640))
+                    else:
+                        app_face = FaceAnalysis(name='buffalo_l', root='./',
+                                                providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+                        app_face.prepare(ctx_id=0, det_size=(640, 640))
+                        app_face_ = None
+                else:
+                    app_face = FaceAnalysis(name='buffalo_l', root='./',
+                                            providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+                    app_face.prepare(ctx_id=0, det_size=(640, 640))
+                    app_face_ = None
             else:
                 app_face=None
-            pipeline_mask = None
-        elif photomake_mode == "v2":
-            from .utils.insightface_package import FaceAnalysis2, analyze_faces
-            if auraface:
-                from huggingface_hub import snapshot_download
-                snapshot_download(
-                    "fal/AuraFace-v1",
-                    local_dir="models/auraface",
-                )
-                app_face = FaceAnalysis2(name="auraface",
-                                              providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
-                                              allowed_modules=['detection', 'recognition'])
+                pipeline_mask=None
+                app_face_=None
+            input_id_emb_s_dict = {}
+            input_id_img_s_dict = {}
+            input_id_emb_un_dict ={}
+            for ind, img in enumerate(image_load):
+                if photomake_mode == "v2":
+                    from .utils.insightface_package import analyze_faces
+                    img = np.array(img)
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    faces = analyze_faces(app_face, img,)
+                    id_embed_list = torch.from_numpy((faces[0]['embedding']))
+                    crop_image=img
+                    uncond_id_embeddings = None
+                elif kolor_face:
+                    device = (
+                        "cuda"
+                        if torch.cuda.is_available()
+                        else "mps" if torch.backends.mps.is_available() else "cpu"
+                    )
+                    face_info = app_face.get_faceinfo_one_img(img)
+                    face_bbox_square = face_bbox_to_square(face_info["bbox"])
+                    crop_image = img.crop(face_bbox_square)
+                    crop_image = crop_image.resize((336, 336))
+                    face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
+                    id_embed_list = face_embeds.to(device, dtype=torch.float16)
+                    uncond_id_embeddings = None
+                elif  story_maker:
+                    if make_dual_only: #前段用story 双人用maker
+                        if photomake_mode_=="v2":
+                            from .utils.insightface_package import analyze_faces
+                            img = np.array(img)
+                            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                            faces = analyze_faces(app_face, img, )
+                            id_embed_list = torch.from_numpy((faces[0]['embedding']))
+                            crop_image = pipeline_mask(img, return_mask=True).convert('RGB')  # outputs a pillow mask
+                            face_info = app_face_.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                            uncond_id_embeddings = \
+                                sorted(face_info,
+                                       key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                                    -1]  # only use the maximum face
+                            photomake_mode="v2"
+                            miX_mode=True
+                            # make+v2模式下，emb存v2的向量，corp 和 unemb 存make的向量
+                        else: #V1不需要调用emb
+                            crop_image = pipeline_mask(img, return_mask=True).convert('RGB')  # outputs a pillow mask
+                            face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                            id_embed_list = \
+                                sorted(face_info,
+                                       key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                                    -1]  # only use the maximum face
+                            uncond_id_embeddings = None
+                    else: #全程用maker
+                        crop_image = pipeline_mask(img, return_mask=True).convert('RGB')  # outputs a pillow mask
+                        #timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                        #crop_image.copy().save(os.path.join(folder_paths.get_output_directory(),f"{timestamp}_mask.png"))
+                        face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                        id_embed_list = \
+                            sorted(face_info,
+                                   key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                                -1]  # only use the maximum face
+                    
+                        uncond_id_embeddings = None
+                elif pulid:
+                    id_image = resize_numpy_image_long(img, 1024)
+                    use_true_cfg = abs(1.0 - 1.0) > 1e-2
+                    id_embed_list, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
+                    crop_image = img
+                else:
+                    id_embed_list=None
+                    uncond_id_embeddings = None
+                    crop_image = None
+                input_id_img_s_dict[character_list_[ind]] = [crop_image]
+                input_id_emb_s_dict[character_list_[ind]] = [id_embed_list]
+                input_id_emb_un_dict[character_list_[ind]] = [uncond_id_embeddings]
+            
+            if story_maker or  kolor_face or  photomake_mode == "v2" :
+                del app_face
+                torch.cuda.empty_cache()
+            if story_maker:
+                del pipeline_mask
+                torch.cuda.empty_cache()
+                
+            if isinstance(control_image,torch.Tensor) and story_maker:
+                e1, _, _, _ = control_image.size()
+                if e1 == 1:
+                    cn_image_load = [nomarl_upscale(control_image, width, height)]
+                else:
+                    img_list = list(torch.chunk(control_image, chunks=e1))
+                    cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
+                input_id_cloth_dict = {}
+                for ind, img in enumerate(cn_image_load):
+                    input_id_cloth_dict[character_list_[ind]] = [img]
             else:
-                app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
-                                              allowed_modules=['detection', 'recognition'])
-            app_face.prepare(ctx_id=0, det_size=(640, 640))
-            pipeline_mask = None
+                input_id_cloth_dict={}
         else:
-            app_face=None
-            pipeline_mask=None
+            input_id_emb_s_dict = {}
+            input_id_img_s_dict = {}
+            input_id_emb_un_dict ={}
+            input_id_cloth_dict = {}
+        #print(input_id_img_s_dict)
+        role_name_list = [i for i in character_name_dict_.keys()]
+        #print( role_name_list)
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
-               "scheduler":scheduler,"auraface":auraface,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
+               "scheduler":scheduler,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
-               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image,"app_face":app_face,"pipeline_mask":pipeline_mask}
+               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image,
+               "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,
+               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"miX_mode":miX_mode}
         return (model,)
 
 
@@ -2071,7 +2286,6 @@ class Storydiffusion_Sampler:
                 "model": ("STORY_DICT",),
                 "scene_prompts": ("STRING", {"multiline": True,
                                              "default": "[Taylor] wake up in the bed ;\n[Taylor] have breakfast by the window;\n[Lecun] drving a car;\n[Lecun] is working."}),
-                "split_prompt": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
                                                           "three hands, three legs, bad arms, missing legs, "
@@ -2123,7 +2337,7 @@ class Storydiffusion_Sampler:
         bottom = (height + new_height) / 2
         return img.crop((left, top, right, bottom))
     
-    def story_sampler(self, model,scene_prompts,split_prompt, negative_prompt, img_style, seed, steps,
+    def story_sampler(self, model,scene_prompts, negative_prompt, img_style, seed, steps,
                   cfg, ip_adapter_strength, style_strength_ratio,
                   role_scale, mask_threshold, start_step,save_character,controlnet_scale,guidance_list,):
         # get value from dict
@@ -2139,7 +2353,6 @@ class Storydiffusion_Sampler:
         ckpt_path=model.get("ckpt_path")
         lora=model.get("lora")
         lora_scale =model.get("lora_scale")
-        auraface=model.get("auraface")
         scheduler=model.get("scheduler")
         height=model.get("height")
         width = model.get("width")
@@ -2154,30 +2367,35 @@ class Storydiffusion_Sampler:
         character_prompt=model.get("character_prompt")
         control_image=model.get("control_image")
         image=model.get("image")
-        pipeline_mask=model.get("pipeline_mask")
-        app_face=model.get("app_face")
+        
+        input_id_emb_s_dict = model.get("input_id_emb_s_dict")
+        input_id_img_s_dict = model.get("input_id_img_s_dict")
+        input_id_emb_un_dict = model.get("input_id_emb_un_dict")
+        input_id_cloth_dict = model.get("input_id_cloth_dict")
+        role_name_list=model.get("role_name_list")
+        miX_mode=model.get("miX_mode")
+        
+        #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
+    
+        empty_emb_zero = None
+        if pulid or kolor_face or photomake_mode=="v2":
+            empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
+        
         # 格式化文字内容
-        if split_prompt:
-            scene_prompts.replace("\n", "").replace(split_prompt, ";\n").strip()
-            character_prompt.replace("\n", "").replace(split_prompt, ";\n").strip()
-        else:
-            scene_prompts.strip()
-            character_prompt.strip()
-            if "\n" not in scene_prompts:
-                scene_prompts.replace(";", ";\n").strip()
-            if "\n" in character_prompt:
-                if character_prompt.count("\n") > 1:
-                    character_prompt.replace("\n", "").replace("[", "\n[").strip()
-                    if character_prompt.count("\n") > 1:
-                        character_prompt.replace("\n", "").replace("[", "\n[", 2).strip()  # 多行角色在这里强行转为双角色
-
+        scene_prompts.strip()
+        character_prompt.strip()
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
+        char_origin=[i for i in char_origin if "[" in i]
+        #print(char_origin)
         char_describe = char_origin # [A a men...,B a girl ]
         char_origin = [char.split("]")[0] + "]" for char in char_origin]
-        
+        #print(char_origin)
         # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         prompts_origin = scene_prompts.splitlines()
+        prompts_origin=[i.strip() for i in prompts_origin]
+        prompts_origin = [i for i in prompts_origin if "[" in i]
+        #print(prompts_origin)
         positions_dual = [index for index, prompt in enumerate(prompts_origin) if len(extract_content_from_brackets(prompt))>=2]  #改成单句中双方括号方法，利于MS组句，[A]... [B]...[C]
         prompts_dual = [prompt for prompt in prompts_origin if len(extract_content_from_brackets(prompt))>=2]
         
@@ -2205,7 +2423,8 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
+                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,role_scale,control_image,empty_emb_zero,miX_mode)
 
         else:
             if story_maker:
@@ -2221,7 +2440,8 @@ class Storydiffusion_Sampler:
                                      height,
                                      load_chars,
                                      lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,pulid,story_maker,app_face, pipeline_mask,role_scale)
+                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,
+                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,role_scale,control_image,empty_emb_zero,miX_mode)
 
         for value in gen:
             print(type(value))
@@ -2271,26 +2491,28 @@ class Storydiffusion_Sampler:
                     image_encoder = clip_load(clip_vision_path)
                     pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=0.8)
                     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-                        
-                mask_image_1 = pipeline_mask(image_a, return_mask=True).convert('RGB')  # applies mask on input and returns a pillow image
-                mask_image_2 = pipeline_mask(image_b, return_mask=True).convert('RGB')  # applies mask on input and returns a pillow image
-                #mask_image_1.save("asdad1.png")
-               
-                face_info_1 = app_face.get(cv2.cvtColor(np.array(image_a), cv2.COLOR_RGB2BGR))
-                face_info_1 = \
-                sorted(face_info_1, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                    -1]  # only use the maximum face
-                face_info_2 = app_face.get(cv2.cvtColor(np.array(image_b), cv2.COLOR_RGB2BGR))
-                face_info_2 = \
-                sorted(face_info_2, key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                    -1]  # only use the maximum face
                 
-                # get n p prompt
+                mask_image_1=input_id_img_s_dict[role_name_list[0]][0]
+                mask_image_2=input_id_img_s_dict[role_name_list[1]][0]
+                
+                if photomake_mode=="v2":
+                    face_info_1 = input_id_emb_un_dict[role_name_list[0]][0]
+                    face_info_2 = input_id_emb_un_dict[role_name_list[1]][0]
+                else:
+                    face_info_1 = input_id_emb_s_dict[role_name_list[0]][0]
+                    face_info_2 = input_id_emb_s_dict[role_name_list[1]][0]
+                
+                cloth_info_1=None
+                cloth_info_2=None
+                if isinstance(control_image,torch.Tensor):
+                    cloth_info_1 = input_id_cloth_dict[role_name_list[0]][0]
+                    cloth_info_2 = input_id_cloth_dict[role_name_list[1]][0]
+                
                 prompts_dual, negative_prompt = apply_style(
                     img_style, prompts_dual, negative_prompt
                 )
                 # 添加Lora trigger
-                add_trigger_words = "," + trigger_words + " " + "style" + ";"
+                add_trigger_words = " " + trigger_words+ " style "
                 if lora:
                     prompts_dual = remove_punctuation_from_strings(prompts_dual)
                     if lora not in lora_lightning_list:  # 加速lora不需要trigger
@@ -2303,7 +2525,8 @@ class Storydiffusion_Sampler:
                 
                 prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
                 image_dual = []
-                setup_seed(seed)
+                if model_type=="txt2img":
+                   setup_seed(seed)
                 generator = torch.Generator(device='cuda').manual_seed(seed)
                 for i,prompt in enumerate(prompts_dual):
                     output = pipe(
@@ -2316,6 +2539,8 @@ class Storydiffusion_Sampler:
                         guidance_scale=cfg,
                         height=height, width=width,
                         generator=generator,
+                        cloth=cloth_info_1,
+                        cloth_2=cloth_info_2
                     ).images[0]
                     image_dual.append(output)
             else: #using ms diffusion

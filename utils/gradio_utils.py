@@ -486,7 +486,7 @@ def get_cur_id_list(real_prompt,character_dict,character_index_dict):
             real_prompt = real_prompt.replace(keys,character_dict[keys])
     return list_arr,real_prompt
 
-def process_original_prompt(character_dict,prompts,id_length):
+def process_original_prompt(character_dict,prompts,id_length,img_mode):
     replace_prompts = []
     character_index_dict = {}
     invert_character_index_dict = {}
@@ -506,19 +506,22 @@ def process_original_prompt(character_dict,prompts,id_length):
                 replace_prompts.append(cur_prompt)
     ref_index_dict = {}
     ref_totals = []
-    # print(character_index_dict,66666)
     for character_key in character_index_dict.keys():
         if character_key not in character_index_dict:
             raise f"{character_key} not have prompt description, please remove it"
         index_list = character_index_dict[character_key]
         index_list = [index for index in index_list if len(invert_character_index_dict[index]) == 1]
-        # print(index_list,55555)
-        if len(index_list) < id_length:
-            raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
+        if not img_mode:
+            if len(index_list) < id_length:
+                raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
         ref_index_dict[character_key] = index_list[:id_length]
         ref_totals = ref_totals + index_list[:id_length]
     return character_index_dict,invert_character_index_dict,replace_prompts,ref_index_dict,ref_totals
 
+#character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
+#invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}
+#ref_indexs_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0]}
+#ref_totals: [0, 3, 1, 2]  if 1 role [0]
 
 def get_ref_character(real_prompt,character_dict):
     list_arr = []

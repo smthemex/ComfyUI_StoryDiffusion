@@ -8,29 +8,31 @@ from .flux.util import load_ae, load_clip, load_flow_model, load_t5, load_flow_m
 from .pulid.pipeline_flux import PuLIDPipeline
 
 
-def get_models(name: str,ckpt_path, device: torch.device, offload: bool,quantized_mode):
-    t5 = load_t5(name,quantized_mode,device, max_length=128)
-    clip = load_clip(name,quantized_mode,device)
+def get_models(name: str,ckpt_path,vae_cf, clip_cf,device: torch.device, offload: bool,quantized_mode):
+    t5 = load_t5(name,clip_cf,quantized_mode,device, max_length=128)
+    clip = load_clip(name,clip_cf,quantized_mode,device)
     if quantized_mode=="fp8" or quantized_mode=="nf4":
         model = load_flow_model_quintized(name, ckpt_path,quantized_mode,device="cpu" if offload else device)
     else:
         model = load_flow_model(name, ckpt_path,device="cpu" if offload else device)
     model.eval()
-    ae = load_ae(name, device="cpu" if offload else device)
+    ae = load_ae(name,vae_cf, device="cpu" if offload else device)
     return model, ae, t5, clip
 
 
 class FluxGenerator:
-    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path):
+    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path,clip_cf,vae_cf):
         self.device = torch.device(device)
         self.offload = offload
         self.model_name = model_name
         self.aggressive_offload= aggressive_offload
         self.ckpt_path=ckpt_path
         self.clip_vision_path=clip_vision_path
+        self.clip_cf=clip_cf
+        self.vae_cf=vae_cf
         self.quantized_mode=quantized_mode
         self.model, self.ae, self.t5, self.clip = get_models(
-            model_name,self.ckpt_path,
+            model_name,self.ckpt_path,self.vae_cf,self.clip_cf,
             device=self.device,
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
@@ -55,7 +57,7 @@ class FluxGenerator:
             timestep_to_start_cfg=1,
             max_sequence_length=128,
     ):
-        self.t5.max_length = max_sequence_length
+        #self.t5.max_length = max_sequence_length
 
         seed = int(seed)
         if seed == -1:
@@ -69,9 +71,9 @@ class FluxGenerator:
             raise "prompt must be list or str"
 
         img_output = []
-        for i,prompt in enumerate(prompt_list):
+        for i in prompt_list:
             opts = SamplingOptions(
-                prompt=prompt,
+                text=i,
                 width=width,
                 height=height,
                 num_steps=num_steps,
@@ -81,7 +83,8 @@ class FluxGenerator:
             
             if opts.seed is None:
                 opts.seed = torch.Generator(device="cpu").seed()
-            print(f"Generating '{opts.prompt}' with seed {opts.seed}")
+            opts.text = opts.text if isinstance(opts.text,str) else str(opts.text)
+            print(f"Generating '{opts.text}' with seed {opts.seed}")
             t0 = time.perf_counter()
             
             use_true_cfg = abs(true_cfg - 1.0) > 1e-2
@@ -103,7 +106,7 @@ class FluxGenerator:
             
             if self.offload:
                 self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
-            inp = prepare(t5=self.t5, clip=self.clip, img=x, prompt=opts.prompt)
+            inp = prepare(t5=self.t5, clip=self.clip, img=x, prompt=opts.text)
             inp_neg = prepare(t5=self.t5, clip=self.clip, img=x, prompt=neg_prompt) if use_true_cfg else None
             
             # offload TEs to CPU, load model to gpu
