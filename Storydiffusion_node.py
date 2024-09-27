@@ -16,7 +16,7 @@ from PIL import ImageFont
 
 from safetensors.torch import load_file
 
-import ComfyUI.comfy.model_sampling
+import comfy.model_sampling
 from .PuLID.pulid.utils import resize_numpy_image_long
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
