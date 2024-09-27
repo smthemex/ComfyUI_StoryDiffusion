@@ -21,7 +21,7 @@ if is_torch2_available() and (not USE_DAFAULT_ATTN):
     )
 else:
     from .attention_processor_faceid import LoRAAttnProcessor, LoRAIPAttnProcessor
-from .resampler import PerceiverAttention, FeedForward, Resampler
+from .resampler_ import PerceiverAttention, FeedForward, Resampler
 
 class FacePerceiverResampler(torch.nn.Module):
     def __init__(

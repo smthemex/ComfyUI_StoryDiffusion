@@ -12,8 +12,7 @@ from huggingface_hub.utils import validate_hf_hub_args
 from transformers import CLIPImageProcessor, CLIPTokenizer
 from diffusers import StableDiffusionXLPipeline
 try:
-    from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput, \
-    rescale_noise_cfg
+    from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput,rescale_noise_cfg
 except:
     try:
        from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput,rescale_noise_cfg
