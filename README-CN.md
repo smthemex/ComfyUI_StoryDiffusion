@@ -3,32 +3,34 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
-**2024/09/24**  
-* 现在如果使用kolor的ipadapter 或者face ID，可以选择clip_vsion的单体模型（比如：clip-vit-large-patch14.safetensors）来加载image encoder，由此带来的改变是：kolor的本地目录可以删掉“clip-vit-large-patch14-336” 和“Kolors-IP-Adapter-Plus” 2个文件夹的所有文件，当然，因为comfyUI默认的clip图片处理是224，而kolor默认的是336，会有精度和质量的损失，详细看readme里的图片对比。
-* 另一个改动是，现在需要将”kolor ipadapter“的“ip_adapter_plus_general.bin“的模型移到了ComfyUI/models/photomaker目录下；  
+**2024/09/27**  
+* 做了较多的代码迭代以及布局上做了一些调整，目的是使用起来更轻松；
 
-**既往更新**  
-* 更新了插件的布局,具体看示例,主要变动有,现在根据输入的角色的提示词行数,来判断是单角色还是双角色,我看有些自媒体说我这个只能生成2张图片,完全无语,生成多少张是看你的电脑配置的;
-* 去掉了图生图和文生图的菜单,如果模型加载节点有图片输入就是图生图,没有就是文生图.
-* 把pulid_flux和storymaker的clip_vision模型改成单体模型加载方式,避免自动下载爆C盘
-* 加入小红书storymaker方法的功能，开始方式，在easy function输入 maker,dual(是只用它来生成双角色同框),输入maker就是完全用storymaker来跑,相当于story_maker插件;  
-* 加入flux pulid 支持，目前fp8，和fp16能正常出图，但是fp16需要30G以上显存，可以忽略，需要有flux的diffuser文件(在repo输入)，以及对应的模型，然后easy function 填入pilid,fp8,cpu就可以开启，如果你的显存大于16G可以试试取消cpu，这样会快一点。nf4也能跑通，但是量化的思路不同，无法正常出图
-* 加入kolor face id的支持，开启条件，在easyfunction里输入face，然后repo输入你的kolor diffuser模型的绝对路径地址。
-* 加入Flux的图生图代码，fp8和fn4都能跑，还是nf4吧，快很多。图生图的噪声控制，由ip_adapter_strength的参数控制，越大噪声越多，当然图片不像原图，反之亦然。然后生成的实际步数是 你输入的步数*ip_adapter_strength的参数，也就是说，你输入50步，strength是0.8，实际只会跑40步。  
-* 双角色因为方法的原因无法使用非正方形图片，所以用了讨巧的方法，先裁切成方形，然后再裁切回来；
-* 现在如果只使用Flux的repo模型，不再自动保存一个pt文件，除非你在easy function输入save；
-* 使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，所以加入了内置的config文件，避免加载出错，这样的另一个好处，就是首次使用时，不用连外网了。
-* 加载FLUX nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
-* 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
-* Flux模式,可以用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
-* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！   
-* 特别注意，因为可图的文本编码模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
-* 加入可图kolor模型的支持，支持文生图和可图ipadapter的图生图，需要的模型文件见下方；   
-* 加入photomakerV2的支持，由于V2版需要insight face ，所以不会装的谨慎尝试；     
-* controlnet现在使用单体模型；  
-* 新增ms-diffsion的自动布局控制按钮，默认是否，为程序自动。   
-* 为双角色同图引入controlnet，并支持多图引入  
-* 加入角色模型保存和加载功能      
+## 特色功能
+**story-diffusion**  
+* 支持图生图和文生图，只需要在ckpt_name选一个SDXL模型就可以使用，当然也支持lora的；
+* 如果使用图生图，配套的PhotoMaker模型会自动下载，如果网络不好，请预下载放到comfyui/models/phtomaker目录下；  
+* PhotoMaker v2需要insightface支持，以及对应的模型（会自动下载）；
+  
+**ms-diffusion**  
+* ms的功能是为了双角色同图，只要双角色的场景词里，同时存在[roleA] 和 [roleB]就会自动开启；
+* 与之配套的"ms_adapter.bin" 模型要放在comfyui/models/phtomaker目录下（会自动下载），配套的"clip_vision_g.safetensors"模型放在comfyui/models/clip_vision目录下，详细看后文;
+* MS支持controlnet，一句需要一张图，你双角色有10句，就要配10张图，接口用control-img；
+
+**story-maker**
+* maker类似story，优势在于可以迁移衣服和双角色同图，目前仅支持图生图；
+* 开启方式需要在easy-function输入maker，然后ckpt_name选个SDXL模型，clip_vision选"clip_vision_H.safetensors" 模型，配套的mask.bin”模型放在comfyui/models/phtomaker目录下；当然“insightface"也需要，会自动下载，然后内置了RMBG-1.4”获取蒙版功能，也会自动下载；
+* 如果输入'maker,dual',就会开启前段用story跑，后端用maker跑双人同角色的功能；
+
+**kolor**
+* kolor支持它的图生图和文生图，ipadapter和faceid，目前暂时需要输入repo_id，文件结构看后文，然后clip_vision选"clip-vit-large-patch14.safetensors"，就可以使用（如果你kolor模型下全了，可以不选）；
+* kolor faceid开启需要在easy-function输入face，与之配套会有insightface模型下载，对应的ip模型下载；
+* kolor支持全中文输入，但是要使用 ['张三']来标定角色，中间要有引号；
+
+**Flux and PULID-FLUX**
+* flux支持图生图和文生图，量化fp8和nf4运行，推荐用最快的nf4，但是这两模式都需要本地flux diffuse模型并在ckpt name选模型，在填写 'repo_id'格式"X:/xxx/xxx/black-forest-labs/FLUX.1-dev";开启nf4，需要在easy-function输入nf4，如果你想保存自己的量化fp8模型，可以只用repo跑，然后在easy-function输入save，会保存一个fp8量化模型到你的checkpoints目录；
+* PULID-FLUX 改成散装式的，clip接comfyUI标准的双clip（1个l 1个T5），ckpt_name选类kj大佬的flux Unet模型（模型名字里必须有flux），clip-vision选pulid的'EVA02_CLIP_L_336_psz14_s6B.pt“模型，vae选择flux标准的 'ae.safetensors'模型，然后在easy-function输入 'pulid, fp8, cpu' 就可以跑，当然你是4090可以试试去掉cpu；
+  
 
 1.安装
 -----
@@ -218,6 +220,7 @@ Kolor文件结构如下，注意是有层级的：
 |             ├── 下载的nf4模型,随便改个名字
 ```
 **3.3.3.4如果要使用flux_pulid:**    
+pulid不需要repo，但是需要双clip，标准comfy节点;  
 确保torch must > 0.24.0，并确保optimum-quanto为0.2.4以上版本   
 确保 ae.safetensors 在你的本地 FLUX.1-dev 目录下
 ```
@@ -234,6 +237,9 @@ fp8 using flux1-dev-fp8.safetensors  这个unet很多人应该有，放在checkp
 |             ├── EVA02_CLIP_L_336_psz14_s6B.pt
 ├── ComfyUI/models/checkpoints/
 |             ├── flux1-dev-fp8.safetensors
+├── ComfyUI/models/clip/
+|             ├── t5xxl_fp8_e4m3fn.safetensors
+|             ├── clip_l.safetensors
 ```
 
 **3.3.4使用小红书的 storymake**      
@@ -251,6 +257,7 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 |         ├── det_10g.onnx
 |         ├── genderage.onnx
 |         ├── w600k_r50.onnx
+
 ```
 
 4 Example
@@ -262,6 +269,7 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 **<Storydiffusion_Model_Loader>**  
 *  image：未必选项, 图生图才必须链接的接口，双角色请按示例，用comfyUI内置的image batch 节点；
 *  control_image:非必选项,ms diffusion才有用到;
+*  clip:flux-pulid使用，后期会改成多功能接口；  
 *  character_prompt： 角色的prompt，[角色名] 必须在开头，如果使用图生图模式(仅diffusion模式需要)，必须加入“img”关键词，例如 a man img,程序根据行数判断角色是一个还是两个；    
 *  repo_id：填写扩散模型的绝对路径,一般用来玩flux 或者kolor,其他的也能用；   
 *  ckpt_name：社区SDXL单体模型选择；   
@@ -281,7 +289,6 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 **<Storydiffusion_Sampler>**
 * pipe/info： 必须链接的接口；  
 * scene_prompts： 场景描述的prompt，[角色名] 必须在开头，2个角色最好在前两行各自出现一次，[NC]在开头时，角色不出现（适合无角色场景），(角色A and 角色B) 时开启MS-diffusion的双角色模式，and 和其前后空格不能忽略； #用于分段prompt，渲染整段，但是将只输出#后面的prompt；    
-* split_prompt： 切分prompt的符号,为空时不生效，用于prompt为外置时的规范化段落。比如你传入10行的文字时，分段符不一定正确，但是用切分符号，比如“；”就能很好的区分每一行。    
 * negative_prompt： 只在img_style为No_style时生效；     
 * seed/steps/cfg： 适用于comfyUI常用功能；    
 * ip_adapter_strength： kolor img2img 图生图的ip_adapter权重控制；  
@@ -317,6 +324,68 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 *  图生图流程使用photomaker，角色prompt栏里，必须有img关键词，你可以使用a women img, a man img等,仅使用默认的storydiffusion才需要；         
 *  如果需要图片不出现角色，场景prompt前面加入[NC] ；     
 *  分段prompt，用#，例如 AAAA#BBBB,将生成AAAA内容，但是文字只显示BBBB   
+
+既往更新  
+----
+* 现在如果使用kolor的ipadapter 或者face ID，可以选择clip_vsion的单体模型（比如：clip-vit-large-patch14.safetensors）来加载image encoder，由此带来的改变是：kolor的本地目录可以删掉“clip-vit-large-patch14-336” 和“Kolors-IP-Adapter-Plus” 2个文件夹的所有文件，当然，因为comfyUI默认的clip图片处理是224，而kolor默认的是336，会有精度和质量的损失，详细看readme里的图片对比。
+* 另一个改动是，现在需要将”kolor ipadapter“的“ip_adapter_plus_general.bin“的模型移到了ComfyUI/models/photomaker目录下；  
+* 更新了插件的布局,具体看示例,主要变动有,现在根据输入的角色的提示词行数,来判断是单角色还是双角色,我看有些自媒体说我这个只能生成2张图片,完全无语,生成多少张是看你的电脑配置的;
+* 去掉了图生图和文生图的菜单,如果模型加载节点有图片输入就是图生图,没有就是文生图.
+* 把pulid_flux和storymaker的clip_vision模型改成单体模型加载方式,避免自动下载爆C盘
+* 加入小红书storymaker方法的功能，开始方式，在easy function输入 maker,dual(是只用它来生成双角色同框),输入maker就是完全用storymaker来跑,相当于story_maker插件;  
+* 加入flux pulid 支持，目前fp8，和fp16能正常出图，但是fp16需要30G以上显存，可以忽略，需要有flux的diffuser文件(在repo输入)，以及对应的模型，然后easy function 填入pilid,fp8,cpu就可以开启，如果你的显存大于16G可以试试取消cpu，这样会快一点。nf4也能跑通，但是量化的思路不同，无法正常出图
+* 加入kolor face id的支持，开启条件，在easyfunction里输入face，然后repo输入你的kolor diffuser模型的绝对路径地址。
+* 加入Flux的图生图代码，fp8和fn4都能跑，还是nf4吧，快很多。图生图的噪声控制，由ip_adapter_strength的参数控制，越大噪声越多，当然图片不像原图，反之亦然。然后生成的实际步数是 你输入的步数*ip_adapter_strength的参数，也就是说，你输入50步，strength是0.8，实际只会跑40步。  
+* 双角色因为方法的原因无法使用非正方形图片，所以用了讨巧的方法，先裁切成方形，然后再裁切回来；
+* 现在如果只使用Flux的repo模型，不再自动保存一个pt文件，除非你在easy function输入save；
+* 使用SDXL单体模型时，可能会报错，是因为runway 删除了他们的模型库，所以加入了内置的config文件，避免加载出错，这样的另一个好处，就是首次使用时，不用连外网了。
+* 加载FLUX nf4模型的速度比fp8快了许多倍，所以我推荐使用nf4模型来运行flux。我已经把nf4的工作流放入example，只需下载单体模型地址，[link](https://huggingface.co/sayakpaul/flux.1-dev-nf4/tree/main) ，当然flux的完整diffuser模型也是必须的。  
+* 加入easy function，便于调试新的功能，此次加入的是photomake V2对auraface的支持，你可以在easy function 输入auraface以测试该方法   
+* Flux模式,可以用repo+pt模型，或者repo+其他fp8模型，或者repo+重新命名的pt模型（不带transformer字眼即可）来使用flux，速度更快。单独加载repo很耗时。   
+* 特别更新：现在双角色同框的加载方式改成[A]...[B]...模式，原来的（A and B）模式已经摈弃摒弃！！！！   
+* 特别注意，因为可图的文本编码模型比较大，所以采用了CPU加载，所以首次加载需要很大的内存才行。   
+* 加入可图kolor模型的支持，支持文生图和可图ipadapter的图生图，需要的模型文件见下方；   
+* 加入photomakerV2的支持，由于V2版需要insight face ，所以不会装的谨慎尝试；     
+* controlnet现在使用单体模型；  
+* 新增ms-diffsion的自动布局控制按钮，默认是否，为程序自动。   
+* 为双角色同图引入controlnet，并支持多图引入  
+* 加入角色模型保存和加载功能      
+
+示例
+----
+
+**story-make**   
+图生图  纯storymaker生成，非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
+
+**flux-pulid**   
+图生图 flux pulid  12G Vram,cpu  Flux使用PULID功能,不需要diffuser模型，最新示例(Latest version) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
+
+**kolor-face**   
+图生图 kolor face，参数输入没变化，非最新示例  (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
+
+**flux-nf4**   
+* txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快，非最新示例 (outdated version examples)        
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
+* flux img2img 图生图，注意用ip的参数来控制噪声（多样性），非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
+
+**ms-diffusion**   
+* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
+* ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
+
+**story-diffusion**   
+* photomake v2 in img2img normal 最基础的story流程，非最新示例 (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/phtomakev2.png)
+* txt2img using lora and comic node (outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/txt2img_lora_comic.png)
+* Translate the text into other language examples, and the translation nodes in the diagram can be replaced with any translation node. Outdated version examples     
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/trans1.png)
+
 
 Citation
 ------
