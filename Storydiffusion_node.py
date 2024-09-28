@@ -16,7 +16,7 @@ from PIL import ImageFont
 
 from safetensors.torch import load_file
 
-import comfy.model_sampling
+
 from .PuLID.pulid.utils import resize_numpy_image_long
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 import sys
@@ -60,12 +60,13 @@ from comfy.model_management import cleanup_models
 from comfy.clip_vision import load as clip_load
 from comfy.model_management import total_vram
 
+
 global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
 global sa32, sa64
 global write
 global height_s, width_s
-STYLE_NAMES = list(styles.keys())
 
+STYLE_NAMES = list(styles.keys())
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
 
 device = (
@@ -927,6 +928,7 @@ def process_generation(
                                 true_cfg=role_scale,
                                 max_sequence_length=128,
                             )
+                            id_images=[id_images]
                     else:
                         strength = _Ip_Adapter_Strength if _Ip_Adapter_Strength != 1 else 0.9
                         id_images = pipe(
@@ -1660,11 +1662,16 @@ class Storydiffusion_Model_Loader:
         else:
             quantized_mode = "fp16"
         
-        if "cpu" in easy_function:
-            aggressive_offload=True
-        else:
+        if total_vram > 30000.0:
             aggressive_offload = False
-            
+            offload = False
+        elif 18000.0 < total_vram < 30000.0:
+            aggressive_offload = False
+            offload = True
+        else:
+            aggressive_offload = True
+            offload = True
+             
         make_dual_only = False
         if "maker" in easy_function:
             story_maker = True
@@ -1740,6 +1747,7 @@ class Storydiffusion_Model_Loader:
         if not repo_id and not ckpt_path:
             raise "you need choice a model or repo_id"
         elif not repo_id and ckpt_path: # load ckpt
+            if_repo = False
             if story_maker:
                 if not make_dual_only: #default dual
                     from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
@@ -1779,10 +1787,10 @@ class Storydiffusion_Model_Loader:
                         raise "Now,using pulid must choice ae from comfyUI vae menu"
                     else:
                         vae_path = folder_paths.get_full_path("vae", vae_id)
-                    pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=True,
+                    pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=offload,
                                          aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
                                          quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
-                                         vae_cf=vae_path)
+                                         vae_cf=vae_path,if_repo=if_repo)
                 else:
                     raise "need choice a SDXL checkpoint"
             else:
@@ -1792,6 +1800,7 @@ class Storydiffusion_Model_Loader:
                                    trigger_words=trigger_words, lora_scale=lora_scale)
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
         else: #if repo or  no ckpt,choice repo
+            if_repo=True
             if repo_id.rsplit("/")[-1].lower()=="playground-v2.5-1024px-aesthetic":
                 pipe = DiffusionPipeline.from_pretrained(
                     repo_id,
@@ -1962,9 +1971,9 @@ class Storydiffusion_Model_Loader:
                             raise "Now,using pulid must choice ae from comfyUI vae menu"
                         else:
                             vae_path = folder_paths.get_full_path("vae", vae_id)
-                        pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=True,
+                        pipe = FluxGenerator(repo_id, ckpt_path, "cuda", offload=offload,
                                              aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
-                                             quantized_mode=quantized_mode,clip_vision_path=clip_vision_path,clip_cf=clip,vae_cf=vae_path)
+                                             quantized_mode=quantized_mode,clip_vision_path=clip_vision_path,clip_cf=clip,vae_cf=vae_path,if_repo=if_repo)
                     else:
                         if NF4:
                             # https://github.com/huggingface/diffusers/issues/9165
