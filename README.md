@@ -4,8 +4,9 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
-**2024/09/27**   
-* make easy and comfy
+**2024/09/28**   
+* After testing, only 'Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL" fp8 can produce images normally in pulid-flux mode, while the other fp8 or nf4 checkpoints are noises;
+* if using pulid-flux,No need to enter 'cpu' in easyfunction. Now choose CPU offloading based on your VRAM, with the dividing points being VR>30G, 18G<VR<30G, or VR<18G;
   
 ## Function introduction  
 **story-diffusion**    
@@ -31,7 +32,7 @@
 
 **Flux and PULID-FLUX**  
 * Flux supports img2img and txt2img, and supports FP8 and NF4 (recommended) quantization models；To enable it, enter the local path of flux diffuser in 'repo_id' and select the corresponding model in 'ckpt-name';example fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"; 
-* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8 model (with flux in the name),'ae.safetensors' in vae, fill in 'pulid, fp8, cpu' in 'easy-function' , if your VRAM is about 24G, you can try to remove the cpu;The accompanying 'insightface' model will be automatically downloaded; 
+* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8('Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL") model (with flux in the name),'ae.safetensors' in vae menu, fill in 'pulid, fp8' in 'easy-function' ;The accompanying 'insightface' model will be automatically downloaded; 
 
 1.Installation  
 -----
