@@ -3,8 +3,9 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
-**2024/09/27**  
-* 做了较多的代码迭代以及布局上做了一些调整，目的是使用起来更轻松；
+**2024/09/28**  
+* 目前只有Kijai/flux-fp8和Shakker-Labs/AWPortrait-FL 两个fp8模型能正常使用fp8量化出图,其他都出图是噪声;
+* 现在pulid不需要输入cpu,会根据你的显存自动选择合适的加载方式,分界点为30G,和18G,小于18G的都会用cpu+GPU跑,目前没有好的办法降显存,这是pulid一贯的弊病.
 
 ## 特色功能
 **story-diffusion**  
