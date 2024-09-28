@@ -10,6 +10,7 @@ from .modules.autoencoder import AutoEncoder, AutoEncoderParams
 from .modules.conditioner import HFEmbedder
 import folder_paths
 
+
 @dataclass
 class SamplingOptions:
     text: str
@@ -142,17 +143,20 @@ def print_load_warning(missing: list[str], unexpected: list[str]) -> None:
         print(f"Got {len(unexpected)} unexpected keys:\n\t" + "\n\t".join(unexpected))
 
 # from XLabs-AI https://github.com/XLabs-AI/x-flux/blob/1f8ef54972105ad9062be69fe6b7f841bce02a08/src/flux/util.py#L330
-def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,device: str = "cuda", hf_download: bool = True):
+def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,aggressive_offload,device: str = "cuda"):
     from optimum.quanto import requantize,qint4,quantize,freeze
     # Loading Flux
     print(f"Init model in {quantized_mode}")
+    if not aggressive_offload:
+        device=torch.device('cuda')
+    else:
+        device=torch.device('cpu')
     model = Flux(configs[name].params).to(torch.bfloat16)
     if quantized_mode == "nf4":  #nf4 is now useful.
-        json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils",
-                                 "config.json")
+        json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils","config.json")
         test=False
         if  test:
-            from accelerate.utils import set_module_tensor_to_device, compute_module_sizes
+            from accelerate.utils import set_module_tensor_to_device
             from accelerate import init_empty_weights
             from .convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
                 check_quantized_param
@@ -185,39 +189,41 @@ def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,device: str = 
                         model, param, param_name, target_device=0, state_dict=original_state_dict,
                         pre_quantized=True
                     )
-            
             del original_state_dict
             gc.collect()
-
         else:
             sd = load_sft(ckpt_path, device='cpu')
             with open(json_path) as f:
                 quantization_map = json.load(f)
-            
-            print("Start a quantization process...")
-            requantize(model, sd, quantization_map)
-        print("Model is quantized!")
+            print("Start a requantization process...")
+            requantize(model, sd, quantization_map,device=device)
+        print("Model is requantized!")
     else: #fp8
-        # ckpt_path = 'models/flux-dev-fp8.safetensors'
-        if (
-                not os.path.exists(ckpt_path)
-                and hf_download
-        ):
-            ckpt_path = hf_hub_download("XLabs-AI/flux-dev-fp8", "flux-dev-fp8.safetensors")
-            json_path = hf_hub_download("XLabs-AI/flux-dev-fp8", 'flux_dev_quantization_map.json')
-        else:
-            json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils",
-                                     "config.json")
-        # load_sft doesn't support torch.device
-        sd = load_sft(ckpt_path, device='cpu')
-        with open(json_path) as f:
-            quantization_map = json.load(f)
-        print("Start a quantization process...")
-        requantize(model, sd, quantization_map)
-        print("Model is quantized!")
+        from comfy import model_detection
+        from comfy.utils import weight_dtype,load_torch_file
+        import logging
+        sd= load_torch_file(ckpt_path)
+        diffusion_model_prefix = model_detection.unet_prefix_from_state_dict(sd)
+        weight_dtype = weight_dtype( sd, diffusion_model_prefix)
+        logging.info("loading weight_dtype is {}".format(weight_dtype))
+        if weight_dtype is None:
+            if str(torch.__version__).split(".")[-1]=="4.1" and "xlab" in ckpt_path.lower():#"XLabs-AI/flux-dev-fp8" need high env torch 24.1
+                json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils","flux_dev_quantization_map.json")
+            else: # Kijai/flux-fp8,Shakker-Labs/AWPortrait-FL
+                json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils","config.json") #config is for pass block
+            with open(json_path,'r') as f:
+                quantization_map = json.load(f)
+            print("Start a requantization process...")
+            requantize(model, sd, quantization_map, device=device)
+            print("Model is requantized!")
+        else: #not useful
+            print("normal loading ...")
+            sd = load_sft(ckpt_path, device="cpu")
+            missing, unexpected = model.load_state_dict(sd, strict=False)
+            print_load_warning(missing, unexpected)
     return model
 
-def load_flow_model(name: str,ckpt_path, device: str = "cuda", hf_download: bool = True):
+def load_flow_model(name: str,ckpt_path, device: str = "cuda"):
     # Loading Flux
     print("Init model in fp16")
     if ckpt_path is not None:
@@ -230,37 +236,38 @@ def load_flow_model(name: str,ckpt_path, device: str = "cuda", hf_download: bool
     return model
 
 
-def load_t5(name,clip_cf,quantized_mode,device = "cuda", max_length: int = 512) -> HFEmbedder:
+def load_t5(name,clip_cf,if_repo,quantized_mode,device = "cuda", max_length: int = 512) -> HFEmbedder:
+    return HFEmbedder(f"{name}/text_encoder_2", f"{name}/tokenizer_2", clip_cf, if_repo,is_clip=False,
+                          quantized_mode=quantized_mode, max_length=max_length, torch_dtype=torch.bfloat16).to(device)
     # max length 64, 128, 256 and 512 should work (if your sequence is short enough)
     #return HFEmbedder("xlabs-ai/xflux_text_encoders", max_length=max_length, torch_dtype=torch.bfloat16).to(device)
-    return HFEmbedder(f"{name}/text_encoder_2", f"{name}/tokenizer_2",clip_cf,is_clip=False,quantized_mode=quantized_mode,max_length=max_length, torch_dtype=torch.bfloat16).to(device)
+   
 
 
-def load_clip(name,clip_cf,quantized_mode,device= "cuda") -> HFEmbedder:
-    return HFEmbedder(f"{name}/text_encoder",f"{name}/tokenizer",clip_cf,is_clip=True,quantized_mode=quantized_mode,max_length=77, torch_dtype=torch.bfloat16).to(device)
+def load_clip(name,clip_cf,if_repo,quantized_mode,device= "cuda") -> HFEmbedder:
+    return HFEmbedder(f"{name}/text_encoder",f"{name}/tokenizer",clip_cf,if_repo,is_clip=True,quantized_mode=quantized_mode,max_length=77, torch_dtype=torch.bfloat16).to(device)
     #return HFEmbedder("openai/clip-vit-large-patch14", max_length=77, torch_dtype=torch.bfloat16).to(device)
 
 
-def load_ae(name: str,vae_cf, device: str = "cuda", hf_download: bool = True) -> AutoEncoder:
-    ckpt_path=vae_cf
-    #ckpt_path = os.path.join(name,"ae.safetensors")   # ckpt_path = configs[name].ae_path
-
+def load_ae(name: str,vae_cf, device: str = "cuda", hf_download: bool = False) -> AutoEncoder:
     if (
-        not os.path.exists(ckpt_path)
+        not os.path.exists(vae_cf)
         and configs[name].repo_id is not None
         and configs[name].repo_ae is not None
         and hf_download
     ):
-        ckpt_path = hf_hub_download(configs[name].repo_id, configs[name].repo_ae, local_dir='models')
+        vae_cf = hf_hub_download(configs[name].repo_id, configs[name].repo_ae, local_dir='models')
 
-    print("Init AE")  # Loading the autoencoder
-
+    print("Loading AE")  # Loading the autoencoder
+    
     with torch.device(device):
         ae = AutoEncoder(configs[name].ae_params)
-
-    if ckpt_path is not None:
-        sd = load_sft(ckpt_path, device=str(device))
+        
+    if vae_cf is not None:
+        sd = load_sft(vae_cf, device=str(device))
         missing, unexpected = ae.load_state_dict(sd, strict=False)
         print_load_warning(missing, unexpected)
     return ae
+
+
 
