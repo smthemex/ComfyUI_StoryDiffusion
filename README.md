@@ -7,6 +7,7 @@
 **2024/09/28**   
 * After testing, only 'Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL" fp8 can produce images normally in pulid-flux mode, while the other fp8 or nf4 checkpoints are noises;
 * if using pulid-flux,No need to enter 'cpu' in easyfunction. Now choose CPU offloading based on your VRAM, with the dividing points being VR>30G, 18G<VR<30G, or VR<18G;
+* If you don't use Comfyui's clip, you can continue to use the full repo-id to run the pulid-flux now; 
   
 ## Function introduction  
 **story-diffusion**    
