@@ -147,10 +147,8 @@ def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,aggressive_off
     from optimum.quanto import requantize,qint4,quantize,freeze
     # Loading Flux
     print(f"Init model in {quantized_mode}")
-    if not aggressive_offload:
-        device=torch.device('cuda')
-    else:
-        device=torch.device('cpu')
+   
+    device=torch.device('cpu')
     model = Flux(configs[name].params).to(torch.bfloat16)
     if quantized_mode == "nf4":  #nf4 is now useful.
         json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils","config.json")
