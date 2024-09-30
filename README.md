@@ -4,6 +4,14 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
+**2024/09/30**
+* Entering the National Day holiday, so if there are any issues with this update, it will take a few days to reply; 
+* Add comfyUI wrapper,now You can freely use ComfyUI's regular SDXL, SD1.5 FLUX..., and call the prompt format of this prompt(There's no special benefit, just convenience);
+* fix some bug,and Cleared and organized some code.
+* Any method inserted in the regular comb process, such as connecting Lora after the model, should be able to function properly and has not been tested;
+* now fill in 'cpu' in easy-function ,will use CPU insightface...
+
+
 **2024/09/28**   
 * After testing, only 'Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL" fp8 can produce images normally in pulid-flux mode, while the other fp8 or nf4 checkpoints are noises;
 * if using pulid-flux,No need to enter 'cpu' in easyfunction. Now choose CPU offloading based on your VRAM, with the dividing points being VR>30G, 18G<VR<30G, or VR<18G;
@@ -258,6 +266,13 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
+**comfyUI-normal**  
+flux normal
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cf_flux_txt2img.png)
+sd1.5
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cy_sd_txt2img.png)
+
+
 **story-make**   
 img2img  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
