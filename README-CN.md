@@ -3,6 +3,11 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
+**2024/09/30** 
+* 国庆当然也有可能会更新，这次更新主要是封装了comfyUI的标准流程进插件，虽然是脱裤子放屁的行为，主要是我懒得拉标准流程去测试，就封装了它。
+* pulid-flux依旧有小问题，官方给的量化模型如果完全按照它的requirement文件安装才能跑通，我得慢慢找出是哪个库导致官方的指导的xlab 的fp8模型无法正常量化，
+* 现在还是基于显存来自动判断加载模式，24G的显存跑起来有问题，待修复，因为还没有12G的跑得快。如果你的环境gpu跑insightface没问题，easy function要加gpu
+
 **2024/09/28**  
 * 目前只有Kijai/flux-fp8和Shakker-Labs/AWPortrait-FL 两个fp8模型能正常使用fp8量化出图,其他都出图是噪声;
 * 现在pulid不需要输入cpu,会根据你的显存自动选择合适的加载方式,分界点为30G,和18G,小于18G的都会用cpu+GPU跑,目前没有好的办法降显存,这是pulid一贯的弊病.
