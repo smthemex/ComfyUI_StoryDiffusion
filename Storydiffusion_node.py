@@ -233,8 +233,11 @@ class Storydiffusion_Model_Loader:
                         raise "need 'EVA02_CLIP_L_336_psz14_s6B.pt' in comfyUI/models/clip_vision"
                     if NF4:
                         quantized_mode = "nf4"
-                    if vae_id == "none":
-                        raise "Now,using pulid must choice 'ae' from 'vae' menu."
+                    if vae_id == "none" :
+                        if not front_vae:
+                           raise "Now,using pulid must choice 'ae' from 'vae' menu."
+                        else:
+                           raise "Now,using pulid must choice 'ae' from 'vae' menu(come soon)"
                     else:
                         vae_path = folder_paths.get_full_path("vae", vae_id)
                     pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=offload,
