@@ -27,7 +27,7 @@ def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,aggressive_offload,de
 
 
 class FluxGenerator:
-    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path,clip_cf,vae_cf,if_repo):
+    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path,clip_cf,vae_cf,if_repo,onnx_provider):
         self.device = torch.device(device)
         self.offload = offload
         self.model_name = model_name
@@ -37,13 +37,20 @@ class FluxGenerator:
         self.clip_cf=clip_cf
         self.vae_cf=vae_cf
         self.if_repo=if_repo
+        self.onnx_provider=onnx_provider
         self.quantized_mode=quantized_mode
         self.model, self.ae, self.t5, self.clip = get_models(
             model_name,self.ckpt_path,self.vae_cf,self.clip_cf,self.if_repo,self.aggressive_offload,
             device=self.device,
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
-        self.pulid_model = PuLIDPipeline(self.model, device, self.clip_vision_path,weight_dtype=torch.bfloat16)
+        self.pulid_model = PuLIDPipeline(self.model, device, self.clip_vision_path,weight_dtype=torch.bfloat16,onnx_provider=self.onnx_provider)
+        if  self.offload and not self.aggressive_offload and self.onnx_provider=="gpu":
+            self.pulid_model.face_helper.face_det.mean_tensor = self.pulid_model.face_helper.face_det.mean_tensor.to(
+                torch.device("cuda"))
+            self.pulid_model.face_helper.face_det.device = torch.device("cuda")
+            self.pulid_model.face_helper.device = torch.device("cuda")
+            self.pulid_model.device = torch.device("cuda")
         self.pulid_model.load_pretrain(pretrained_model)
 
     @torch.inference_mode()
@@ -110,16 +117,17 @@ class FluxGenerator:
             shift=True,
         )
         
-        if self.offload:
+        if self.offload :
             self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
-        inp = prepare(t5=self.t5, clip=self.clip, img=x, prompt=opts.text)
-        inp_neg = prepare(t5=self.t5, clip=self.clip, img=x, prompt=neg_prompt) if use_true_cfg else None
+        inp = prepare(t5=self.t5, clip=self.clip, img=x, prompt=opts.text,if_repo=self.if_repo)
+        inp_neg = prepare(t5=self.t5, clip=self.clip, img=x, prompt=neg_prompt,if_repo=self.if_repo) if use_true_cfg else None
         
-        # offload TEs to CPU, load model to gpu
         
+        # offload TEs to CPU, offload pulid_model to cpu, load model to gpu
         if self.offload:
             self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
             torch.cuda.empty_cache()
+            self.pulid_model.components_to_device(torch.device("cpu"))
             if self.aggressive_offload:
                 self.model.components_to_gpu()
             else:
