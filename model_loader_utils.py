@@ -1714,7 +1714,7 @@ def process_generation(
                                     uncond_id_embeddings=uncond_id_embeddings,
                                     id_weight=1,
                                     guidance=guidance,
-                                    true_cfg=cfg,
+                                    true_cfg=1.0,
                                     max_sequence_length=128,
                                 )
                                 id_images.append(id_image)
@@ -1731,7 +1731,7 @@ def process_generation(
                                 uncond_id_embeddings=uncond_id_embeddings,
                                 id_weight=1,
                                 guidance=guidance,
-                                true_cfg=cfg,
+                                true_cfg=1.0,
                                 max_sequence_length=128,
                             )
                             id_images = [id_images]
