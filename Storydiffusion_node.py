@@ -385,7 +385,7 @@ class Storydiffusion_Sampler:
                 "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED}),
                 "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
                 "cfg": ("FLOAT", {"default": 7, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
-                "denoise_or_ip_sacle": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "denoise_or_ip_sacle": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "style_strength_ratio": ("INT", {"default": 20, "min": 1, "max": 100, "step": 1, "display": "number"}),
                 "guidance": (
                     "FLOAT", {"default": 3.5, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
