@@ -29,7 +29,7 @@ def get_noise(
     )
 
 
-def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str) -> dict[str, Tensor]:
+def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str,if_repo:bool) -> dict[str, Tensor]:
     bs, c, h, w = img.shape
     if bs == 1 and not isinstance(prompt, str):
         bs = len(prompt)
@@ -42,25 +42,37 @@ def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str) -> dict[
     img_ids[..., 1] = img_ids[..., 1] + torch.arange(h // 2)[:, None]
     img_ids[..., 2] = img_ids[..., 2] + torch.arange(w // 2)[None, :]
     img_ids = repeat(img_ids, "h w c -> b (h w) c", b=bs)
-
-    # if isinstance(prompt, str):
-    #     prompt = [prompt]
+    
+    if if_repo:
+        if isinstance(prompt, str):
+            prompt = [prompt]
     txt = t5(prompt)
+ 
     if txt.shape[0] == 1 and bs > 1:
         txt = repeat(txt, "1 ... -> bs ...", bs=bs)
     txt_ids = torch.zeros(bs, txt.shape[1], 3)
-
+    
     vec = clip(prompt)
     if vec.shape[0] == 1 and bs > 1:
         vec = repeat(vec, "1 ... -> bs ...", bs=bs)
-
-    return {
-        "img": img,
-        "img_ids": img_ids.to(img.device,torch.bfloat16),
-        "txt": txt.to(img.device,torch.bfloat16),
-        "txt_ids": txt_ids.to(img.device,torch.bfloat16),
-        "vec": vec.to(img.device,torch.bfloat16),
-    }
+    
+    if if_repo:
+        return {
+            "img": img,
+            "img_ids": img_ids.to(img.device),
+            "txt": txt.to(img.device),
+            "txt_ids": txt_ids.to(img.device, ),
+            "vec": vec.to(img.device),
+        }
+    else:
+        return {
+            "img": img,
+            "img_ids": img_ids.to(img.device, torch.bfloat16),
+            "txt": txt.to(img.device, torch.bfloat16),
+            "txt_ids": txt_ids.to(img.device, torch.bfloat16),
+            "vec": vec.to(img.device, torch.bfloat16),
+        }
+    
 
 
 def time_shift(mu: float, sigma: float, t: Tensor):
