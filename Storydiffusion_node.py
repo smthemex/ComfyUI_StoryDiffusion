@@ -445,8 +445,9 @@ class Storydiffusion_Sampler:
         #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
     
         empty_emb_zero = None
-        if pulid or kolor_face or photomake_mode=="v2":
-            empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
+        if model_type=="img2img":           
+            if pulid or kolor_face or photomake_mode=="v2":
+                empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
         
         # 格式化文字内容
         scene_prompts.strip()
