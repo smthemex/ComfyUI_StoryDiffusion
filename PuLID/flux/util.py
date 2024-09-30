@@ -147,7 +147,6 @@ def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,aggressive_off
     from optimum.quanto import requantize,qint4,quantize,freeze
     # Loading Flux
     print(f"Init model in {quantized_mode}")
-   
     device=torch.device('cpu')
     model = Flux(configs[name].params).to(torch.bfloat16)
     if quantized_mode == "nf4":  #nf4 is now useful.
