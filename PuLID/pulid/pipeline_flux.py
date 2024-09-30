@@ -1,5 +1,7 @@
 import gc
 import math
+import os.path
+
 import cv2
 import insightface
 import torch
@@ -18,6 +20,7 @@ from torchvision.utils import make_grid
 from ..eva_clip import create_model_and_transforms
 from ..eva_clip.constants import OPENAI_DATASET_MEAN, OPENAI_DATASET_STD
 from .encoders_flux import IDFormer, PerceiverAttentionCA
+import folder_paths
 
 def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
     """Convert torch Tensors into image numpy arrays.
@@ -109,7 +112,7 @@ def img2tensor(imgs, bgr2rgb=True, float32=True):
 
 
 class PuLIDPipeline(nn.Module):
-    def __init__(self, dit, device,clip_vision_path, weight_dtype=torch.bfloat16, *args, **kwargs):
+    def __init__(self, dit, device,clip_vision_path, weight_dtype=torch.bfloat16, onnx_provider='gpu',*args, **kwargs):
         super().__init__()
         self.device = device
         self.weight_dtype = weight_dtype
@@ -158,13 +161,14 @@ class PuLIDPipeline(nn.Module):
         self.eva_transform_mean = eva_transform_mean
         self.eva_transform_std = eva_transform_std
         # antelopev2
-        self.app = FaceAnalysis(
-            name='antelopev2', root='.', providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
-        )
-        self.app = FaceAnalysis(name='antelopev2', root='.', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        
+        snapshot_download('DIAMONIK7777/antelopev2', local_dir='models/antelopev2')
+            
+        providers = ['CPUExecutionProvider'] if onnx_provider == 'cpu' else ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        self.app = FaceAnalysis(name='antelopev2', root='.', providers=providers)
         self.app.prepare(ctx_id=0, det_size=(640, 640))
-        self.handler_ante = insightface.model_zoo.get_model('models/antelopev2/glintr100.onnx',
-                                                            providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        
+        self.handler_ante = insightface.model_zoo.get_model('models/antelopev2/glintr100.onnx',providers=providers)
         self.handler_ante.prepare(ctx_id=0)
 
         gc.collect()
