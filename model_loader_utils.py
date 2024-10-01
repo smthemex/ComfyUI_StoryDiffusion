@@ -1026,8 +1026,8 @@ def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_ty
             pipe.enable_model_cpu_offload()
     return pipe
 
-def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual_only,photomake_mode_):
-    if photomake_mode == "v2":
+def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual_only,use_storydif):
+    if use_storydif and photomake_mode == "v2" and not story_maker:
         from .utils.insightface_package import FaceAnalysis2, analyze_faces
         if auraface:
             from huggingface_hub import snapshot_download
@@ -1060,7 +1060,7 @@ def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual
         pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4",
                                  trust_remote_code=True)
         if make_dual_only:  # 前段用story 双人用maker
-            if photomake_mode_ == "v2":
+            if photomake_mode == "v2" and use_storydif:
                 from .utils.insightface_package import FaceAnalysis2
                 if auraface:
                     from huggingface_hub import snapshot_download
@@ -1337,13 +1337,13 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     return image_ouput
 
 
-def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,kolor_face,story_maker,make_dual_only,photomake_mode_,
-                     pulid,pipe,character_list_,control_image,width, height):
+def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,kolor_face,story_maker,make_dual_only,
+                     pulid,pipe,character_list_,control_image,width, height,use_storydif):
     input_id_emb_s_dict = {}
     input_id_img_s_dict = {}
     input_id_emb_un_dict = {}
     for ind, img in enumerate(image_load):
-        if photomake_mode == "v2":
+        if photomake_mode == "v2" and use_storydif and not story_maker:
             from .utils.insightface_package import analyze_faces
             img = np.array(img)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -1366,7 +1366,7 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
             uncond_id_embeddings = None
         elif story_maker:
             if make_dual_only:  # 前段用story 双人用maker
-                if photomake_mode_ == "v2":
+                if photomake_mode == "v2" and use_storydif:
                     from .utils.insightface_package import analyze_faces
                     img = np.array(img)
                     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -1380,7 +1380,6 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
                                key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
                             -1]  # only use the maximum face
                     photomake_mode = "v2"
-                    miX_mode = True
                     # make+v2模式下，emb存v2的向量，corp 和 unemb 存make的向量
                 else:  # V1不需要调用emb
                     crop_image = pipeline_mask(img, return_mask=True).convert(
@@ -1416,7 +1415,7 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
         input_id_emb_s_dict[character_list_[ind]] = [id_embed_list]
         input_id_emb_un_dict[character_list_[ind]] = [uncond_id_embeddings]
     
-    if story_maker or kolor_face or photomake_mode == "v2":
+    if story_maker or kolor_face or (photomake_mode == "v2" and use_storydif):
         del app_face
         torch.cuda.empty_cache()
     if story_maker:
@@ -1457,7 +1456,7 @@ def process_generation(
         lora,
         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face, pulid, story_maker,
         input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, control_img,
-        empty_emb_zero, miX_mode,use_cf,cf_scheduler
+        empty_emb_zero,use_cf,cf_scheduler
 ):  # Corrected font_choice usage
     
     if len(general_prompt.splitlines()) >= 3:
