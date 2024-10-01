@@ -102,9 +102,8 @@ class Storydiffusion_Model_Loader:
         id_number=len(character_prompt.splitlines())
         if id_number > 2:
             id_number=2
-        print(f"Process using {id_number} roles....")
-        image = kwargs.get("image")
         
+        image = kwargs.get("image")
         if isinstance(image,torch.Tensor):
             print(image.shape)
             batch_num,_,_,_=image.size()
@@ -114,7 +113,9 @@ class Storydiffusion_Model_Loader:
         else:
             model_type = "txt2img"
             image=None
-       
+            
+        logging.info(f"Process using {id_number} roles,mode is {model_type}....")
+        
         if controlnet_model=="none":
             controlnet_path=None
             control_image=None
@@ -163,6 +164,7 @@ class Storydiffusion_Model_Loader:
         height_s = height
         width_s = width
         use_cf=False
+        use_storydif=False
         if not repo_id and not ckpt_path and not cf_model:
             raise "you need choice a model or repo_id or a comfyUI model..."
         elif not repo_id and not ckpt_path and cf_model:
@@ -181,9 +183,8 @@ class Storydiffusion_Model_Loader:
             if not clip:
                 raise "Now,using comfyUI normal processing must need comfyUI clip,if using flux need dual clip ."
             use_cf = True
-            use_flux=False
             if cf_model.model.model_type.value==8:
-                use_flux = True
+                use_flux=True
                 cf_model_type="FLUX"
             elif cf_model.model.model_type.value==4:
                 cf_model_type = "CASCADE"
@@ -205,9 +206,8 @@ class Storydiffusion_Model_Loader:
                     cf_model_type = "FLUX"
                 except:
                     raise "unsupport checkpoints"
-      
             pipe=CFGenerator(cf_model,clip,vae,cf_model_type,device)
-            
+            pulid = False
         elif not repo_id and ckpt_path: # load ckpt
             if_repo = False
             if story_maker:
@@ -215,10 +215,10 @@ class Storydiffusion_Model_Loader:
                     logging.info("start story-make processing...")
                     pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path, face_adapter,UniPCMultistepScheduler)
                 else:
-                    photomake_mode_1 =  photomake_mode_
+                    use_storydif=True
                     logging.info("start story-diffusion and story-make processing...")
                     pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
-                                       photomake_mode=photomake_mode_1, photomaker_path=photomaker_path, lora=lora,
+                                       photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
                                        lora_path=lora_path,
                                        trigger_words=trigger_words, lora_scale=lora_scale)
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
@@ -245,7 +245,8 @@ class Storydiffusion_Model_Loader:
                 else:
                     raise "need pulid in easy function"
             else:
-                logging.info("start story-diffusion  processing...")
+                logging.info("start story-diffusion mode processing...")
+                use_storydif=True
                 pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
                                    photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
                                    lora_path=lora_path,
@@ -255,6 +256,7 @@ class Storydiffusion_Model_Loader:
             if_repo=True
             if repo_id.rsplit("/")[-1].lower()=="playground-v2.5-1024px-aesthetic":
                 logging.info("start playground story-diffusion  processing...")
+                use_storydif = True
                 pipe = DiffusionPipeline.from_pretrained(
                     repo_id,
                     torch_dtype=torch.float16,
@@ -262,6 +264,7 @@ class Storydiffusion_Model_Loader:
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             elif repo_id.rsplit("/")[-1].lower()=="sdxl-unstable-diffusers-y":
                 logging.info("start sdxl-unstable story-diffusion  processing...")
+                use_storydif = True
                 pipe = StableDiffusionXLPipeline.from_pretrained(
                     repo_id, torch_dtype=torch.float16,use_safetensors=False
                 )
@@ -297,6 +300,7 @@ class Storydiffusion_Model_Loader:
                         pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
                 else:
                     logging.info("start story_diffusion processing...")
+                    use_storydif = True
                     pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,
                                        photomake_mode=photomake_mode,
                                        photomaker_path=photomaker_path, lora=lora,
@@ -305,19 +309,14 @@ class Storydiffusion_Model_Loader:
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
                     
         if vae_id != "none":
-            if not use_flux and not use_kolor and not use_cf:
+            if use_storydif:
                 vae_id = folder_paths.get_full_path("vae", vae_id)
                 vae_config=os.path.join(dir_path, "local_repo","vae")
                 pipe.vae=AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
         load_chars = False
-        if not use_kolor and not use_flux and not use_cf:
-            if story_maker:
-                if make_dual_only:
-                    pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-                    load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
-            else:
-                pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-                load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
+        if use_storydif:
+            pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
+            load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
             pipe.enable_vae_slicing()
             pipe.to(device)
@@ -327,7 +326,6 @@ class Storydiffusion_Model_Loader:
         # need get emb
         character_name_dict_, character_list_ = character_to_dict(character_prompt, lora, trigger_words)
         #print(character_list_)
-        miX_mode = False
         if model_type=="img2img":
             d1, _, _, _ = image.size()
             if d1 == 1:
@@ -337,10 +335,10 @@ class Storydiffusion_Model_Loader:
                 image_load = [nomarl_upscale(img, width, height) for img in img_list]
                 
             from .model_loader_utils import insight_face_loader,get_insight_dict
-            app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only, photomake_mode_)
+            app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only,use_storydif)
             input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict=get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
-                                                                                                                 kolor_face,story_maker,make_dual_only,photomake_mode_,
-                     pulid,pipe,character_list_,control_image,width, height)
+                                                                                                                 kolor_face,story_maker,make_dual_only,
+                     pulid,pipe,character_list_,control_image,width, height,use_storydif)
         else:
             input_id_emb_s_dict = {}
             input_id_img_s_dict = {}
@@ -355,7 +353,7 @@ class Storydiffusion_Model_Loader:
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
                "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image,
                "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,
-               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"miX_mode":miX_mode}
+               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif}
         return (model,)
 
 
@@ -440,14 +438,13 @@ class Storydiffusion_Sampler:
         input_id_emb_un_dict = model.get("input_id_emb_un_dict")
         input_id_cloth_dict = model.get("input_id_cloth_dict")
         role_name_list=model.get("role_name_list")
-        miX_mode=model.get("miX_mode")
-        
+        use_storydif=model.get("use_storydif")
         cf_scheduler=scheduler
         #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
     
         empty_emb_zero = None
         if model_type=="img2img":           
-            if pulid or kolor_face or photomake_mode=="v2":
+            if pulid or kolor_face or (photomake_mode=="v2" and use_storydif):
                 empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
         
         # 格式化文字内容
@@ -493,7 +490,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
-                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,miX_mode,use_cf,cf_scheduler)
+                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,use_cf,cf_scheduler)
 
         else:
             if story_maker:
@@ -510,7 +507,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,
-                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,miX_mode,use_cf,cf_scheduler)
+                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,use_cf,cf_scheduler)
 
         for value in gen:
             print(type(value))
