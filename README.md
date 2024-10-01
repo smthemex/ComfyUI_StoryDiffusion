@@ -4,6 +4,10 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
+**2024/10/01**
+* If using flux-pulid, Please run according to the two methods in my example(new.json);
+* fix some bugs,now 12G VRA runing 1 img in cpu need 317.6s It's 10 times faster than the previous unoptimized version. For 24G VRAM users, please provide feedback on the time if it runs successfully so that I can optimize it;
+
 **2024/09/30**
 * Entering the National Day holiday, so if there are any issues with this update, it will take a few days to reply; 
 * Add comfyUI wrapper,now You can freely use ComfyUI's regular SDXL, SD1.5 FLUX..., and call the prompt format of this prompt(There's no special benefit, just convenience);
@@ -266,6 +270,10 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
+**pulid-flux**  
+* flux img2img Two examples 图生图,两种示例,最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
+
 **comfyUI-normal**  
 flux normal
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cf_flux_txt2img.png)
@@ -278,7 +286,7 @@ img2img  纯storymaker生成，非最新示例 (outdated version examples)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
 **flux-pulid**   
-img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新示例(Latest version) 
+img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新示例(outdated version examples) 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
 
 **kolor-face**   
@@ -288,8 +296,6 @@ img2img kolor face，参数输入没变化，非最新示例  (outdated version 
 **flux-nf4**   
 * txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快，非最新示例 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
-* flux img2img 图生图，注意用ip的参数来控制噪声（多样性），非最新示例 (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 
 **ms-diffusion**   
 * img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
