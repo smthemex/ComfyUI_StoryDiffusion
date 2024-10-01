@@ -3,6 +3,10 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
+**2024/10/01** 
+* 今天的版本特意测试了一下,纯CPU跑比之前快不少,24G显存的用户可以测试一下,看看用时如何;
+* 新的示例和工作了包含了2种跑flux-pulid的方法,细节可以看issue,我跟一个用户的对话.
+
 **2024/09/30** 
 * 国庆当然也有可能会更新，这次更新主要是封装了comfyUI的标准流程进插件，虽然是脱裤子放屁的行为，主要是我懒得拉标准流程去测试，就封装了它。
 * pulid-flux依旧有小问题，官方给的量化模型如果完全按照它的requirement文件安装才能跑通，我得慢慢找出是哪个库导致官方的指导的xlab 的fp8模型无法正常量化，
@@ -359,6 +363,16 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 示例
 ----
+**pulid-flux**  
+* flux img2img Two examples 图生图,两种示例,最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
+
+**comfyUI-normal**  
+flux normal
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cf_flux_txt2img.png)
+sd1.5
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cy_sd_txt2img.png)
+
 
 **story-make**   
 图生图  纯storymaker生成，非最新示例 (outdated version examples)   
@@ -375,8 +389,6 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 **flux-nf4**   
 * txt2img mode use NF4 FLUX 开启flux nf4模式,速度最快，非最新示例 (outdated version examples)        
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
-* flux img2img 图生图，注意用ip的参数来控制噪声（多样性），非最新示例 (outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_img2img.png)
 
 **ms-diffusion**   
 * img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
