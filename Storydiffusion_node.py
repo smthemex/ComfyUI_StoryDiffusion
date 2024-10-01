@@ -290,7 +290,8 @@ class Storydiffusion_Model_Loader:
                         from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
                         pipe = StableDiffusionXLStoryMakerPipeline.from_pretrained(
                             repo_id, torch_dtype=torch.float16)
-                        pipe.cuda()
+                        if device != "mps":
+                            pipe.cuda()
                         image_encoder=clip_load(clip_vision_path)
                         pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=0.8)
                         pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
@@ -573,7 +574,7 @@ class Storydiffusion_Sampler:
                 image_dual = []
                 if model_type=="txt2img":
                    setup_seed(seed)
-                generator = torch.Generator(device='cuda').manual_seed(seed)
+                generator = torch.Generator(device=device).manual_seed(seed)
                 for i,prompt in enumerate(prompts_dual):
                     output = pipe(
                         image=image_a, mask_image=mask_image_1, face_info=face_info_1,  # first person
@@ -719,7 +720,7 @@ class Story_Easy_Function:
     def funcion_main(self, function_repo, function_ckpt,function_cli):
         if "glm" in function_cli:
            pass
-        print("test")
+        #print("test")
         return (function_repo,)
 
 
