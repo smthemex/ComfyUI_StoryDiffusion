@@ -45,12 +45,13 @@ class FluxGenerator:
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
         self.pulid_model = PuLIDPipeline(self.model, device, self.clip_vision_path,weight_dtype=torch.bfloat16,onnx_provider=self.onnx_provider)
-        if  self.offload and not self.aggressive_offload and self.onnx_provider=="gpu":
+        if  self.offload and self.onnx_provider=="gpu":
             self.pulid_model.face_helper.face_det.mean_tensor = self.pulid_model.face_helper.face_det.mean_tensor.to(
                 torch.device("cuda"))
             self.pulid_model.face_helper.face_det.device = torch.device("cuda")
             self.pulid_model.face_helper.device = torch.device("cuda")
-            self.pulid_model.device = torch.device("cuda")
+            if not self.aggressive_offload:
+                self.pulid_model.device = torch.device("cuda")
         self.pulid_model.load_pretrain(pretrained_model)
 
     @torch.inference_mode()
@@ -117,21 +118,23 @@ class FluxGenerator:
             shift=True,
         )
         
-        if self.offload :
+        if self.offload and  self.if_repo:
             self.t5, self.clip = self.t5.to(self.device), self.clip.to(self.device)
         inp = prepare(t5=self.t5, clip=self.clip, img=x, prompt=opts.text,if_repo=self.if_repo)
         inp_neg = prepare(t5=self.t5, clip=self.clip, img=x, prompt=neg_prompt,if_repo=self.if_repo) if use_true_cfg else None
         
         
         # offload TEs to CPU, offload pulid_model to cpu, load model to gpu
-        if self.offload:
+        if self.offload and self.if_repo:
             self.t5, self.clip = self.t5.cpu(), self.clip.cpu()
             torch.cuda.empty_cache()
-            self.pulid_model.components_to_device(torch.device("cpu"))
+        if self.offload:
             if self.aggressive_offload:
+                self.pulid_model.components_to_device(torch.device("cpu"))
                 self.model.components_to_gpu()
             else:
                 self.model = self.model.to(self.device)
+        torch.cuda.empty_cache()
         
         # denoise initial noise
         print("start denoise...")
@@ -147,9 +150,10 @@ class FluxGenerator:
         
         # offload model, load autoencoder to gpu
         print("start decoder...")
-        if self.offload:
-            self.model.cpu()
-            torch.cuda.empty_cache()
+        if self.offload :
+            if self.aggressive_offload:
+                self.model.cpu()
+                torch.cuda.empty_cache()
             self.ae.decoder.to(x.device)
         
         # decode latents to pixel space
