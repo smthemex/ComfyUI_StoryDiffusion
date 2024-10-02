@@ -137,10 +137,10 @@ class Storydiffusion_Model_Loader:
         photomaker_path,face_ckpt,photomake_mode,pulid_ckpt,face_adapter,kolor_ip_path=pre_checkpoint(
             photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path,use_kolor,model_type)
     
-        if total_vram > 30000.0:
+        if total_vram > 45000.0:
             aggressive_offload = False
             offload = False
-        elif 18000.0 < total_vram < 30000.0:
+        elif 17000.0<total_vram < 45000.0:
             aggressive_offload = False
             offload = True
         else:
