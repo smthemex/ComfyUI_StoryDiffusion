@@ -45,13 +45,16 @@ class FluxGenerator:
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
         self.pulid_model = PuLIDPipeline(self.model, device, self.clip_vision_path,weight_dtype=torch.bfloat16,onnx_provider=self.onnx_provider)
-        if  self.offload and self.onnx_provider=="gpu":
-            self.pulid_model.face_helper.face_det.mean_tensor = self.pulid_model.face_helper.face_det.mean_tensor.to(
-                torch.device("cuda"))
-            self.pulid_model.face_helper.face_det.device = torch.device("cuda")
-            self.pulid_model.face_helper.device = torch.device("cuda")
+        if  self.offload :
+            if self.onnx_provider=="gpu":
+                self.pulid_model.face_helper.face_det.mean_tensor = self.pulid_model.face_helper.face_det.mean_tensor.to(
+                    torch.device("cuda"))
+                self.pulid_model.face_helper.face_det.device = torch.device("cuda")
+                self.pulid_model.face_helper.device = torch.device("cuda")
             if not self.aggressive_offload:
                 self.pulid_model.device = torch.device("cuda")
+        else:
+            self.pulid_model.device = torch.device("cuda")
         self.pulid_model.load_pretrain(pretrained_model)
 
     @torch.inference_mode()
@@ -134,6 +137,8 @@ class FluxGenerator:
                 self.model.components_to_gpu()
             else:
                 self.model = self.model.to(self.device)
+        else:
+            self.model = self.model.to(self.device)
         torch.cuda.empty_cache()
         
         # denoise initial noise
