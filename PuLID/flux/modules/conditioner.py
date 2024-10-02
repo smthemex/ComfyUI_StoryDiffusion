@@ -3,14 +3,14 @@ from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5Tokeniz
 
 
 class HFEmbedder(nn.Module):
-    def __init__(self, version: str, tokenizer_path,clip_cf,if_repo,is_clip,quantized_mode, max_length: int, **hf_kwargs):
+    def __init__(self, version: str, tokenizer_path,clip_cf,if_repo,is_clip,max_length: int, **hf_kwargs):
         super().__init__()
-        #self.is_clip = version.startswith("openai")
         self.is_clip=is_clip
         self.if_repo=if_repo
-        self.quantized_mode=quantized_mode
         self.clip_cf=clip_cf
         self.max_length = max_length
+        if self.clip_cf and self.if_repo: #if somebody use clip and repo_id too
+            self.if_repo=False
         if self.if_repo:
             self.output_key = "pooler_output" if self.is_clip else "last_hidden_state"
         else:
@@ -23,11 +23,7 @@ class HFEmbedder(nn.Module):
             else:
                 self.tokenizer: T5Tokenizer = T5Tokenizer.from_pretrained(tokenizer_path, max_length=max_length)
                 self.hf_module: T5EncoderModel = T5EncoderModel.from_pretrained(version, **hf_kwargs)
-            if self.quantized_mode == "fp8":
-                from optimum.quanto import freeze, qfloat8, quantize
-                quantize(self.hf_module, weights=qfloat8)
-                freeze(self.hf_module)
-            
+
             self.hf_module = self.hf_module.eval().requires_grad_(False)
     
    
