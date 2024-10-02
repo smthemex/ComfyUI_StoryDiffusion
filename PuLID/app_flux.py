@@ -9,8 +9,8 @@ from .pulid.pipeline_flux import PuLIDPipeline
 
 
 def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,aggressive_offload,device: torch.device, offload: bool,quantized_mode):
-    t5 = load_t5(name,clip_cf,if_repo,quantized_mode,device, max_length=128)
-    clip = load_clip(name,clip_cf,if_repo,quantized_mode,device)
+    t5 = load_t5(name,clip_cf,if_repo,device, max_length=128)
+    clip = load_clip(name,clip_cf,if_repo,device)
     if if_repo:
         name=name.rsplit("/")[-1].lower()
         if "dev" in name:
