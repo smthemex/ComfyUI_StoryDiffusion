@@ -5,6 +5,7 @@
 
 ## Updates:
 **2024/10/01**
+* if vram >30G using fp16,do not fill in fp8,and chocie  fp16 weights,  
 * If using flux-pulid, Please run according to the two methods in my example(new.json);
 * fix some bugs,now 12G VRA runing 1 img in cpu need 317.6s It's 10 times faster than the previous unoptimized version. For 24G VRAM users, please provide feedback on the time if it runs successfully so that I can optimize it;
 
