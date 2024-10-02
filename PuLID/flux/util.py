@@ -233,16 +233,16 @@ def load_flow_model(name: str,ckpt_path, device: str = "cuda"):
     return model
 
 
-def load_t5(name,clip_cf,if_repo,quantized_mode,device = "cuda", max_length: int = 512) -> HFEmbedder:
+def load_t5(name,clip_cf,if_repo,device = "cuda", max_length: int = 512) -> HFEmbedder:
     return HFEmbedder(f"{name}/text_encoder_2", f"{name}/tokenizer_2", clip_cf, if_repo,is_clip=False,
-                          quantized_mode=quantized_mode, max_length=max_length, torch_dtype=torch.bfloat16).to(device)
+                           max_length=max_length, torch_dtype=torch.bfloat16).to(device)
     # max length 64, 128, 256 and 512 should work (if your sequence is short enough)
     #return HFEmbedder("xlabs-ai/xflux_text_encoders", max_length=max_length, torch_dtype=torch.bfloat16).to(device)
    
 
 
 def load_clip(name,clip_cf,if_repo,quantized_mode,device= "cuda") -> HFEmbedder:
-    return HFEmbedder(f"{name}/text_encoder",f"{name}/tokenizer",clip_cf,if_repo,is_clip=True,quantized_mode=quantized_mode,max_length=77, torch_dtype=torch.bfloat16).to(device)
+    return HFEmbedder(f"{name}/text_encoder",f"{name}/tokenizer",clip_cf,if_repo,is_clip=True,max_length=77, torch_dtype=torch.bfloat16).to(device)
     #return HFEmbedder("openai/clip-vit-large-patch14", max_length=77, torch_dtype=torch.bfloat16).to(device)
 
 
