@@ -126,6 +126,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     use_flux = False
     ckpt_path = None
     onnx_provider="gpu"
+    low_vram=False
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -148,6 +149,8 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             make_dual_only = True
         if "cpu" in easy_function:
             onnx_provider="cpu"
+        if "low" in easy_function:
+            low_vram=True
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
     if character_weights != "none":
@@ -176,7 +179,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
         else:
             raise "no '/' in repo_id ,please change'\' to '/'"
     
-    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider
+    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -460,7 +463,7 @@ def save_results(unet):
         description = character_dict[char]
         save_single_character_weights(unet,char,description,os.path.join(weight_folder_name, f'{char}.pt'))
 
-def story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler):
+def story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram):
     logging.info("loader story_maker processing...")
     from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
     original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
@@ -476,10 +479,23 @@ def story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapte
                 torch_dtype=torch.float16)
         except:
             raise "load pipe error!,check you diffusers"
-    pipe.cuda()
+    controlnet=None
+    if controlnet_path:
+        controlnet = ControlNetModel.from_unet(pipe.unet)
+        cn_state_dict = load_file(controlnet_path, device="cpu")
+        controlnet.load_state_dict(cn_state_dict, strict=False)
+        controlnet.to(torch.float16)
+    if device != "mps":
+        if not low_vram:
+            pipe.cuda()
     image_encoder = clip_load(clip_vision_path)
-    pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=0.8)
+    pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=lora_scale,controlnet=controlnet)
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+    #pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+    #pipe.enable_vae_slicing()
+    if device != "mps":
+        if low_vram:
+            pipe.enable_model_cpu_offload()
     return pipe
 
 def set_attention_processor(unet, id_length, is_ipadapter=False):
@@ -1338,7 +1354,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
 
 
 def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,control_image,width, height,use_storydif):
+                     pulid,pipe,character_list_,condition_image,width, height,use_storydif):
     input_id_emb_s_dict = {}
     input_id_img_s_dict = {}
     input_id_emb_un_dict = {}
@@ -1422,16 +1438,24 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
         del pipeline_mask
         torch.cuda.empty_cache()
     
-    if isinstance(control_image, torch.Tensor) and story_maker:
-        e1, _, _, _ = control_image.size()
+    if isinstance(condition_image, torch.Tensor) and story_maker:
+        e1, _, _, _ = condition_image.size()
         if e1 == 1:
-            cn_image_load = [nomarl_upscale(control_image, width, height)]
+            cn_image_load = [nomarl_upscale(condition_image, width, height)]
         else:
-            img_list = list(torch.chunk(control_image, chunks=e1))
+            img_list = list(torch.chunk(condition_image, chunks=e1))
             cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
         input_id_cloth_dict = {}
-        for ind, img in enumerate(cn_image_load):
+        if len(cn_image_load)>2:
+            cn_image_load_role=cn_image_load[0:2]
+        else:
+            cn_image_load_role=cn_image_load
+        for ind, img in enumerate(cn_image_load_role):
             input_id_cloth_dict[character_list_[ind]] = [img]
+        if len(cn_image_load)>2:
+            my_list=cn_image_load[2:]
+            for ind,img in enumerate(my_list):
+                input_id_cloth_dict[f"dual{ind}"] = [img]
     else:
         input_id_cloth_dict = {}
     return input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict
@@ -1455,8 +1479,8 @@ def process_generation(
         load_chars,
         lora,
         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face, pulid, story_maker,
-        input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, control_img,
-        empty_emb_zero,use_cf,cf_scheduler
+        input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
+        empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict
 ):  # Corrected font_choice usage
     
     if len(general_prompt.splitlines()) >= 3:
@@ -1776,7 +1800,7 @@ def process_generation(
                     mask_image = input_id_img_s_dict[character_key_str][0]
                     face_info = input_id_emb_s_dict[character_key_str][0]
                     cloth_info = None
-                    if isinstance(control_img, torch.Tensor):
+                    if isinstance(condition_image, torch.Tensor):
                         cloth_info = input_id_cloth_dict[character_key_str][0]
                     cur_negative_prompt = [cur_negative_prompt]
                     cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
@@ -1785,12 +1809,13 @@ def process_generation(
                         id_images = []
                         for index, i in enumerate(cur_positive_prompts):
                             id_image = pipe(
-                                image=img,
+                                image=img if not controlnet_path else [img, cn_dict[ref_indexs[index]][0]] if cn_dict else img,
                                 mask_image=mask_image,
                                 face_info=face_info,
                                 prompt=i,
                                 negative_prompt=cur_negative_prompt[index],
                                 ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
+                                controlnet_conditioning_scale=controlnet_scale,
                                 num_inference_steps=_num_steps,
                                 guidance_scale=cfg,
                                 height=height, width=width,
@@ -1800,7 +1825,7 @@ def process_generation(
                             id_images.append(id_image)
                     else:
                         id_images = pipe(
-                            image=img,
+                            image=img if not controlnet_path else [img, cn_dict[ref_indexs[0]][0]] if cn_dict else img,
                             mask_image=mask_image,
                             face_info=face_info,
                             prompt=cur_positive_prompts,
@@ -2069,16 +2094,20 @@ def process_generation(
                         generator=generator,
                     ).images[0]
             elif story_maker and not make_dual_only:
-                cloth_info = None
-                if isinstance(control_img, torch.Tensor):
-                    cloth_info = input_id_cloth_dict[cur_character[0]][0]
                 mask_image = input_id_img_s_dict[cur_character[0]][0]
                 img_2 = input_id_images_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_img
+                cloth_info = None
+                if isinstance(condition_image, torch.Tensor):
+                    if controlnet_path:
+                        cn_img=input_id_cloth_dict[cur_character[0]][0]
+                        img_2=[img_2,cn_img]
+                    else:
+                        cloth_info = input_id_cloth_dict[cur_character[0]][0]
                 face_info = input_id_emb_s_dict[cur_character[0]][
                     0] if real_prompts_ind not in nc_indexs else empty_emb_zero
                 
                 results_dict[real_prompts_ind] = pipe(
-                    image=img_2,
+                    image=img_2 if not controlnet_path else [img_2, cn_dict[real_prompts_ind][0]] if cn_dict else img_2,
                     mask_image=mask_image,
                     face_info=face_info,
                     prompt=real_prompt,
@@ -2086,6 +2115,7 @@ def process_generation(
                     ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
                     num_inference_steps=_num_steps,
                     guidance_scale=cfg,
+                    controlnet_conditioning_scale=controlnet_scale,
                     height=height, width=width,
                     generator=generator,
                     cloth=cloth_info,
