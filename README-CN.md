@@ -3,18 +3,8 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
-**2024/10/01** 
-* 今天的版本特意测试了一下,纯CPU跑比之前快不少,24G显存的用户可以测试一下,看看用时如何;
-* 新的示例和工作了包含了2种跑flux-pulid的方法,细节可以看issue,我跟一个用户的对话.
-
-**2024/09/30** 
-* 国庆当然也有可能会更新，这次更新主要是封装了comfyUI的标准流程进插件，虽然是脱裤子放屁的行为，主要是我懒得拉标准流程去测试，就封装了它。
-* pulid-flux依旧有小问题，官方给的量化模型如果完全按照它的requirement文件安装才能跑通，我得慢慢找出是哪个库导致官方的指导的xlab 的fp8模型无法正常量化，
-* 现在还是基于显存来自动判断加载模式，24G的显存跑起来有问题，待修复，因为还没有12G的跑得快。如果你的环境gpu跑insightface没问题，easy function要加gpu
-
-**2024/09/28**  
-* 目前只有Kijai/flux-fp8和Shakker-Labs/AWPortrait-FL 两个fp8模型能正常使用fp8量化出图,其他都出图是噪声;
-* 现在pulid不需要输入cpu,会根据你的显存自动选择合适的加载方式,分界点为30G,和18G,小于18G的都会用cpu+GPU跑,目前没有好的办法降显存,这是pulid一贯的弊病.
+**2024/10/06** 
+* 非官方代码复现story-maker的controlnet功能,使用该功能,有多少句场景提示词,就要多少张controlnet图片,controlnet的功能不限于canny pose什么的;
 
 ## 特色功能
 **story-diffusion**  
@@ -337,6 +327,12 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 既往更新  
 ----
+* 新的示例和工作了包含了2种跑flux-pulid的方法,细节可以看issue,我跟一个用户的对话.
+* 国庆当然也有可能会更新，这次更新主要是封装了comfyUI的标准流程进插件，虽然是脱裤子放屁的行为，主要是我懒得拉标准流程去测试，就封装了它。
+* pulid-flux依旧有小问题，官方给的量化模型如果完全按照它的requirement文件安装才能跑通，我得慢慢找出是哪个库导致官方的指导的xlab 的fp8模型无法正常量化，
+* 现在还是基于显存来自动判断加载模式，24G的显存跑起来有问题，待修复，因为还没有12G的跑得快。如果你的环境gpu跑insightface没问题，easy function要加gpu
+* 目前只有Kijai/flux-fp8和Shakker-Labs/AWPortrait-FL 两个fp8模型能正常使用fp8量化出图,其他都出图是噪声;
+* 现在pulid不需要输入cpu,会根据你的显存自动选择合适的加载方式,分界点为30G,和18G,小于18G的都会用cpu+GPU跑,目前没有好的办法降显存,这是pulid一贯的弊病.
 * 现在如果使用kolor的ipadapter 或者face ID，可以选择clip_vsion的单体模型（比如：clip-vit-large-patch14.safetensors）来加载image encoder，由此带来的改变是：kolor的本地目录可以删掉“clip-vit-large-patch14-336” 和“Kolors-IP-Adapter-Plus” 2个文件夹的所有文件，当然，因为comfyUI默认的clip图片处理是224，而kolor默认的是336，会有精度和质量的损失，详细看readme里的图片对比。
 * 另一个改动是，现在需要将”kolor ipadapter“的“ip_adapter_plus_general.bin“的模型移到了ComfyUI/models/photomaker目录下；  
 * 更新了插件的布局,具体看示例,主要变动有,现在根据输入的角色的提示词行数,来判断是单角色还是双角色,我看有些自媒体说我这个只能生成2张图片,完全无语,生成多少张是看你的电脑配置的;
@@ -364,7 +360,7 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 示例
 ----
 **pulid-flux**  
-* flux img2img Two examples 图生图,两种示例,最新示例 (Latest version)   
+* flux img2img Two examples 图生图,两种示例,非最新示例 (outdated version example)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
 
 **comfyUI-normal**  
@@ -375,11 +371,14 @@ sd1.5
 
 
 **story-make**   
+图生图和双角色同框,加controlnet  纯storymaker生成，最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/storymake_control.png)
+
 图生图  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
 **flux-pulid**   
-图生图 flux pulid  12G Vram,cpu  Flux使用PULID功能,不需要diffuser模型，最新示例(Latest version) 
+图生图 flux pulid  12G Vram,cpu  Flux使用PULID功能,不需要diffuser模型，非最新示例(outdated version example) 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
 
 **kolor-face**   
