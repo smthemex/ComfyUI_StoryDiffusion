@@ -78,7 +78,7 @@ class Storydiffusion_Model_Loader:
                 "easy_function":("STRING", {"default": ""}),
             },
             "optional": {"image": ("IMAGE",),
-                         "control_image": ("IMAGE",),
+                         "condition_image": ("IMAGE",),
                          "model": ("MODEL",),
                          "clip":("CLIP",),
                          "vae":("VAE",),
@@ -105,7 +105,7 @@ class Storydiffusion_Model_Loader:
         
         image = kwargs.get("image")
         if isinstance(image,torch.Tensor):
-            print(image.shape)
+            #print(image.shape)
             batch_num,_,_,_=image.size()
             model_type="img2img"
             if batch_num!=id_number:
@@ -118,19 +118,16 @@ class Storydiffusion_Model_Loader:
         
         if controlnet_model=="none":
             controlnet_path=None
-            control_image=None
         else:
             controlnet_path=folder_paths.get_full_path("controlnet", controlnet_model)
-            control_image=kwargs.get("control_image")
-            if not isinstance(control_image, torch.Tensor):
-                raise "if using controlnet,need input a image in control_image"
-        
+
+        condition_image=kwargs.get("condition_image")
         photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
         photomake_mode_=photomake_mode
        
         # load model
         (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider)=get_easy_function(
+         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram)=get_easy_function(
             easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
         
         
@@ -213,7 +210,7 @@ class Storydiffusion_Model_Loader:
             if story_maker:
                 if not make_dual_only: #default dual
                     logging.info("start story-make processing...")
-                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path, face_adapter,UniPCMultistepScheduler)
+                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path, face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram)
                 else:
                     use_storydif=True
                     logging.info("start story-diffusion and story-make processing...")
@@ -291,13 +288,28 @@ class Storydiffusion_Model_Loader:
                     if not make_dual_only:
                         logging.info("start story_maker processing...")
                         from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
+                        
                         pipe = StableDiffusionXLStoryMakerPipeline.from_pretrained(
                             repo_id, torch_dtype=torch.float16)
+                        controlnet=None
+                        if controlnet_path:
+                            from diffusers import ControlNetModel
+                            from safetensors.torch import load_file
+                            controlnet = ControlNetModel.from_unet(pipe.unet)
+                            cn_state_dict = load_file(controlnet_path, device="cpu")
+                            controlnet.load_state_dict(cn_state_dict, strict=False)
+                            controlnet.to(torch.float16)
                         if device != "mps":
-                            pipe.cuda()
+                            if not low_vram:
+                                pipe.cuda()
                         image_encoder=clip_load(clip_vision_path)
-                        pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=0.8)
+                        pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=lora_scale,controlnet=controlnet)
                         pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+                        #pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+                        #pipe.enable_vae_slicing()
+                        if device != "mps":
+                            if low_vram:
+                                pipe.enable_model_cpu_offload()
                 else:
                     logging.info("start story_diffusion processing...")
                     use_storydif = True
@@ -320,8 +332,10 @@ class Storydiffusion_Model_Loader:
             pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
             pipe.enable_vae_slicing()
             pipe.to(device)
-        # if device != "mps":
-        #     pipe.enable_model_cpu_offload()
+            if device != "mps":
+                if low_vram:
+                    pipe.enable_model_cpu_offload()
+        
         torch.cuda.empty_cache()
         # need get emb
         character_name_dict_, character_list_ = character_to_dict(character_prompt, lora, trigger_words)
@@ -338,7 +352,7 @@ class Storydiffusion_Model_Loader:
             app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only,use_storydif)
             input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict=get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
                                                                                                                  kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,control_image,width, height,use_storydif)
+                     pulid,pipe,character_list_,condition_image,width, height,use_storydif)
         else:
             input_id_emb_s_dict = {}
             input_id_img_s_dict = {}
@@ -351,9 +365,9 @@ class Storydiffusion_Model_Loader:
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
                "scheduler":scheduler,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
-               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"control_image":control_image,
+               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,
                "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,
-               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif}
+               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram}
         return (model,)
 
 
@@ -394,6 +408,8 @@ class Storydiffusion_Sampler:
                     "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
                 "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
             },
+            "optional": {"control_image": ("IMAGE",),
+                         },
             }
 
       
@@ -404,7 +420,7 @@ class Storydiffusion_Sampler:
 
     def story_sampler(self, model,scene_prompts, negative_prompt, img_style, seed, steps,
                   cfg, denoise_or_ip_sacle, style_strength_ratio,
-                  guidance, mask_threshold, start_step,save_character,controlnet_scale,guidance_list,):
+                  guidance, mask_threshold, start_step,save_character,controlnet_scale,guidance_list,**kwargs):
         # get value from dict
         pipe=model.get("pipe")
         use_flux=model.get("use_flux")
@@ -430,7 +446,7 @@ class Storydiffusion_Sampler:
         make_dual_only= model.get("make_dual_only")
         scheduler_choice = get_scheduler(scheduler["name"],scheduler["scheduler"])
         character_prompt=model.get("character_prompt")
-        control_image=model.get("control_image")
+        condition_image=model.get("condition_image")
         image=model.get("image")
         use_cf=model.get("use_cf")
         input_id_emb_s_dict = model.get("input_id_emb_s_dict")
@@ -439,9 +455,14 @@ class Storydiffusion_Sampler:
         input_id_cloth_dict = model.get("input_id_cloth_dict")
         role_name_list=model.get("role_name_list")
         use_storydif=model.get("use_storydif")
+        low_vram=model.get("low_vram")
         cf_scheduler=scheduler
         #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
-    
+        control_image=kwargs.get("control_image")
+        
+        
+
+
         empty_emb_zero = None
         if model_type=="img2img":           
             if pulid or kolor_face or (photomake_mode=="v2" and use_storydif):
@@ -465,12 +486,34 @@ class Storydiffusion_Sampler:
         positions_dual = [index for index, prompt in enumerate(prompts_origin) if len(extract_content_from_brackets(prompt))>=2]  #改成单句中双方括号方法，利于MS组句，[A]... [B]...[C]
         prompts_dual = [prompt for prompt in prompts_origin if len(extract_content_from_brackets(prompt))>=2]
         
+        positions_nc = [index for index, prompt in enumerate(prompts_origin) if"[NC]" in prompt]  # 找到NC的位置
+        prompts_no_dual = [prompt for prompt in prompts_origin if not len(extract_content_from_brackets(prompt)) >= 2]
+        prompts_no_nc_dual = [prompt for prompt in prompts_no_dual if "[NC]" not in prompt]
+        
         if len(char_origin) == 2:
             positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
             positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
                 0]  # 获取角色出现的索引列表，并获取首次出现的位置
-            
+        
+        cn_dict = {}  # {0:[img]} story_maker
+        if isinstance(control_image, torch.Tensor) and story_maker and controlnet_path and not make_dual_only:
+            f1, _, _, _ = control_image.size()
+            if f1!=len(prompts_origin):
+                raise "if using story-maker controlnet,The number of input control-images and scene prompts should be consistent!! "
+            else:
+                if f1 == 1:
+                    cn_image_load = [nomarl_upscale(control_image, width, height)]
+                else:
+                    img_list = list(torch.chunk(control_image, chunks=f1))
+                    cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
+                    
+                for index, img in enumerate(cn_image_load):
+                    cn_dict[index] = [img]
+                
+                for i in  positions_dual:  #  dual to {dual_num:[None]}
+                    cn_dict[i] = [None]
+                    
         if model_type=="img2img":
             d1, _, _, _ = image.size()
             if d1 == 1:
@@ -490,7 +533,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
-                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,use_cf,cf_scheduler)
+                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict)
 
         else:
             if story_maker:
@@ -507,7 +550,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,
-                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,control_image,empty_emb_zero,use_cf,cf_scheduler)
+                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict)
 
         for value in gen:
             print(type(value))
@@ -535,7 +578,8 @@ class Storydiffusion_Sampler:
                     cleanup_models(keep_clone_weights_loaded=False)
                     gc.collect()
                     torch.cuda.empty_cache()
-                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler)
+                    controlnet_path=None
+                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,low_vram)
                 mask_image_1=input_id_img_s_dict[role_name_list[0]][0]
                 mask_image_2=input_id_img_s_dict[role_name_list[1]][0]
                 
@@ -548,7 +592,7 @@ class Storydiffusion_Sampler:
                 
                 cloth_info_1=None
                 cloth_info_2=None
-                if isinstance(control_image,torch.Tensor):
+                if isinstance(condition_image,torch.Tensor):
                     cloth_info_1 = input_id_cloth_dict[role_name_list[0]][0]
                     cloth_info_2 = input_id_cloth_dict[role_name_list[1]][0]
                 
@@ -578,10 +622,11 @@ class Storydiffusion_Sampler:
                         image_2=image_b, mask_image_2=mask_image_2, face_info_2=face_info_2,  # second person
                         prompt=prompt,
                         negative_prompt=negative_prompt,
-                        ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
+                        ip_adapter_scale=denoise_or_ip_sacle, lora_scale=lora_scale,
                         num_inference_steps=steps,
                         guidance_scale=cfg,
                         height=height, width=width,
+                        controlnet_conditioning_scale=controlnet_scale,
                         generator=generator,
                         cloth=cloth_info_1,
                         cloth_2=cloth_info_2
@@ -624,6 +669,7 @@ class Storydiffusion_Sampler:
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
+        gc.collect()
         torch.cuda.empty_cache()
         return (image, scene_prompts,)
     
