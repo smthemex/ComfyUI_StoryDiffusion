@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+# import datetime
+# import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cv2
-import math
+# import math
 
 import numpy as np
 import PIL.Image
 from PIL import Image
-import torch, traceback, pdb
-import torch.nn.functional as F
+import torch, traceback
+# import torch.nn.functional as F
 
-from diffusers.image_processor import PipelineImageInput
+from diffusers.image_processor import PipelineImageInput, VaeImageProcessor
 
 from diffusers.models import ControlNetModel
 
@@ -38,7 +38,7 @@ try:
     from diffusers.pipelines.stable_diffusion_xl import StableDiffusionXLPipelineOutput
 except:
     try:
-        from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import tableDiffusionXLPipelineOutput
+        from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import StableDiffusionXLPipelineOutput
     except:
         raise "load diffuser error check your diffuser version!"
         
@@ -52,7 +52,9 @@ from .ip_adapter_.resampler_ import Resampler
 from .ip_adapter_.utils import is_torch2_available
 from .ip_adapter_.ip_adapter_faceid import faceid_plus
 
-from .ip_adapter_.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
+from diffusers.pipelines.controlnet import MultiControlNetModel
+from .ip_adapter_.attention_processor import CNAttnProcessor2_0 as CNAttnProcessor
+
 from .ip_adapter_.attention_processor_faceid import LoRAIPAttnProcessor2_0 as LoRAIPAttnProcessor, LoRAAttnProcessor2_0 as LoRAAttnProcessor
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
@@ -139,13 +141,19 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         self.to('cuda', dtype)
         if hasattr(self, 'image_proj_model'):
             self.image_proj_model.to(self.unet.device).to(self.unet.dtype)
+    
+    
+    def control_mode(self,controlnet):
+        self.controlnet=controlnet
+        return self.controlnet
         
-    def load_storymaker_adapter(self, image_encoder, model_ckpt, image_emb_dim=512, num_tokens=20, scale=0.8, lora_scale=0.8):
+    def load_storymaker_adapter(self, image_encoder, model_ckpt, image_emb_dim=512, num_tokens=20, scale=0.8, lora_scale=0.8,controlnet=None):
         self.clip_image_processor = CLIPImageProcessor()
         #self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(image_encoder_path).to(self.device, dtype=self.dtype)
         self.image_encoder=image_encoder
+        self.controlnet = controlnet
         self.set_image_proj_model(model_ckpt, image_emb_dim, num_tokens)
-        self.set_ip_adapter(model_ckpt, num_tokens)
+        self.set_ip_adapter(model_ckpt, num_tokens,128,self.controlnet)
         self.set_ip_adapter_scale(scale, lora_scale)
         print(f'successful load adapter.')
         
@@ -164,9 +172,11 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
             state_dict = state_dict["image_proj_model"]
         self.image_proj_model.load_state_dict(state_dict)
         
-    def set_ip_adapter(self, model_ckpt, num_tokens, lora_rank=128):
-        
+    def set_ip_adapter(self, model_ckpt, num_tokens, lora_rank=128,controlnet=None):
+        self.num_tokens=num_tokens
         unet = self.unet
+        self.controlnet=controlnet
+
         attn_procs = {}
         for name in unet.attn_processors.keys():
             cross_attention_dim = None if name.endswith("attn1.processor") else unet.config.cross_attention_dim
@@ -183,12 +193,59 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
             else:
                 attn_procs[name] = LoRAIPAttnProcessor(hidden_size=hidden_size, cross_attention_dim=cross_attention_dim, rank=lora_rank).to(unet.device, dtype=unet.dtype)
         unet.set_attn_processor(attn_procs)
+        # try to add controlnet
+        if self.controlnet is not None:
+            if isinstance(self.controlnet, MultiControlNetModel):
+                for controlnet in self.controlnet.nets:
+                    controlnet.set_attn_processor(
+                        CNAttnProcessor( num_tokens=self.num_tokens))
+            else:
+                controlnet.set_attn_processor(
+                    CNAttnProcessor( num_tokens=self.num_tokens))
+                
         
         state_dict = torch.load(model_ckpt, map_location="cpu")
         ip_layers = torch.nn.ModuleList(self.unet.attn_processors.values())
         if 'ip_adapter' in state_dict:
             state_dict = state_dict['ip_adapter']
         ip_layers.load_state_dict(state_dict)
+    
+    def prepare_image(
+            self,
+            image,
+            width,
+            height,
+            batch_size,
+            num_images_per_prompt,
+            device,
+            dtype,
+            do_classifier_free_guidance=False,
+            guess_mode=False,
+    ):
+        self.control_image_processor = VaeImageProcessor(
+            vae_scale_factor=self.vae_scale_factor, do_convert_rgb=True, do_normalize=False
+        )
+        
+        image = self.control_image_processor.preprocess(image, height=height, width=width).to(dtype=torch.float32)
+        image_batch_size = image.shape[0]
+        
+        if image_batch_size == 1:
+            repeat_by = batch_size
+        else:
+            # image batch size is the same as prompt batch size
+            repeat_by = num_images_per_prompt
+        
+        image = image.repeat_interleave(repeat_by, dim=0)
+        
+        image = image.to(device=device, dtype=dtype)
+        
+        if do_classifier_free_guidance and not guess_mode:
+            image = torch.cat([image] * 2)
+        
+        return image
+    
+    
+    
     
     def set_ip_adapter_scale(self, scale, lora_scale=0.8):
         unet = getattr(self, self.unet_name) if not hasattr(self, "unet") else self.unet
@@ -218,8 +275,30 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
 
     def _encode_prompt_image_emb(self, image, image_2, mask_image, mask_image_2, face_info, face_info_2, cloth, cloth_2,device, num_images_per_prompt, dtype, do_classifier_free_guidance):
         crop_list = []; face_list = [];  id_list = []
-        if image is not None:
-            clip_img, clip_face, face_emb = self.crop_image(image, mask_image, face_info)
+        cn_img=None
+        control_image=None
+        if isinstance(image,list) :
+            image_0 = image[0]
+            cn_img = image[1]
+        else:
+            image_0=image
+        if cn_img is not None:
+            width, height = cn_img.size
+            # timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            # cn_img.save(f"{timestamp}.png")
+            control_image = self.prepare_image(
+                image=cn_img,
+                width=width,
+                height=height,
+                batch_size=1 * num_images_per_prompt,
+                num_images_per_prompt=num_images_per_prompt,
+                device=device,
+                dtype=self.controlnet.dtype,
+                do_classifier_free_guidance=self.do_classifier_free_guidance,
+                guess_mode=self.guess_mode,
+            ).to(device=device, dtype=dtype)
+        if image_0 is not None:
+            clip_img, clip_face, face_emb = self.crop_image(image_0, mask_image, face_info)
             crop_list.append(clip_img)
             face_list.append(clip_face)
             id_list.append(face_emb)
@@ -271,7 +350,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         #prompt_image_emb = prompt_image_emb.repeat(1, num_images_per_prompt, 1)
         prompt_image_emb = prompt_image_emb.view(bs_embed * num_images_per_prompt, seq_len, -1)
         
-        return prompt_image_emb.to(device=device, dtype=dtype)
+        return prompt_image_emb.to(device=device, dtype=dtype),control_image
 
     @torch.no_grad()
     @replace_example_docstring(EXAMPLE_DOC_STRING)
@@ -457,7 +536,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
 
         callback = kwargs.pop("callback", None)
         callback_steps = kwargs.pop("callback_steps", None)
-
+        self.guess_mode=guess_mode
         if callback is not None:
             deprecate(
                 "callback",
@@ -530,9 +609,24 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         )
         
         # 3.2 Encode image prompt
-        prompt_image_emb = self._encode_prompt_image_emb(image, image_2, mask_image, mask_image_2, face_info, face_info_2, cloth,cloth_2,
+        control_mode = False
+        prompt_image_emb,contrl_image = self._encode_prompt_image_emb(image, image_2, mask_image, mask_image_2, face_info, face_info_2, cloth,cloth_2,
                                                          device, num_images_per_prompt,
                                                          self.unet.dtype, self.do_classifier_free_guidance)
+        
+        controlnet=self.controlnet.to(device)
+        if isinstance(contrl_image,torch.Tensor):
+            control_mode = True
+        if control_mode:
+            if isinstance(controlnet, MultiControlNetModel) and isinstance(controlnet_conditioning_scale, float):
+                controlnet_conditioning_scale = [controlnet_conditioning_scale] * len(controlnet.nets)
+            
+            global_pool_conditions = (
+                controlnet.config.global_pool_conditions
+                if isinstance(controlnet, ControlNetModel)
+                else controlnet.nets[0].config.global_pool_conditions
+            )
+       
         
         # 5. Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
@@ -559,10 +653,27 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
             timestep_cond = self.get_guidance_scale_embedding(
                 guidance_scale_tensor, embedding_dim=self.unet.config.time_cond_proj_dim
             ).to(device=device, dtype=latents.dtype)
+        
+        if control_mode:
+            # 7.1 Create tensor stating which controlnets to keep
+            if not isinstance(control_guidance_start, (tuple, list)):
+                control_guidance_start = [control_guidance_start]
+            
+            if not isinstance(control_guidance_end, (tuple, list)):
+                control_guidance_end = [control_guidance_end]
+                
+            controlnet_keep = []
+            for i in range(len(timesteps)):
+                keeps = [
+                    1.0 - float(i / len(timesteps) < s or (i + 1) / len(timesteps) > e)
+                    for s, e in zip(control_guidance_start, control_guidance_end)
+                ]
+                controlnet_keep.append(keeps[0] if isinstance(controlnet, ControlNetModel) else keeps)
+        
 
         # 7. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
-
+        
         # 7.2 Prepare added time ids & embeddings
         original_size = original_size or (height, width)
         target_size = target_size or (height, width)
@@ -618,18 +729,73 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
                 added_cond_kwargs = {"text_embeds": add_text_embeds, "time_ids": add_time_ids}
-
-                # predict the noise residual
-                noise_pred = self.unet(
-                    latent_model_input,
-                    t,
-                    encoder_hidden_states=encoder_hidden_states,
-                    timestep_cond=timestep_cond,
-                    cross_attention_kwargs=self.cross_attention_kwargs,
-                    added_cond_kwargs=added_cond_kwargs,
-                    return_dict=False,
-                )[0]
-
+                
+                if control_mode:
+                    # controlnet(s) inference
+                    if guess_mode and self.do_classifier_free_guidance:
+                        # Infer ControlNet only for the conditional batch.
+                        control_model_input = latents
+                        control_model_input = self.scheduler.scale_model_input(control_model_input, t)
+                        controlnet_prompt_embeds = prompt_embeds.chunk(2)[1]
+                        controlnet_added_cond_kwargs = {
+                            "text_embeds": add_text_embeds.chunk(2)[1],
+                            "time_ids": add_time_ids.chunk(2)[1],
+                        }
+                    else:
+                        control_model_input = latent_model_input
+                        controlnet_prompt_embeds = prompt_embeds
+                        controlnet_added_cond_kwargs = added_cond_kwargs
+                    
+                    if isinstance(controlnet_keep[i], list):
+                        cond_scale = [c * s for c, s in zip(controlnet_conditioning_scale, controlnet_keep[i])]
+                    else:
+                        controlnet_cond_scale = controlnet_conditioning_scale
+                        if isinstance(controlnet_cond_scale, list):
+                            controlnet_cond_scale = controlnet_cond_scale[0]
+                        cond_scale = controlnet_cond_scale * controlnet_keep[i]
+                    
+                    down_block_res_samples, mid_block_res_sample = self.controlnet(
+                        control_model_input,
+                        t,
+                        encoder_hidden_states=controlnet_prompt_embeds,
+                        controlnet_cond=contrl_image,
+                        conditioning_scale=cond_scale,
+                        guess_mode=guess_mode,
+                        added_cond_kwargs=controlnet_added_cond_kwargs,
+                        return_dict=False,
+                    )
+                    
+                    if guess_mode and self.do_classifier_free_guidance:
+                        # Inferred ControlNet only for the conditional batch.
+                        # To apply the output of ControlNet to both the unconditional and conditional batches,
+                        # add 0 to the unconditional batch to keep it unchanged.
+                        down_block_res_samples = [torch.cat([torch.zeros_like(d), d]) for d in down_block_res_samples]
+                        mid_block_res_sample = torch.cat([torch.zeros_like(mid_block_res_sample), mid_block_res_sample])
+                        
+                    # predict the noise residual
+                    noise_pred = self.unet(
+                        latent_model_input,
+                        t,
+                        encoder_hidden_states=encoder_hidden_states,
+                        timestep_cond=timestep_cond,
+                        cross_attention_kwargs=self.cross_attention_kwargs,
+                        down_block_additional_residuals=down_block_res_samples,
+                        mid_block_additional_residual=mid_block_res_sample,
+                        added_cond_kwargs=added_cond_kwargs,
+                        return_dict=False,
+                    )[0]
+                else:
+                    # predict the noise residual
+                    noise_pred = self.unet(
+                        latent_model_input,
+                        t,
+                        encoder_hidden_states=encoder_hidden_states,
+                        timestep_cond=timestep_cond,
+                        cross_attention_kwargs=self.cross_attention_kwargs,
+                        added_cond_kwargs=added_cond_kwargs,
+                        return_dict=False,
+                    )[0]
+                    
                 # perform guidance
                 if self.do_classifier_free_guidance:
                     noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
