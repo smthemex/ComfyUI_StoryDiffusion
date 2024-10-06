@@ -1,26 +1,12 @@
-<h1> ComfyUI_StoryDiffusion：You can using StoryDiffusion in ComfyUI.</h1>
+<h1> ComfyUI_StoryDiffusion：using StoryDiffusion in ComfyUI.</h1>
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
-**2024/10/01**
-* if vram >30G using fp16,do not fill in fp8,and chocie  fp16 weights,  
-* If using flux-pulid, Please run according to the two methods in my example(new.json);
-* fix some bugs,now 12G VRA runing 1 img in cpu need 317.6s It's 10 times faster than the previous unoptimized version. For 24G VRAM users, please provide feedback on the time if it runs successfully so that I can optimize it;
-
-**2024/09/30**
-* Entering the National Day holiday, so if there are any issues with this update, it will take a few days to reply; 
-* Add comfyUI wrapper,now You can freely use ComfyUI's regular SDXL, SD1.5 FLUX..., and call the prompt format of this prompt(There's no special benefit, just convenience);
-* fix some bug,and Cleared and organized some code.
-* Any method inserted in the regular comb process, such as connecting Lora after the model, should be able to function properly and has not been tested;
-* now fill in 'cpu' in easy-function ,will use CPU insightface...
-
-
-**2024/09/28**   
-* After testing, only 'Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL" fp8 can produce images normally in pulid-flux mode, while the other fp8 or nf4 checkpoints are noises;
-* if using pulid-flux,No need to enter 'cpu' in easyfunction. Now choose CPU offloading based on your VRAM, with the dividing points being VR>30G, 18G<VR<30G, or VR<18G;
-* If you don't use Comfyui's clip, you can continue to use the full repo-id to run the pulid-flux now; 
+**2024/10/06**
+* Reproduce the ControlNet control of Story-maker .Now, control-img is only applicable to methods using ControlNet and porting Samper nodes;
+* if using  ControlNet  in Story-maker,maybe OOM(VRAM<12G),For detailed content, please refer to the latest example image;
   
 ## Function introduction  
 **story-diffusion**    
@@ -272,7 +258,7 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 4 Example
 ----
 **pulid-flux**  
-* flux img2img Two examples 图生图,两种示例,最新示例 (Latest version)   
+* flux img2img Two examples 图生图,两种示例,非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
 
 **comfyUI-normal**  
@@ -283,11 +269,15 @@ sd1.5
 
 
 **story-make**   
+
+img2img using controlnet and 2roles in 1 img  纯storymaker生成，最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/storymake_control.png)
+
 img2img  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
 **flux-pulid**   
-img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,最新示例(outdated version examples) 
+img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,非最新示例(outdated version examples) 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
 
 **kolor-face**   
@@ -371,6 +361,17 @@ Function Description of Nodes
 
 Previous updates
 ----
+* if vram >30G using fp16,do not fill in fp8,and chocie  fp16 weights,  
+* If using flux-pulid, Please run according to the two methods in my example(new.json);
+* fix some bugs,now 12G VRA runing 1 img in cpu need 317.6s It's 10 times faster than the previous unoptimized version. For 24G VRAM users, please provide feedback on the time if it runs successfully so that I can optimize it;
+* Entering the National Day holiday, so if there are any issues with this update, it will take a few days to reply; 
+* Add comfyUI wrapper,now You can freely use ComfyUI's regular SDXL, SD1.5 FLUX..., and call the prompt format of this prompt(There's no special benefit, just convenience);
+* fix some bug,and Cleared and organized some code.
+* Any method inserted in the regular comb process, such as connecting Lora after the model, should be able to function properly and has not been tested;
+* now fill in 'cpu' in easy-function ,will use CPU insightface...   
+* After testing, only 'Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL" fp8 can produce images normally in pulid-flux mode, while the other fp8 or nf4 checkpoints are noises;
+* if using pulid-flux,No need to enter 'cpu' in easyfunction. Now choose CPU offloading based on your VRAM, with the dividing points being VR>30G, 18G<VR<30G, or VR<18G;
+* If you don't use Comfyui's clip, you can continue to use the full repo-id to run the pulid-flux now; 
 * Now if using Kolor's "ip-adapter" or "face ID", you can choose the monolithic model of clip_vision (such as :"clip-vit-large-patch14.safetensors") to load the image encoder. The change this brings is that Kolor's local directory can delete all files in the "clip-vit-large-patch14-336" and "Kolors-IP-Adapter-Plus" folders. Of course, because comfyUI defaults to clip image processing of "224" size , while Kolor defaults to 336 size, there will be a loss of accuracy and quality. Please refer to the image comparison in readme for details.
 * Another change is that we now need to port the model of "ip_adapter_plus_general.bin" in "kolor-ipadapter" to the "comfyUI/models/photomaker" directory;  
 * For the convenience of use, the layout of the node has been adjusted again,delete "id number"(base character lines now),delete " model_type"(base input image [img2img function] or not [txt2img function] now), 'clip_vision' , 'controlnet' , 'character prompt' ,'image','control_image' now in model loader node now.   
