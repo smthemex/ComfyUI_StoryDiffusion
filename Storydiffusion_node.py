@@ -10,7 +10,7 @@ from PIL import ImageFont,Image
 from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline,EulerDiscreteScheduler, UNet2DConditionModel,UniPCMultistepScheduler, AutoencoderKL,)
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
-
+import datetime
 import folder_paths
 from comfy.model_management import cleanup_models
 from comfy.clip_vision import load as clip_load
@@ -21,8 +21,8 @@ from .utils.load_models_utils import load_models
 from .model_loader_utils import  (story_maker_loader,kolor_loader,phi2narry,
                                   extract_content_from_brackets,narry_list,remove_punctuation_from_strings,phi_list,center_crop_s,center_crop,
                                   narry_list_pil,setup_seed,find_directories,
-                                  apply_style,get_scheduler,load_character_files_on_running,apply_style_positive,
-                                  save_results,nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list,pre_checkpoint,get_easy_function)
+                                  apply_style,get_scheduler,apply_style_positive,
+                                  nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list,pre_checkpoint,get_easy_function)
 from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available,process_original_prompt,get_ref_character,character_to_dict
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 if is_torch2_available():
@@ -84,6 +84,74 @@ def set_attention_processor(unet, id_length, is_ipadapter=False):
 
     unet.set_attn_processor(copy.deepcopy(attn_procs))
 
+def load_single_character_weights(unet, filepath):
+    """
+    从指定文件中加载权重到 attention_processor 类的 id_bank 中。
+    参数:
+    - model: 包含 attention_processor 类实例的模型。
+    - filepath: 权重文件的路径。
+    """
+    # 使用torch.load来读取权重
+    weights_to_load = torch.load(filepath, map_location=torch.device("cpu"))
+    weights_to_load.eval()
+    character = weights_to_load["character"]
+    description = weights_to_load["description"]
+    #print(character)
+    for attn_name, attn_processor in unet.attn_processors.items():
+        if isinstance(attn_processor, SpatialAttnProcessor2_0):
+            # 转移权重到GPU（如果GPU可用的话）并赋值给id_bank
+            attn_processor.id_bank[character] = {}
+            for step_key in weights_to_load[attn_name].keys():
+
+                attn_processor.id_bank[character][step_key] = [
+                    tensor.to(unet.device)
+                    for tensor in weights_to_load[attn_name][step_key]
+                ]
+    print("successsfully,load_single_character_weights")
+
+def load_character_files_on_running(unet, character_files: str):
+    if character_files == "":
+        return False
+    weights_list = os.listdir(character_files)#获取路径下的权重列表
+    #character_files_arr = character_files.splitlines()
+    for character_file in weights_list:
+        path_cur=os.path.join(character_files,character_file)
+        load_single_character_weights(unet, path_cur)
+    return True
+def save_single_character_weights(unet, character, description, filepath):
+    """
+    保存 attention_processor 类中的 id_bank GPU Tensor 列表到指定文件中。
+    参数:
+    - model: 包含 attention_processor 类实例的模型。
+    - filepath: 权重要保存到的文件路径。
+    """
+    weights_to_save = {}
+    weights_to_save["description"] = description
+    weights_to_save["character"] = character
+    for attn_name, attn_processor in unet.attn_processors.items():
+        if isinstance(attn_processor, SpatialAttnProcessor2_0):
+            # 将每个 Tensor 转到 CPU 并转为列表，以确保它可以被序列化
+            #print(attn_name, attn_processor)
+            weights_to_save[attn_name] = {}
+            for step_key in attn_processor.id_bank[character].keys():
+                weights_to_save[attn_name][step_key] = [
+                    tensor.cpu()
+                    for tensor in attn_processor.id_bank[character][step_key]
+                ]
+    # 使用torch.save保存权重
+    torch.save(weights_to_save, filepath)
+    
+def save_results(unet):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    weight_folder_name =os.path.join(base_pt,f"{timestamp}")
+    #创建文件夹
+    if not os.path.exists(weight_folder_name):
+        os.makedirs(weight_folder_name)
+    global character_dict
+    for char in character_dict:
+        description = character_dict[char]
+        save_single_character_weights(unet,char,description,os.path.join(weight_folder_name, f'{char}.pt'))
+        
 class SpatialAttnProcessor2_0(torch.nn.Module):
     r"""
     Attention processor for IP-Adapater for PyTorch 2.0.
