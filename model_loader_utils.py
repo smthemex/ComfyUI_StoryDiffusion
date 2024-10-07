@@ -26,7 +26,6 @@ from .msdiffusion.models.projection import Resampler
 from .msdiffusion.models.model import MSAdapter
 from .msdiffusion.utils import get_phrase_idx, get_eot_idx
 from .utils.style_template import styles
-from .Storydiffusion_node import SpatialAttnProcessor2_0
 
 from .utils.load_models_utils import  get_lora_dict,get_instance_path
 from .PuLID.pulid.utils import resize_numpy_image_long
@@ -372,64 +371,7 @@ def load_character_files(character_files: str):
         primarytext.append(character_file["character"] + character_file["description"])
     return array2string(primarytext)
 
-def load_single_character_weights(unet, filepath):
-    """
-    从指定文件中加载权重到 attention_processor 类的 id_bank 中。
-    参数:
-    - model: 包含 attention_processor 类实例的模型。
-    - filepath: 权重文件的路径。
-    """
-    # 使用torch.load来读取权重
-    weights_to_load = torch.load(filepath, map_location=torch.device("cpu"))
-    weights_to_load.eval()
-    character = weights_to_load["character"]
-    description = weights_to_load["description"]
-    #print(character)
-    for attn_name, attn_processor in unet.attn_processors.items():
-        if isinstance(attn_processor, SpatialAttnProcessor2_0):
-            # 转移权重到GPU（如果GPU可用的话）并赋值给id_bank
-            attn_processor.id_bank[character] = {}
-            for step_key in weights_to_load[attn_name].keys():
 
-                attn_processor.id_bank[character][step_key] = [
-                    tensor.to(unet.device)
-                    for tensor in weights_to_load[attn_name][step_key]
-                ]
-    print("successsfully,load_single_character_weights")
-
-def load_character_files_on_running(unet, character_files: str):
-    if character_files == "":
-        return False
-    weights_list = os.listdir(character_files)#获取路径下的权重列表
-    #character_files_arr = character_files.splitlines()
-    for character_file in weights_list:
-        path_cur=os.path.join(character_files,character_file)
-        load_single_character_weights(unet, path_cur)
-    return True
-
-def save_single_character_weights(unet, character, description, filepath):
-    """
-    保存 attention_processor 类中的 id_bank GPU Tensor 列表到指定文件中。
-    参数:
-    - model: 包含 attention_processor 类实例的模型。
-    - filepath: 权重要保存到的文件路径。
-    """
-    weights_to_save = {}
-    weights_to_save["description"] = description
-    weights_to_save["character"] = character
-    for attn_name, attn_processor in unet.attn_processors.items():
-        if isinstance(attn_processor, SpatialAttnProcessor2_0):
-            # 将每个 Tensor 转到 CPU 并转为列表，以确保它可以被序列化
-            #print(attn_name, attn_processor)
-            weights_to_save[attn_name] = {}
-            for step_key in attn_processor.id_bank[character].keys():
-                weights_to_save[attn_name][step_key] = [
-                    tensor.cpu()
-                    for tensor in attn_processor.id_bank[character][step_key]
-                ]
-    # 使用torch.save保存权重
-    torch.save(weights_to_save, filepath)
-    
 def face_bbox_to_square(bbox):
     ## l, t, r, b to square l, t, r, b
     l,t,r,b = bbox
@@ -445,16 +387,7 @@ def face_bbox_to_square(bbox):
 
     return [l0, t0, r0, b0]
 
-def save_results(unet):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    weight_folder_name =os.path.join(base_pt,f"{timestamp}")
-    #创建文件夹
-    if not os.path.exists(weight_folder_name):
-        os.makedirs(weight_folder_name)
-    global character_dict
-    for char in character_dict:
-        description = character_dict[char]
-        save_single_character_weights(unet,char,description,os.path.join(weight_folder_name, f'{char}.pt'))
+
 
 def story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram):
     logging.info("loader story_maker processing...")
