@@ -4,9 +4,8 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
-**2024/10/06**
-* Reproduce the ControlNet control of Story-maker .Now, control-img is only applicable to methods using ControlNet and porting Samper nodes;
-* if using  ControlNet  in Story-maker,maybe OOM(VRAM<12G),For detailed content, please refer to the latest example image;
+**2024/10/11**
+* add easy_function_lite node,you can use img2tag instead of scene prompts. The current models used are  [pzc163/MiniCPMv2_6-prompt-generator](https://huggingface.co/pzc163/MiniCPMv2_6-prompt-generator) and [thwri/CogFlorence-2-Large-Freeze](https://huggingface.co/thwri/CogFlorence-2-Large-Freeze) . Using "thwri/CogFlorence-2-Large-Freeze" requires inputting "flor" in the lite node's easy_function,Temporarily run CUDA during the testing phase.
   
 ## Function introduction  
 **story-diffusion**    
@@ -257,6 +256,11 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
+**prompt_tag**
+* using tag MiniCPM & CogFlorence 连环画可能会好点,如果加上controlnet   最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/tag_mini.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/tag.png)
+
 **pulid-flux**  
 * flux img2img Two examples 图生图,两种示例,非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
@@ -266,7 +270,6 @@ flux normal
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cf_flux_txt2img.png)
 sd1.5
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/cy_sd_txt2img.png)
-
 
 **story-make**   
 
@@ -361,6 +364,8 @@ Function Description of Nodes
 
 Previous updates
 ----
+* Reproduce the ControlNet control of Story-maker .Now, control-img is only applicable to methods using ControlNet and porting Samper nodes;
+* if using  ControlNet  in Story-maker,maybe OOM(VRAM<12G),For detailed content, please refer to the latest example image;
 * if vram >30G using fp16,do not fill in fp8,and chocie  fp16 weights,  
 * If using flux-pulid, Please run according to the two methods in my example(new.json);
 * fix some bugs,now 12G VRA runing 1 img in cpu need 317.6s It's 10 times faster than the previous unoptimized version. For 24G VRAM users, please provide feedback on the time if it runs successfully so that I can optimize it;
