@@ -443,7 +443,7 @@ def process_generation(
         lora,
         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face, pulid, story_maker,
         input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
-        empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale, cn_dict
+        empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale, cn_dict,input_tag_dict
 ):  # Corrected font_choice usage
     
     if len(general_prompt.splitlines()) >= 3:
@@ -521,6 +521,14 @@ def process_generation(
         ref_indexs_dict,
         ref_totals,
     ) = process_original_prompt(character_dict, prompts, id_length, img_mode)
+    
+    if input_tag_dict:
+        if len(input_tag_dict)<len(replace_prompts):
+            raise "The number of input condition images is less than the number of scene prompts！"
+        replace_prompts=[prompt +" " + input_tag_dict[i] for i,prompt in enumerate(replace_prompts)]
+    #print(input_tag_dict)
+    #print(replace_prompts)
+    #[' a woman img, wearing a white T-shirt  wake up in the bed ;', ' a man img,wearing a suit,black hair.  is working.']
     # print(character_index_dict,invert_character_index_dict,replace_prompts,ref_indexs_dict,ref_totals)
     # character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
     # invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}
@@ -1238,7 +1246,7 @@ class Storydiffusion_Model_Loader:
        
         # load model
         (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram)=get_easy_function(
+         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode)=get_easy_function(
             easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
         
         
@@ -1467,10 +1475,27 @@ class Storydiffusion_Model_Loader:
         else:
             input_id_emb_s_dict = {}
             input_id_img_s_dict = {}
-            input_id_emb_un_dict = {}
+            input_id_emb_un_dict ={}
             input_id_cloth_dict = {}
         #print(input_id_img_s_dict)
         role_name_list = [i for i in character_name_dict_.keys()]
+        
+        if TAG_mode and isinstance(condition_image,torch.Tensor) and cf_model: #using cf_model as tag input
+            k1, _, _, _ = condition_image.size()
+            if k1 == 1:
+                image_tag = [nomarl_upscale(condition_image, width, height)]
+            else:
+                img_list = list(torch.chunk(condition_image, chunks=k1))
+                image_tag = [nomarl_upscale(img, width, height) for img in img_list]
+            input_tag_dict = {}
+            for i,img in enumerate(image_tag):
+                input_tag_dict[i] =cf_model.run_tag(img)
+            del cf_model
+            gc.collect()
+            torch.cuda.empty_cache()
+        else:
+            input_tag_dict={}
+        
         #print( role_name_list)
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
@@ -1478,7 +1503,7 @@ class Storydiffusion_Model_Loader:
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
                "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,
                "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,
-               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram}
+               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram,"input_tag_dict":input_tag_dict}
         return (model,)
 
 
@@ -1570,9 +1595,7 @@ class Storydiffusion_Sampler:
         cf_scheduler=scheduler
         #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
         control_image=kwargs.get("control_image")
-        
-        
-
+        input_tag_dict=model.get("input_tag_dict")
 
         empty_emb_zero = None
         if model_type=="img2img":           
@@ -1644,7 +1667,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
-                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict)
+                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict,input_tag_dict)
 
         else:
             if story_maker:
@@ -1661,7 +1684,7 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,
-                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict)
+                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict,input_tag_dict)
 
         for value in gen:
             print(type(value))
@@ -1858,12 +1881,40 @@ class Pre_Translate_prompt:
         scene_prompts = ''.join(captions)
         return (scene_prompts,)
 
+class EasyFunction_Lite:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"repo": ("STRING", { "default": "F:/test/ComfyUI/models/diffusers/pzc163/MiniCPMv2_6-prompt-generator"}),
+                             "function_mode": (["tag", "clip","mask","llm",],),
+                             "select_method":("STRING",{ "default":""}),
+                             "temperature": (
+                                 "FLOAT", {"default": 0.7, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
+                             }}
+    
+    RETURN_TYPES = ("MODEL",)
+    ETURN_NAMES = ("model",)
+    FUNCTION = "easy_function_main"
+    CATEGORY = "Storydiffusion"
+    
+    def easy_function_main(self, repo,function_mode,select_method,temperature):
+        if function_mode=="tag":
+            from .model_loader_utils import StoryLiteTag
+            model = StoryLiteTag(device, temperature,select_method, repo)
+        elif function_mode=="clip":
+            model=None
+        elif function_mode=="mask":
+            model=None
+        else:
+            model=None
+        return (model,)
+
 
 NODE_CLASS_MAPPINGS = {
     "Storydiffusion_Model_Loader": Storydiffusion_Model_Loader,
     "Storydiffusion_Sampler": Storydiffusion_Sampler,
     "Pre_Translate_prompt": Pre_Translate_prompt,
     "Comic_Type": Comic_Type,
+    "EasyFunction_Lite":EasyFunction_Lite
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1871,4 +1922,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Storydiffusion_Sampler": "Storydiffusion_Sampler",
     "Pre_Translate_prompt": "Pre_Translate_prompt",
     "Comic_Type": "Comic_Type",
+    "EasyFunction_Lite":"EasyFunction_Lite"
 }
