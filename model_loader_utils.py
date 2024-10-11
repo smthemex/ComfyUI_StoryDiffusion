@@ -26,10 +26,9 @@ from .msdiffusion.models.projection import Resampler
 from .msdiffusion.models.model import MSAdapter
 from .msdiffusion.utils import get_phrase_idx, get_eot_idx
 from .utils.style_template import styles
-
 from .utils.load_models_utils import  get_lora_dict,get_instance_path
 from .PuLID.pulid.utils import resize_numpy_image_long
-
+from transformers import AutoModel, AutoTokenizer
 from comfy.utils import common_upscale
 import folder_paths
 from comfy.model_management import cleanup_models
@@ -119,6 +118,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     ckpt_path = None
     onnx_provider="gpu"
     low_vram=False
+    TAG_mode=False
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -143,6 +143,8 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             onnx_provider="cpu"
         if "low" in easy_function:
             low_vram=True
+        if "tag" in easy_function:
+            TAG_mode=True
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
     if character_weights != "none":
@@ -171,7 +173,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
         else:
             raise "no '/' in repo_id ,please change'\' to '/'"
     
-    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram
+    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -1082,4 +1084,55 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
     else:
         input_id_cloth_dict = {}
     return input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict
-   
+
+
+def load_model_tag(repo,device,select_method):
+    if "flor" in select_method.lower():#"thwri/CogFlorence-2-Large-Freeze"
+        #pip install flash_attn
+        from transformers import AutoModelForCausalLM, AutoProcessor, AutoConfig
+        model = AutoModelForCausalLM.from_pretrained(repo, trust_remote_code=True).to(
+            device)
+        processor = AutoProcessor.from_pretrained(repo, trust_remote_code=True)
+    else:
+        model = AutoModel.from_pretrained(repo, trust_remote_code=True)
+        processor = AutoTokenizer.from_pretrained(repo, trust_remote_code=True)#tokenizer
+    model.eval()
+    return model,processor
+
+class StoryLiteTag:
+    def __init__(self, device,temperature,select_method,repo="pzc163/MiniCPMv2_6-prompt-generator",):
+        self.device = device
+        self.repo = repo
+        self.select_method=select_method
+        self.model, self.processor=load_model_tag(self.repo, self.device,self.select_method)
+        self.temperature=temperature
+    def run_tag(self,image):
+        if "flor" in self.select_method.lower():
+            inputs = self.processor(text="<MORE_DETAILED_CAPTION>" , images=image, return_tensors="pt").to(device)
+            generated_ids = self.model.generate(
+                input_ids=inputs["input_ids"],
+                pixel_values=inputs["pixel_values"],
+                max_new_tokens=1024,
+                num_beams=3,
+                do_sample=True
+            )
+            generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
+            parsed_answer = self.processor.post_process_generation(generated_text, task="<MORE_DETAILED_CAPTION>" ,
+                                                              image_size=(image.width, image.height))
+            res=parsed_answer["<MORE_DETAILED_CAPTION>"]
+        else:
+            question = 'Provide a detailed description of the details and content contained in the image, and generate a short prompt that can be used for image generation tasks in Stable Diffusion,remind you only need respons prompt itself and no other information.'
+            msgs = [{'role': 'user', 'content': [image, question]}]
+            res = self.model.chat(
+                image=None,
+                msgs=msgs,
+                tokenizer=self.processor,# tokenizer
+                temperature=self.temperature
+            )
+            res=res.split(":",1)[1].strip('"')
+        s=res.strip()
+        res=re.sub(r'^\n+|\n+$', '', s)
+        res.strip("'")
+        logging.info(f"{res}")
+        return res
+
