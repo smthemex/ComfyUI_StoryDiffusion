@@ -512,7 +512,7 @@ def kolor_loader(repo_id,model_type,set_attention_processor,id_length,kolor_face
             pipe = pipe.to("cuda")
             pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
             pipe.set_face_fidelity_scale(0.8)
-        return pipe
+    return pipe
     
 def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
                 if_repo,dir_path,clip,onnx_provider):
