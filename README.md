@@ -4,7 +4,10 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
-**2024/10/11**
+**2024/10/23**
+* add sd3.5 large support
+
+
 * add easy_function_lite node,you can use img2tag instead of scene prompts. The current models used are  [pzc163/MiniCPMv2_6-prompt-generator](https://huggingface.co/pzc163/MiniCPMv2_6-prompt-generator) and [thwri/CogFlorence-2-Large-Freeze](https://huggingface.co/thwri/CogFlorence-2-Large-Freeze) . Using "thwri/CogFlorence-2-Large-Freeze" requires inputting "flor" in the lite node's easy_function,Temporarily run CUDA during the testing phase.
   
 ## Function introduction  
@@ -256,6 +259,10 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
+**sd35**
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35img2imgnf4.png)
+
 **prompt_tag**
 * using tag MiniCPM & CogFlorence 连环画可能会好点,如果加上controlnet   最新示例 (Latest version)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/tag_mini.png)
