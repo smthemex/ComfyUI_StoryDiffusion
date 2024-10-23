@@ -119,6 +119,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     onnx_provider="gpu"
     low_vram=False
     TAG_mode=False
+    SD35_mode=True
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -145,6 +146,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             low_vram=True
         if "tag" in easy_function:
             TAG_mode=True
+   
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
     if character_weights != "none":
@@ -170,10 +172,12 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
         elif repo_id.rsplit("/")[-1].lower() in "black-forest-labs/flux.1-dev,black-forest-labs/flux.1-schnell":
             use_flux = True
             photomake_mode = ""
+        elif repo_id.rsplit("/")[-1].lower() in"stable-diffusion-3.5-large,stable-diffusion-3.5-large-turbo ":
+            SD35_mode = True
         else:
-            raise "no '/' in repo_id ,please change'\' to '/'"
+            raise "no support repo '/' in repo_id ,please change'\' to '/'"
     
-    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode
+    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -512,7 +516,7 @@ def kolor_loader(repo_id,model_type,set_attention_processor,id_length,kolor_face
             pipe = pipe.to("cuda")
             pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
             pipe.set_face_fidelity_scale(0.8)
-    return pipe
+        return pipe
     
 def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
                 if_repo,dir_path,clip,onnx_provider):
@@ -974,6 +978,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
                                      drop_grounding_tokens, height, width, phrase_idxes, eot_idxes, in_img, use_repo)
             image_ouput.append(image_main)
             torch.cuda.empty_cache()
+    pipe.to("cpu")
     torch.cuda.empty_cache()
     return image_ouput
 
@@ -1135,4 +1140,48 @@ class StoryLiteTag:
         res.strip("'")
         logging.info(f"{res}")
         return res
+
+def sd35_loader(model_id,mode,model_type):#"stabilityai/stable-diffusion-3.5-large"
+    if mode:#NF4
+        
+        from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
+        from diffusers import StableDiffusion3Pipeline,StableDiffusion3Img2ImgPipeline
+        
+        nf4_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+        model_nf4 = SD3Transformer2DModel.from_pretrained(
+            model_id,
+            subfolder="transformer",
+            quantization_config=nf4_config,
+            torch_dtype=torch.bfloat16
+        )
+        if model_type == "img2img":
+            logging.info("loading sd3.5 img2img in nf4 mode....")
+            pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
+                model_id,
+                transformer=model_nf4,
+                torch_dtype=torch.bfloat16
+            )
+        else:
+            logging.info("loading sd3.5 txt2img in nf4 mode....")
+            pipe = StableDiffusion3Pipeline.from_pretrained(
+                model_id,
+                transformer=model_nf4,
+                torch_dtype=torch.bfloat16
+            )
+        
+    else:
+        from diffusers import StableDiffusion3Pipeline,StableDiffusion3Img2ImgPipeline
+        
+        if model_type == "img2img":
+            logging.info("loading sd3.5  img2img in normal mode....,if  VRAM<30G will auto using cpu")
+            pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+        else:
+            logging.info("loading sd3.5 txt2img in normal mode....,if  VRAM<30G will auto using cpu")
+            pipe = StableDiffusion3Pipeline.from_pretrained(model_id,torch_dtype=torch.bfloat16)
+        
+    return pipe
 
