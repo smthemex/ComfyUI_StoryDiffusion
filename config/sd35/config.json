@@ -1,0 +1,33 @@
+{
+  "_class_name": "SD3Transformer2DModel",
+  "_diffusers_version": "0.31.0.dev0",
+  "_name_or_path": "diffusers-internal-dev/test-dummy-3",
+  "attention_head_dim": 64,
+  "caption_projection_dim": 2432,
+  "dual_attention_layers": [],
+  "in_channels": 16,
+  "joint_attention_dim": 4096,
+  "num_attention_heads": 38,
+  "num_layers": 38,
+  "out_channels": 16,
+  "patch_size": 2,
+  "pooled_projection_dim": 2048,
+  "pos_embed_max_size": 192,
+  "qk_norm": "rms_norm",
+  "quantization_config": {
+    "_load_in_4bit": true,
+    "_load_in_8bit": false,
+    "bnb_4bit_compute_dtype": "float16",
+    "bnb_4bit_quant_storage": "uint8",
+    "bnb_4bit_quant_type": "nf4",
+    "bnb_4bit_use_double_quant": false,
+    "llm_int8_enable_fp32_cpu_offload": false,
+    "llm_int8_has_fp16_weight": false,
+    "llm_int8_skip_modules": null,
+    "llm_int8_threshold": 6.0,
+    "load_in_4bit": true,
+    "load_in_8bit": false,
+    "quant_method": "bitsandbytes"
+  },
+  "sample_size": 128
+}
