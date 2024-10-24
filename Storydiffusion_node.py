@@ -628,7 +628,6 @@ def process_generation(
                             cur_positive_prompts,
                             num_inference_steps=_num_steps,
                             guidance_scale=cfg,
-                            strength=denoise_or_ip_sacle,
                             height=height,
                             width=width,
                             negative_prompt=cur_negative_prompt,
@@ -986,7 +985,6 @@ def process_generation(
                         real_prompt,
                         num_inference_steps=_num_steps,
                         guidance_scale=cfg,
-                        strength=denoise_or_ip_sacle,
                         height=height,
                         width=width,
                         negative_prompt=negative_prompt,
@@ -1455,7 +1453,8 @@ class Storydiffusion_Model_Loader:
                             pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
             elif SD35_mode:
                 logging.info("start sd3.5 processing...")
-                pipe=sd35_loader(repo_id,NF4,model_type)
+
+                pipe=sd35_loader(repo_id,ckpt_path,dir_path,NF4,model_type)
                 pipe.enable_model_cpu_offload()
                 use_storydif = False
             else: # SDXL dif_repo
