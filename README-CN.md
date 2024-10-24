@@ -3,8 +3,8 @@
 StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## 更新:
-**2024/10/06** 
-* 非官方代码复现story-maker的controlnet功能,使用该功能,有多少句场景提示词,就要多少张controlnet图片,controlnet的功能不限于canny pose什么的;
+**2024/10/24** 
+* 加入sd3.5L的支持，可以使用常规尺寸和nf4尺寸，小显存就用nf4吧，nf4模型[地址](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer)，如果下载这个，原版的那个大的transform模型可以不用下载，当然encoder那些还要下载，我迟点再捣鼓了。
 
 ## 特色功能
 **story-diffusion**  
@@ -327,6 +327,8 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 既往更新  
 ----
+* 加入2个常规的图片反推模型，如果你不想写场景，或者有现成的场景要反推，可以使用该节点
+* 非官方代码复现story-maker的controlnet功能,使用该功能,有多少句场景提示词,就要多少张controlnet图片,controlnet的功能不限于canny pose什么的;
 * 新的示例和工作了包含了2种跑flux-pulid的方法,细节可以看issue,我跟一个用户的对话.
 * 国庆当然也有可能会更新，这次更新主要是封装了comfyUI的标准流程进插件，虽然是脱裤子放屁的行为，主要是我懒得拉标准流程去测试，就封装了它。
 * pulid-flux依旧有小问题，官方给的量化模型如果完全按照它的requirement文件安装才能跑通，我得慢慢找出是哪个库导致官方的指导的xlab 的fp8模型无法正常量化，
@@ -359,6 +361,16 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 示例
 ----
+**sd35**
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35img2imgnf4.png)
+
+**prompt_tag**
+* using tag MiniCPM & CogFlorence 连环画可能会好点,如果加上controlnet   最新示例 (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/tag_mini.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/tag.png)
+
 **pulid-flux**  
 * flux img2img Two examples 图生图,两种示例,非最新示例 (outdated version example)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux_pulid_new.png)
