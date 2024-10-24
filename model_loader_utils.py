@@ -518,6 +518,55 @@ def kolor_loader(repo_id,model_type,set_attention_processor,id_length,kolor_face
             pipe.set_face_fidelity_scale(0.8)
         return pipe
     
+    
+def quantized_nf4_extra(ckpt_path,dir_path,mode):
+    if mode=="flux":
+        from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
+        config_file = os.path.join(dir_path, "config.json")
+    else:
+        from diffusers import SD3Transformer2DModel
+        config_file = os.path.join(dir_path, "config/sd35/config.json")
+    from accelerate.utils import set_module_tensor_to_device
+    from accelerate import init_empty_weights
+    from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
+        check_quantized_param
+    import gc
+    dtype = torch.bfloat16
+    is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
+    original_state_dict = load_file(ckpt_path)
+    with init_empty_weights():
+        if mode == "flux":
+            config = FluxTransformer2DModel.load_config(config_file)
+            model = FluxTransformer2DModel.from_config(config).to(dtype)
+            expected_state_dict_keys = list(model.state_dict().keys())
+        else:
+            config = SD3Transformer2DModel.load_config(config_file)
+            model = SD3Transformer2DModel.from_config(config).to(dtype)
+            expected_state_dict_keys = list(model.state_dict().keys())
+    _replace_with_bnb_linear(model, "nf4")
+    
+    for param_name, param in original_state_dict.items():
+        if param_name not in expected_state_dict_keys:
+            continue
+        
+        is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
+        if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
+            param = param.to(dtype)
+        
+        if not check_quantized_param(model, param_name):
+            set_module_tensor_to_device(model, param_name, device=0, value=param)
+        else:
+            create_quantized_param(
+                model, param, param_name, target_device=0, state_dict=original_state_dict,
+                pre_quantized=True
+            )
+    
+    del original_state_dict
+    gc.collect()
+    
+    return model
+    
+
 def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
                 if_repo,dir_path,clip,onnx_provider):
     # pip install optimum-quanto
@@ -603,41 +652,8 @@ def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_ty
             if NF4:
                 logging.info("using repo_id and ckpt ,start flux nf4 quantize processing...")
                 # https://github.com/huggingface/diffusers/issues/9165
-                from accelerate.utils import set_module_tensor_to_device
-                from accelerate import init_empty_weights
-                from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
-                    check_quantized_param
-                import gc
-                dtype = torch.bfloat16
-                is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
-                original_state_dict = load_file(ckpt_path)
-                
-                config_file = os.path.join(dir_path, "config.json")
-                with init_empty_weights():
-                    config = FluxTransformer2DModel.load_config(config_file)
-                    model = FluxTransformer2DModel.from_config(config).to(dtype)
-                    expected_state_dict_keys = list(model.state_dict().keys())
-                
-                _replace_with_bnb_linear(model, "nf4")
-                
-                for param_name, param in original_state_dict.items():
-                    if param_name not in expected_state_dict_keys:
-                        continue
-                    
-                    is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
-                    if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
-                        param = param.to(dtype)
-                    
-                    if not check_quantized_param(model, param_name):
-                        set_module_tensor_to_device(model, param_name, device=0, value=param)
-                    else:
-                        create_quantized_param(
-                            model, param, param_name, target_device=0, state_dict=original_state_dict,
-                            pre_quantized=True
-                        )
-                
-                del original_state_dict
-                gc.collect()
+                mode="flux"
+                model=quantized_nf4_extra(ckpt_path, dir_path, mode)
                 if model_type == "img2img":
                     from .utils.flux_pipeline import FluxImg2ImgPipeline
                     pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=model,
@@ -1141,47 +1157,70 @@ class StoryLiteTag:
         logging.info(f"{res}")
         return res
 
-def sd35_loader(model_id,mode,model_type):#"stabilityai/stable-diffusion-3.5-large"
-    if mode:#NF4
-        
-        from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
-        from diffusers import StableDiffusion3Pipeline,StableDiffusion3Img2ImgPipeline
-        
-        nf4_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16
-        )
-        model_nf4 = SD3Transformer2DModel.from_pretrained(
-            model_id,
-            subfolder="transformer",
-            quantization_config=nf4_config,
-            torch_dtype=torch.bfloat16
-        )
-        if model_type == "img2img":
-            logging.info("loading sd3.5 img2img in nf4 mode....")
-            pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
+def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type):#"stabilityai/stable-diffusion-3.5-large"
+    
+    if mode:  # NF4
+        from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
+        if ckpt_path is not None:
+            from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
+            nf4_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+            model_nf4 = SD3Transformer2DModel.from_pretrained(
                 model_id,
-                transformer=model_nf4,
+                subfolder="transformer",
+                quantization_config=nf4_config,
                 torch_dtype=torch.bfloat16
             )
+            if model_type == "img2img":
+                logging.info("loading sd3.5 img2img in nf4 mode....")
+                pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
+                    model_id,
+                    transformer=model_nf4,
+                    torch_dtype=torch.bfloat16
+                )
+            else:
+                logging.info("loading sd3.5 txt2img in nf4 mode....")
+                pipe = StableDiffusion3Pipeline.from_pretrained(
+                    model_id,
+                    transformer=model_nf4,
+                    torch_dtype=torch.bfloat16
+                )
         else:
-            logging.info("loading sd3.5 txt2img in nf4 mode....")
-            pipe = StableDiffusion3Pipeline.from_pretrained(
-                model_id,
-                transformer=model_nf4,
-                torch_dtype=torch.bfloat16
-            )
-        
+            from transformers import  T5EncoderModel
+            mode="sd35"
+            model_nf4 = quantized_nf4_extra(ckpt_path, dir_path, mode)
+            encoder3_config=os.path.join(dir_path,"config/encoder3/config.json")
+            quantization_config=os.path.join(dir_path,"config/encoder3/config.json")
+            text_encoder_3 = T5EncoderModel.from_pretrained(model_id, subfolder="text_encoder_3",config= encoder3_config,quantization_config=quantization_config,
+                                                            torch_dtype=torch.bfloat16,)
+            if model_type == "img2img":
+                logging.info("loading sd3.5 img2img in nf4 mode....")
+                pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
+                    model_id,
+                    transformer=model_nf4,
+                    text_encoder_3=text_encoder_3,
+                    torch_dtype=torch.bfloat16
+                )
+            else:
+                logging.info("loading sd3.5 txt2img in nf4 mode....")
+                pipe = StableDiffusion3Pipeline.from_pretrained(
+                    model_id,
+                    transformer=model_nf4,
+                    text_encoder_3=text_encoder_3,
+                    torch_dtype=torch.bfloat16
+                )
     else:
-        from diffusers import StableDiffusion3Pipeline,StableDiffusion3Img2ImgPipeline
+        from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
         
         if model_type == "img2img":
             logging.info("loading sd3.5  img2img in normal mode....,if  VRAM<30G will auto using cpu")
             pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(model_id, torch_dtype=torch.bfloat16)
         else:
             logging.info("loading sd3.5 txt2img in normal mode....,if  VRAM<30G will auto using cpu")
-            pipe = StableDiffusion3Pipeline.from_pretrained(model_id,torch_dtype=torch.bfloat16)
-        
+            pipe = StableDiffusion3Pipeline.from_pretrained(model_id, torch_dtype=torch.bfloat16)
+
     return pipe
 
