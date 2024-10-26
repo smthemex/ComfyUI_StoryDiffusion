@@ -293,7 +293,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                 batch_size=1 * num_images_per_prompt,
                 num_images_per_prompt=num_images_per_prompt,
                 device=device,
-                dtype=self.controlnet.dtype,
+                dtype=self.controlnet.dtype if self.controlnet is not None else dtype,
                 do_classifier_free_guidance=self.do_classifier_free_guidance,
                 guess_mode=self.guess_mode,
             ).to(device=device, dtype=dtype)
@@ -614,8 +614,8 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                                                          device, num_images_per_prompt,
                                                          self.unet.dtype, self.do_classifier_free_guidance)
         
-        controlnet=self.controlnet.to(device)
-        if isinstance(contrl_image,torch.Tensor):
+        controlnet=self.controlnet.to(device) if self.controlnet is not None else None
+        if isinstance(contrl_image,torch.Tensor) and controlnet is not None:
             control_mode = True
         if control_mode:
             if isinstance(controlnet, MultiControlNetModel) and isinstance(controlnet_conditioning_scale, float):
