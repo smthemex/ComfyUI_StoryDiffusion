@@ -4,7 +4,8 @@
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
 
 ## Updates:
-**2024/10/24**
+**2024/10/26**
+* if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
 * add sd3.5 large support,can infer in normal or nf4 mode,nf4 mode has two chocie: fill in all local sd3.5 repo(need pip install -U diffusers)  or fill  local sd3.5 repo and chocie [nf4](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer) checkpoint([example](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)). if use nf4 need fill in 'nf4' in easyfunction.   
 
   
@@ -258,6 +259,8 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 4 Example
 ----
 **sd35**
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4_using_comfyUIclipandvae.png)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4_using_comfyUIclipandvaeL.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35img2imgnf4.png)
