@@ -1,0 +1,8 @@
+text_encoder/model.safetensors filter=lfs diff=lfs merge=lfs -text
+text_encoder_2/model.safetensors filter=lfs diff=lfs merge=lfs -text
+text_encoder_3/model-00001-of-00002.safetensors filter=lfs diff=lfs merge=lfs -text
+text_encoder_3/model-00002-of-00002.safetensors filter=lfs diff=lfs merge=lfs -text
+transformer/diffusion_pytorch_model.safetensors filter=lfs diff=lfs merge=lfs -text
+vae/diffusion_pytorch_model.safetensors filter=lfs diff=lfs merge=lfs -text
+sd3demo.jpg filter=lfs diff=lfs merge=lfs -text
+tokenizer_3/spiece.model filter=lfs diff=lfs merge=lfs -text

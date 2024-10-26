@@ -7,6 +7,7 @@ import sys
 import re
 import random
 import torch
+from diffusers.image_processor import VaeImageProcessor
 from omegaconf import OmegaConf
 from PIL import Image
 import numpy as np
@@ -98,6 +99,9 @@ def get_scheduler(name,scheduler_):
     else:
         scheduler = EulerDiscreteScheduler()
     return scheduler
+
+
+
 
 
 def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, lora, repo_id,photomake_mode):
@@ -253,6 +257,15 @@ def tensor_to_image(tensor):
     image_np = tensor.squeeze().mul(255).clamp(0, 255).byte().numpy()
     image = Image.fromarray(image_np, mode='RGB')
     return image
+
+def tensortopil_list(tensor_in):
+    d1, _, _, _ = tensor_in.size()
+    if d1 == 1:
+        img_list = [tensor_to_image(tensor_in)]
+    else:
+        tensor_list = torch.chunk(tensor_in, chunks=d1)
+        img_list=[tensor_to_image(i) for i in tensor_list]
+    return img_list
 
 def nomarl_tensor_upscale(tensor, width, height):
     samples = tensor.movedim(-1, 1)
@@ -1157,7 +1170,7 @@ class StoryLiteTag:
         logging.info(f"{res}")
         return res
 
-def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type):#"stabilityai/stable-diffusion-3.5-large"
+def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type,lora, lora_path, lora_scale,):#"stabilityai/stable-diffusion-3.5-large"
     
     if mode:  # NF4
         from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
@@ -1190,8 +1203,18 @@ def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type):#"stabilityai/stabl
                 )
         else:
             from transformers import  T5EncoderModel
-            mode="sd35"
-            model_nf4 = quantized_nf4_extra(ckpt_path, dir_path, mode)
+            try:
+                from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
+                quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+                model_nf4 = SD3Transformer2DModel.from_single_file(
+                    ckpt_path,
+                    config=os.path.join(model_id, "transformer"),
+                    quantization_config=quantization_config,
+                    torch_dtype=torch.bfloat16
+                )
+            except:
+                mode = "sd35"
+                model_nf4 = quantized_nf4_extra(ckpt_path, dir_path, mode)
             encoder3_config=os.path.join(dir_path,"config/encoder3/config.json")
             quantization_config=os.path.join(dir_path,"config/encoder3/config.json")
             text_encoder_3 = T5EncoderModel.from_pretrained(model_id, subfolder="text_encoder_3",config= encoder3_config,quantization_config=quantization_config,
@@ -1224,3 +1247,165 @@ def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type):#"stabilityai/stabl
 
     return pipe
 
+class SD35Wrapper():
+    def __init__(self, ckpt_path,clip,vae,cf_vae,sd35repo,dir_path):
+        from diffusers import StableDiffusion3Pipeline
+        
+        self.ckpt_path = ckpt_path
+        self.dir_path=dir_path
+        self.clip = clip
+        self.ae=vae
+        self.cf_vae=cf_vae
+        self.sd35repo=sd35repo
+        if "nf4" in self.ckpt_path:
+            try:
+                from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
+                quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+                self.transformer_4bit = SD3Transformer2DModel.from_single_file(
+                    ckpt_path,
+                    config=os.path.join(self.sd35repo, "transformer"),
+                    quantization_config=quantization_config,
+                    torch_dtype=torch.bfloat16
+                )
+            except:
+                self.transformer_4bit = quantized_nf4_extra(ckpt_path, dir_path, "sd35").to(
+                    dtype=torch.bfloat16)  # bfloat16
+                  
+        else:
+            from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
+            nf4_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+            self.transformer_4bit = SD3Transformer2DModel.from_single_file(
+                ckpt_path,
+                config=os.path.join(self.sd35repo, "transformer"),
+                quantization_config=nf4_config,
+                torch_dtype=torch.bfloat16
+            )
+        self.pipe=StableDiffusion3Pipeline.from_pretrained(
+            self.sd35repo,
+            text_encoder=None,
+            text_encoder_2=None,
+            tokenizer=None,
+            tokenizer_2=None,
+            text_encoder_3=None,
+            tokenizer_3=None,
+            transformer=self.transformer_4bit,
+            vae= None ,
+            torch_dtype=torch.bfloat16,
+        )
+        self.pipe.vae=self.ae if not self.cf_vae else None
+        
+    def encode(self,  clip_l, clip_g, t5xxl):
+        no_padding = True
+
+        tokens = self.clip.tokenize(clip_g)
+        if len(clip_g) == 0 and no_padding:
+            tokens["g"] = []
+
+        if len(clip_l) == 0 and no_padding:
+            tokens["l"] = []
+        else:
+            tokens["l"] = self.clip.tokenize(clip_l)["l"]
+
+        if len(t5xxl) == 0 and no_padding:
+            tokens["t5xxl"] =  []
+        else:
+            tokens["t5xxl"] = self.clip.tokenize(t5xxl)["t5xxl"]
+        if len(tokens["l"]) != len(tokens["g"]):
+            empty = self.clip.tokenize("")
+            while len(tokens["l"]) < len(tokens["g"]):
+                tokens["l"] += empty["l"]
+            while len(tokens["l"]) > len(tokens["g"]):
+                tokens["g"] += empty["g"]
+        cond, pooled = self.clip.encode_from_tokens(tokens, return_pooled=True)
+        return [[cond, {"pooled_output": pooled}]]
+
+    def clip_prompt(self,prompt,negative_prompt):
+        if isinstance(prompt,str):
+            text=[prompt]
+        elif isinstance(prompt,list):
+            text=prompt
+        else:
+            text=[]
+        if isinstance(negative_prompt, str):
+            negative_text = [negative_prompt]
+        elif isinstance(negative_prompt, list):
+            negative_text =negative_prompt
+        else:
+            negative_text=[]
+        
+        
+        with torch.no_grad():
+            print("Encoding prompts.")
+            emb_e=[]
+            emb_e_pool = []
+            for ii in (text):
+                clip_l = ii
+                clip_g = ii
+                t5xxl = ii
+                
+                out = self.encode(clip_l, clip_g, t5xxl)
+                prompt_embeds = out[0][0]
+                pooled_prompt_embeds = out[0][1].get("pooled_output", None)
+                emb_e.append(prompt_embeds.to(device, dtype=torch.bfloat16))
+                emb_e_pool.append(pooled_prompt_embeds.to(device, dtype=torch.bfloat16))
+            emb_e=torch.cat(emb_e,dim=0)
+            emb_e_pool = torch.cat(emb_e_pool, dim=0)
+            emb_n_pool=torch.zeros_like(emb_e_pool)
+            emb_n=torch.zeros_like(emb_e)
+        return emb_e,emb_n, emb_e_pool, emb_n_pool
+    
+    @torch.no_grad()
+    def __call__(self,
+        prompt= None,
+        prompt_2= None,
+        prompt_3= None,
+        height= None,
+        width= None,
+        num_inference_steps= 28,
+        timesteps= None,
+        guidance_scale= 3.5,
+        negative_prompt= None,
+        negative_prompt_2= None,
+        negative_prompt_3= None,
+        num_images_per_prompt= 1,
+        generator= None,
+        latents= None,
+        return_dict= True,
+        joint_attention_kwargs= None,
+        clip_skip=None,
+        output_type ="latent",
+        callback_on_step_end= None,
+        callback_on_step_end_tensor_inputs= ["latents"],
+        max_sequence_length: int = 256,
+        **kwargs
+    ):
+        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds=self.clip_prompt(prompt,negative_prompt)
+        latents_out = self.pipe(
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            negative_prompt_embeds=negative_prompt_embeds,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            output_type="latent" if self.cf_vae else "pil",
+            height=height,
+            width=width,
+            **kwargs,
+        ).images
+        if  self.cf_vae:
+            latents_out = (latents_out /1.5305) + 0.0609
+            img_out = self.ae.decode(latents_out)
+            img_pil = tensortopil_list(img_out)  # list
+        else:
+            img_pil = latents_out
+     
+        self.pipe.maybe_free_model_hooks()
+        return img_pil
+        
+    
+    
+    
