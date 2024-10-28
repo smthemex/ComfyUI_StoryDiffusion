@@ -142,10 +142,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
         if hasattr(self, 'image_proj_model'):
             self.image_proj_model.to(self.unet.device).to(self.unet.dtype)
     
-    
-    def control_mode(self,controlnet):
-        self.controlnet=controlnet
-        return self.controlnet
+
         
     def load_storymaker_adapter(self, image_encoder, model_ckpt, image_emb_dim=512, num_tokens=20, scale=0.8, lora_scale=0.8,controlnet=None):
         self.clip_image_processor = CLIPImageProcessor()
@@ -175,7 +172,6 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
     def set_ip_adapter(self, model_ckpt, num_tokens, lora_rank=128,controlnet=None):
         self.num_tokens=num_tokens
         unet = self.unet
-        self.controlnet=controlnet
 
         attn_procs = {}
         for name in unet.attn_processors.keys():
@@ -194,9 +190,9 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                 attn_procs[name] = LoRAIPAttnProcessor(hidden_size=hidden_size, cross_attention_dim=cross_attention_dim, rank=lora_rank).to(unet.device, dtype=unet.dtype)
         unet.set_attn_processor(attn_procs)
         # try to add controlnet
-        if self.controlnet is not None:
-            if isinstance(self.controlnet, MultiControlNetModel):
-                for controlnet in self.controlnet.nets:
+        if controlnet is not None:
+            if isinstance(controlnet, MultiControlNetModel):
+                for controlnet in controlnet.nets:
                     controlnet.set_attn_processor(
                         CNAttnProcessor( num_tokens=self.num_tokens))
             else:
@@ -614,17 +610,17 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                                                          device, num_images_per_prompt,
                                                          self.unet.dtype, self.do_classifier_free_guidance)
         
-        controlnet=self.controlnet.to(device) if self.controlnet is not None else None
-        if isinstance(contrl_image,torch.Tensor) and controlnet is not None:
+        control_net=self.controlnet.to(device) if self.controlnet is not None else None
+        if isinstance(contrl_image,torch.Tensor) and control_net is not None:
             control_mode = True
         if control_mode:
-            if isinstance(controlnet, MultiControlNetModel) and isinstance(controlnet_conditioning_scale, float):
-                controlnet_conditioning_scale = [controlnet_conditioning_scale] * len(controlnet.nets)
+            if isinstance(control_net, MultiControlNetModel) and isinstance(controlnet_conditioning_scale, float):
+                controlnet_conditioning_scale = [controlnet_conditioning_scale] * len(control_net.nets)
             
             global_pool_conditions = (
-                controlnet.config.global_pool_conditions
-                if isinstance(controlnet, ControlNetModel)
-                else controlnet.nets[0].config.global_pool_conditions
+                control_net.config.global_pool_conditions
+                if isinstance(control_net, ControlNetModel)
+                else control_net.nets[0].config.global_pool_conditions
             )
        
         
@@ -668,7 +664,7 @@ class StableDiffusionXLStoryMakerPipeline(StableDiffusionXLPipeline):
                     1.0 - float(i / len(timesteps) < s or (i + 1) / len(timesteps) > e)
                     for s, e in zip(control_guidance_start, control_guidance_end)
                 ]
-                controlnet_keep.append(keeps[0] if isinstance(controlnet, ControlNetModel) else keeps)
+                controlnet_keep.append(keeps[0] if isinstance(control_net, ControlNetModel) else keeps)
         
 
         # 7. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
