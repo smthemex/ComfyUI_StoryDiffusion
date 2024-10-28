@@ -1843,7 +1843,6 @@ class Storydiffusion_Sampler:
                 print("start sampler dual prompt using story maker")
                 if make_dual_only:
                     del pipe
-                    cleanup_models(keep_clone_weights_loaded=False)
                     gc.collect()
                     torch.cuda.empty_cache()
                     controlnet_path=None
