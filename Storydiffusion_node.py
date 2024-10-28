@@ -1847,7 +1847,7 @@ class Storydiffusion_Sampler:
                     gc.collect()
                     torch.cuda.empty_cache()
                     controlnet_path=None
-                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,low_vram)
+                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram)
                 mask_image_1=input_id_img_s_dict[role_name_list[0]][0]
                 mask_image_2=input_id_img_s_dict[role_name_list[1]][0]
                 
@@ -1936,8 +1936,11 @@ class Storydiffusion_Sampler:
         else:
             image_list = narry_list(image_pil_list)
         image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
-        if use_storydif:
-            pipe.to("cpu")
+        if use_storydif and not prompts_dual:
+            try:
+               pipe.to("cpu")
+            except:
+                pass
         gc.collect()
         torch.cuda.empty_cache()
         return (image, scene_prompts,)
