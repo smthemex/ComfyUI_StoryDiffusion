@@ -1,10 +1,13 @@
 # ComfyUI_StoryDiffusion
-本节点主要方法来源于StoryDiffusion，部分内容也来源于MS-Diffusion和StoryMakerr，感谢他们的开源！   
-StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)  以及 MS-Diffusion的地址: [link](https://github.com/MS-Diffusion/MS-Diffusion) 以及StoryMakerr 的地址:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
+本节点主要方法来源于[StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) ，部分内容也来源于[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter)  感谢他们的开源！   
+
 
 ## 更新:
-**2024/10/24** 
-* 加入sd3.5L的支持，可以使用常规尺寸和nf4尺寸，小显存就用nf4吧，nf4模型[地址](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer)，如果下载这个，原版的那个大的transform模型可以不用下载，当然encoder那些还要下载，我迟点再捣鼓了。
+**2024/11/15** 
+* 加入了consistory的支持，你可以在easyfunction输入consi开启此功能(cache,inject2个附属功能，显存大的可以试试)  
+* consistory模式只支持单主体，当然你也可以使用(cat)或者（boy）或者（hat）,来创造2个主体，比如在角色栏输入 a cure [girl],wearing a (hat).可查看示例图片
+* lora和controlnet迟点加入 
+
 
 ## 特色功能
 **story-diffusion**  
@@ -16,6 +19,9 @@ StoryDiffusion方法的地址: [StoryDiffusion](https://github.com/HVision-NKU/S
 * ms的功能是为了双角色同图，只要双角色的场景词里，同时存在[roleA] 和 [roleB]就会自动开启；
 * 与之配套的"ms_adapter.bin" 模型要放在comfyui/models/phtomaker目录下（会自动下载），配套的"clip_vision_g.safetensors"模型放在comfyui/models/clip_vision目录下，详细看后文;
 * MS支持controlnet，一句需要一张图，你双角色有10句，就要配10张图，接口用control-img；
+
+**consistory** 
+* 你可以在easyfunction输入consi开启此功能,只需要sdxl底模,不需要其他模型.
 
 **story-maker**
 * maker类似story，优势在于可以迁移衣服和双角色同图，目前仅支持图生图；
@@ -327,6 +333,7 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 既往更新  
 ----
+* 加入sd3.5L的支持，可以使用常规尺寸和nf4尺寸，小显存就用nf4吧，nf4模型[地址](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer)，如果下载这个，原版的那个大的transform模型可以不用下载，当然encoder那些还要下载，我迟点再捣鼓了。
 * 加入2个常规的图片反推模型，如果你不想写场景，或者有现成的场景要反推，可以使用该节点
 * 非官方代码复现story-maker的controlnet功能,使用该功能,有多少句场景提示词,就要多少张controlnet图片,controlnet的功能不限于canny pose什么的;
 * 新的示例和工作了包含了2种跑flux-pulid的方法,细节可以看issue,我跟一个用户的对话.
@@ -361,6 +368,11 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 
 示例
 ----
+
+**consistory**
+* 最新示例,开启consi;   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consitstory.png)
+
 **sd35**
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35.png)
@@ -476,6 +488,18 @@ PuLID
   year={2024}
 }
 ```
-
+Consistory
+```
+@article{tewel2024training,
+  title={Training-free consistent text-to-image generation},
+  author={Tewel, Yoad and Kaduri, Omri and Gal, Rinon and Kasten, Yoni and Wolf, Lior and Chechik, Gal and Atzmon, Yuval},
+  journal={ACM Transactions on Graphics (TOG)},
+  volume={43},
+  number={4},
+  pages={1--18},
+  year={2024},
+  publisher={ACM New York, NY, USA}
+}
+```
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
