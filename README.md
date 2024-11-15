@@ -1,13 +1,14 @@
 <h1> ComfyUI_StoryDiffusion：using StoryDiffusion in ComfyUI.</h1>
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
-* StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)  ---&---  MS-Diffusion origin From: [link](https://github.com/MS-Diffusion/MS-Diffusion)---&---StoryMakerr from From:[StoryMaker](https://github.com/RedAIGC/StoryMaker)
+* StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)
+* The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) 
 
 ## Updates:
-**2024/10/26**
-* if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
-* add sd3.5 large support,can infer in normal or nf4 mode,nf4 mode has two chocie: fill in all local sd3.5 repo(need pip install -U diffusers)  or fill  local sd3.5 repo and chocie [nf4](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer) checkpoint([example](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)). if use nf4 need fill in 'nf4' in easyfunction.   
-
+**2024/11/15**
+* Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
+* The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；
+* Lora and ControlNet will join later;  
   
 ## Function introduction  
 **story-diffusion**    
@@ -18,6 +19,10 @@
 * Enabled when 2 characters are required to appear in the same image, When [roleA] and [roleB] appear in a scene prompt at the same time, it will be automatically enabled;
 * Of course the "ms_adapter.bin" model is also required, and the "clip_vision_g.safetensors"I is selected in the clip_vision;
 * MS supports ControlNet, and a dual-role prompt requires a preprocessed ControlNet picture.
+
+**consistory**    
+* Enable when entering 'consi' in easy_function;   
+* Only the sdxl model is needed, no additional models are needed;  
 
 **story-maker**  
 * "story-maker“ is similar to "story-diffusion", currently only supports img2img, which features the ability to migrate the character's clothing and supports dual characters with the same picture;
@@ -258,6 +263,11 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 ```
 4 Example
 ----
+**consistory**
+* whtn fill 'consi' in easyfunction is enable.. (Latest version)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consitstory.png)
+
+
 **sd35**
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4_using_comfyUIclipandvae.png)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4_using_comfyUIclipandvaeL.png)
@@ -373,6 +383,8 @@ Function Description of Nodes
 
 Previous updates
 ----
+* if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
+* add sd3.5 large support,can infer in normal or nf4 mode,nf4 mode has two chocie: fill in all local sd3.5 repo(need pip install -U diffusers)  or fill  local sd3.5 repo and chocie [nf4](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer) checkpoint([example](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)). if use nf4 need fill in 'nf4' in easyfunction.   
 * add easy_function_lite node,you can use img2tag instead of scene prompts. The current models used are  [pzc163/MiniCPMv2_6-prompt-generator](https://huggingface.co/pzc163/MiniCPMv2_6-prompt-generator) and [thwri/CogFlorence-2-Large-Freeze](https://huggingface.co/thwri/CogFlorence-2-Large-Freeze) . Using "thwri/CogFlorence-2-Large-Freeze" requires inputting "flor" in the lite node's easy_function,Temporarily run CUDA during the testing phase.
 * Reproduce the ControlNet control of Story-maker .Now, control-img is only applicable to methods using ControlNet and porting Samper nodes;
 * if using  ControlNet  in Story-maker,maybe OOM(VRAM<12G),For detailed content, please refer to the latest example image;
@@ -469,6 +481,19 @@ PuLID
   author={Guo, Zinan and Wu, Yanze and Chen, Zhuowei and Chen, Lang and He, Qian},
   journal={arXiv preprint arXiv:2404.16022},
   year={2024}
+}
+```
+Consistory
+```
+@article{tewel2024training,
+  title={Training-free consistent text-to-image generation},
+  author={Tewel, Yoad and Kaduri, Omri and Gal, Rinon and Kasten, Yoni and Wolf, Lior and Chechik, Gal and Atzmon, Yuval},
+  journal={ACM Transactions on Graphics (TOG)},
+  volume={43},
+  number={4},
+  pages={1--18},
+  year={2024},
+  publisher={ACM New York, NY, USA}
 }
 ```
 
