@@ -30,7 +30,7 @@ from .utils.style_template import styles
 from .utils.load_models_utils import  get_lora_dict,get_instance_path
 from .PuLID.pulid.utils import resize_numpy_image_long
 from transformers import AutoModel, AutoTokenizer
-from comfy.utils import common_upscale
+from comfy.utils import common_upscale,ProgressBar
 import folder_paths
 from comfy.model_management import cleanup_models
 from comfy.clip_vision import load as clip_load
@@ -101,9 +101,6 @@ def get_scheduler(name,scheduler_):
     return scheduler
 
 
-
-
-
 def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, lora, repo_id,photomake_mode):
     auraface = False
     NF4 = False
@@ -123,7 +120,10 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     onnx_provider="gpu"
     low_vram=False
     TAG_mode=False
-    SD35_mode=True
+    SD35_mode=False
+    consistory=False
+    cached=False
+    inject=False
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -150,6 +150,12 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             low_vram=True
         if "tag" in easy_function:
             TAG_mode=True
+        if "consi" in easy_function:
+            consistory=True
+        if "cache" in easy_function:
+            cached=True
+        if "inject" in easy_function:
+            inject=True
    
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
@@ -170,18 +176,18 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     else:
         lora = None
     if repo_id:
-        if repo_id.rsplit("/")[-1].lower() in "kwai-kolors/kolors":
+        if "kolors" in repo_id.lower():
             use_kolor = True
             photomake_mode = ""
-        elif repo_id.rsplit("/")[-1].lower() in "black-forest-labs/flux.1-dev,black-forest-labs/flux.1-schnell":
+        elif "flux" in repo_id.lower():
             use_flux = True
             photomake_mode = ""
-        elif repo_id.rsplit("/")[-1].lower() in"stable-diffusion-3.5-large,stable-diffusion-3.5-large-turbo ":
+        elif "3.5" in repo_id.lower():
             SD35_mode = True
         else:
-            raise "no support repo '/' in repo_id ,please change'\' to '/'"
+            pass
     
-    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode
+    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -1405,7 +1411,65 @@ class SD35Wrapper():
      
         self.pipe.maybe_free_model_hooks()
         return img_pil
-        
+
+
+def images_generator(img_list: list, ):
+    # get img size
+    sizes = {}
+    for image_ in img_list:
+        if isinstance(image_, Image.Image):
+            count = sizes.get(image_.size, 0)
+            sizes[image_.size] = count + 1
+        elif isinstance(image_, np.ndarray):
+            count = sizes.get(image_.shape[:2][::-1], 0)
+            sizes[image_.shape[:2][::-1]] = count + 1
+        else:
+            raise "unsupport image list,must be pil or cv2!!!"
+    size = max(sizes.items(), key=lambda x: x[1])[0]
+    yield size[0], size[1]
     
+    # any to tensor
+    def load_image(img_in):
+        if isinstance(img_in, Image.Image):
+            img_in = img_in.convert("RGB")
+            i = np.array(img_in, dtype=np.float32)
+            i = torch.from_numpy(i).div_(255)
+            if i.shape[0] != size[1] or i.shape[1] != size[0]:
+                i = torch.from_numpy(i).movedim(-1, 0).unsqueeze(0)
+                i = common_upscale(i, size[0], size[1], "lanczos", "center")
+                i = i.squeeze(0).movedim(0, -1).numpy()
+            return i
+        elif isinstance(img_in, np.ndarray):
+            i = cv2.cvtColor(img_in, cv2.COLOR_BGR2RGB).astype(np.float32)
+            i = torch.from_numpy(i).div_(255)
+            print(i.shape)
+            return i
+        else:
+            raise "unsupport image list,must be pil,cv2 or tensor!!!"
     
+    total_images = len(img_list)
+    processed_images = 0
+    pbar = ProgressBar(total_images)
+    images = map(load_image, img_list)
+    try:
+        prev_image = next(images)
+        while True:
+            next_image = next(images)
+            yield prev_image
+            processed_images += 1
+            pbar.update_absolute(processed_images, total_images)
+            prev_image = next_image
+    except StopIteration:
+        pass
+    if prev_image is not None:
+        yield prev_image
+
+
+def load_images_list(img_list: list, ):
+    gen = images_generator(img_list)
+    (width, height) = next(gen)
+    images = torch.from_numpy(np.fromiter(gen, np.dtype((np.float32, (height, width, 3)))))
+    if len(images) == 0:
+        raise FileNotFoundError(f"No images could be loaded .")
+    return images
     
