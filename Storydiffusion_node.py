@@ -7,12 +7,11 @@ import numpy as np
 import torch
 import os
 from PIL import ImageFont,Image
-from diffusers import (StableDiffusionXLPipeline, DiffusionPipeline,EulerDiscreteScheduler, UNet2DConditionModel,UniPCMultistepScheduler, AutoencoderKL,)
+from diffusers import StableDiffusionXLPipeline, DiffusionPipeline,EulerDiscreteScheduler, UNet2DConditionModel,UniPCMultistepScheduler, AutoencoderKL
 from transformers import CLIPVisionModelWithProjection
 from transformers import CLIPImageProcessor
 import datetime
 import folder_paths
-from comfy.model_management import cleanup_models
 from comfy.clip_vision import load as clip_load
 from comfy.model_management import total_vram
 
@@ -21,7 +20,7 @@ from .utils.load_models_utils import load_models
 from .model_loader_utils import  (story_maker_loader,kolor_loader,phi2narry,
                                   extract_content_from_brackets,narry_list,remove_punctuation_from_strings,phi_list,center_crop_s,center_crop,
                                   narry_list_pil,setup_seed,find_directories,
-                                  apply_style,get_scheduler,apply_style_positive,SD35Wrapper,
+                                  apply_style,get_scheduler,apply_style_positive,SD35Wrapper,load_images_list,
                                   nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list,pre_checkpoint,get_easy_function,sd35_loader)
 from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available,process_original_prompt,get_ref_character,character_to_dict
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
@@ -646,6 +645,19 @@ def process_generation(
                                 max_sequence_length=512,
                                 generator=generator
                             ).images
+                    elif consistory:
+                        from .consistory.consistory_run import run_anchor_generation
+                        
+                        id_images = run_anchor_generation(
+                            cur_positive_prompts,
+                            num_inference_steps=_num_steps,
+                            guidance_scale=guidance,
+                            height=height,
+                            width=width,
+                            negative_prompt=cur_negative_prompt,
+                            max_sequence_length=512,
+                            generator=generator
+                        ).images
                     else:
                         if use_kolor:
                             cur_negative_prompt = [cur_negative_prompt]
@@ -1349,7 +1361,7 @@ class Storydiffusion_Model_Loader:
        
         # load model
         (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode)=get_easy_function(
+         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject)=get_easy_function(
             easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
         
         
@@ -1484,6 +1496,11 @@ class Storydiffusion_Model_Loader:
                 pipe.pipe.enable_model_cpu_offload()
                 use_wrapper=True
                 use_storydif = False
+            elif consistory:
+                logging.info("start consistory mode processing...")
+                from .consistory.consistory_run import load_pipeline
+                pipe=load_pipeline(repo_id,ckpt_path,inject, gpu_id=0)
+                use_storydif = False
             else:
                 logging.info("start story-diffusion mode processing...")
                 use_storydif=True
@@ -1532,6 +1549,11 @@ class Storydiffusion_Model_Loader:
                 pipe=sd35_loader(repo_id,ckpt_path,dir_path,NF4,model_type,lora, lora_path, lora_scale,)
                 pipe.enable_model_cpu_offload()
                 use_storydif = False
+            elif consistory:
+                logging.info("start consistory mode processing...")
+                from .consistory.consistory_run import load_pipeline
+                pipe = load_pipeline(repo_id, ckpt_path,inject, gpu_id=0)
+                use_storydif = False
             else: # SDXL dif_repo
                 if  story_maker:
                     if not make_dual_only:
@@ -1570,10 +1592,12 @@ class Storydiffusion_Model_Loader:
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
                     
         if vae_id != "none":
+            vae_id = folder_paths.get_full_path("vae", vae_id)
+            vae_config = os.path.join(dir_path, "local_repo", "vae")
             if use_storydif:
-                vae_id = folder_paths.get_full_path("vae", vae_id)
-                vae_config=os.path.join(dir_path, "local_repo","vae")
                 pipe.vae=AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
+            elif consistory:
+                pipe.vae = AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
         load_chars = False
         if use_storydif:
             pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
@@ -1629,7 +1653,7 @@ class Storydiffusion_Model_Loader:
         model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
                "scheduler":scheduler,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
-               "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,
+               "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,"consistory":consistory,"cached":cached,"inject":inject,
                "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,
                "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,"SD35_mode":SD35_mode,"use_wrapper":use_wrapper,
                "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram,"input_tag_dict":input_tag_dict}
@@ -1727,7 +1751,9 @@ class Storydiffusion_Sampler:
         control_image=kwargs.get("control_image")
         input_tag_dict=model.get("input_tag_dict")
         use_wrapper=model.get("use_wrapper")
-        
+        consistory=model.get("consistory")
+        cached=model.get("cached")
+        inject=model.get("inject")
         if use_storydif:
             pipe.to(device)
 
@@ -1737,14 +1763,14 @@ class Storydiffusion_Sampler:
                 empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
         
         # 格式化文字内容
-        scene_prompts.strip()
-        character_prompt.strip()
+        scene_prompts=scene_prompts.strip()
+        character_prompt=character_prompt.strip()
         # 从角色列表获取角色方括号信息
         char_origin = character_prompt.splitlines()
         char_origin=[i for i in char_origin if "[" in i]
         #print(char_origin)
         char_describe = char_origin # [A a men...,B a girl ]
-        char_origin = [char.split("]")[0] + "]" for char in char_origin]
+        char_origin = ["["+ char.split("]")[0].split("[")[-1] +"]" for char in char_origin]
         #print(char_origin)
         # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
         prompts_origin = scene_prompts.splitlines()
@@ -1783,6 +1809,8 @@ class Storydiffusion_Sampler:
                     cn_dict[i] = [None]
                     
         if model_type=="img2img":
+            if consistory:
+                raise "consistory don't support img2img now"
             d1, _, _, _ = image.size()
             if d1 == 1:
                 image_load = [nomarl_upscale(image, width, height)]
@@ -1805,21 +1833,141 @@ class Storydiffusion_Sampler:
 
         else:
             if story_maker:
-                raise "story maker only suppport img2img now"
+                raise "story maker only support img2img now"
             upload_images = None
-            gen = process_generation(pipe, upload_images, model_type, steps, img_style, denoise_or_ip_sacle,
-                                     style_strength_ratio, cfg,
-                                     seed, id_length,
-                                     character_prompt,
-                                     negative_prompt,
-                                     scene_prompts,
-                                     width,
-                                     height,
-                                     load_chars,
-                                     lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,kolor_face,
-                                     pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict,input_tag_dict,SD35_mode,use_wrapper)
-
+            if consistory:
+                if id_length>1:
+                    raise "consistory support 1 role now "
+                from .consistory.consistory_run import run_batch_generation,run_anchor_generation, run_extra_generation
+                mask_dropout = 0.5
+                same_latent = False
+                n_achors = 2
+                img_mode=False
+                
+                prompts_origin = scene_prompts.splitlines()
+                prompts_origin = [i.strip() for i in prompts_origin]
+                prompts_origin = [i for i in prompts_origin if '[' in i]  # 删除空行
+                # print(prompts_origin)
+                prompts = [prompt for prompt in prompts_origin if
+                           not len(extract_content_from_brackets(prompt)) >= 2]  # 剔除双角色
+                
+                add_trigger_words = " " + trigger_words + " style "
+                if lora:
+                    if lora in lora_lightning_list:
+                        prompts = remove_punctuation_from_strings(prompts)
+                    else:
+                        prompts = remove_punctuation_from_strings(prompts)
+                        prompts = [item + add_trigger_words for item in prompts]
+                character_dict_, character_list_ = character_to_dict(character_prompt, lora, add_trigger_words)
+                
+                clipped_prompts = prompts[:]
+                nc_indexs = []
+                for ind, prompt in enumerate(clipped_prompts):
+                    if "[NC]" in prompt:
+                        nc_indexs.append(ind)
+                        if ind < id_length:
+                            raise f"The first {id_length} row is id prompts, cannot use [NC]!"
+                
+                prompts = [
+                    prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
+                    for prompt in clipped_prompts
+                ]
+                
+                if lora:
+                    if lora in lora_lightning_list:
+                        prompts = [
+                            prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
+                        ]
+                    else:
+                        prompts = [
+                            prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in
+                            prompts
+                        ]
+                else:
+                    prompts = [
+                        prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
+                    ]
+                
+                (
+                    character_index_dict_,
+                    invert_character_index_dict_,
+                    replace_prompts,
+                    ref_indexs_dict_,
+                    ref_totals_,
+                ) = process_original_prompt(character_dict_, prompts, id_length, img_mode)
+                
+                if input_tag_dict:
+                    if len(input_tag_dict) < len(replace_prompts):
+                        raise "The number of input condition images is less than the number of scene prompts！"
+                    replace_prompts = [prompt + " " + input_tag_dict[i] for i, prompt in enumerate(replace_prompts)]
+                
+                main_role = char_origin[0].replace("]", "").replace("[", "")
+                concept_token = [main_role]
+                if ")" in character_prompt:
+                   object_role = character_prompt.split(")")[0].split("(")[-1]
+                   concept_token=[main_role,object_role]
+                style = "A photo of "
+                subject=f"a {main_role} "
+                replace_prompts= [f'{style}{subject} {i}' for i in replace_prompts]
+                gpu = 0
+                torch.cuda.reset_max_memory_allocated(gpu)
+                if not cached:
+                    if not inject:
+                        pipe.enable_vae_slicing()
+                        pipe.enable_model_cpu_offload()
+                    else:
+                        pipe.to(torch.float16)
+                    anchor_out_images = run_batch_generation(pipe, replace_prompts, concept_token,negative_prompt, seed,n_steps=steps,
+                                                         mask_dropout=mask_dropout, same_latent=same_latent, perform_injection=inject,n_achors=n_achors)
+                else:
+                    if len(replace_prompts)>2:
+                        spilit_prompt=replace_prompts[:2]
+                    else:
+                        spilit_prompt=replace_prompts
+                        
+                    anchor_out_images, anchor_cache_first_stage, anchor_cache_second_stage = run_anchor_generation(
+                        pipe, spilit_prompt, concept_token,negative_prompt,
+                        seed=seed, n_steps=steps, mask_dropout=mask_dropout, same_latent=same_latent,perform_injection=inject,
+                        cache_cpu_offloading=True)
+                    if len(replace_prompts) > 2:
+                        left_prompt=replace_prompts[2:]
+                    else:
+                        left_prompt=replace_prompts[:1]  # use default
+                    
+                    for extra_prompt in left_prompt:
+                        extra_image = run_extra_generation(pipe, [extra_prompt],
+                                                                                 concept_token,negative_prompt,
+                                                                                 anchor_cache_first_stage,
+                                                                                 anchor_cache_second_stage,
+                                                                                 seed=seed, n_steps=steps,
+                                                                                 mask_dropout=mask_dropout,
+                                                                                 same_latent=same_latent,
+                                                                                 perform_injection=inject,
+                                                                                 cache_cpu_offloading=True)
+                        anchor_out_images.append(extra_image[0])
+                #Report maximum GPU memory usage in GB
+                max_memory_used = torch.cuda.max_memory_allocated(gpu) / (1024 ** 3)  # Convert to GB
+                print(f"Maximum GPU memory used: {max_memory_used:.2f} GB")
+    
+                img=load_images_list(anchor_out_images)
+                return (img, scene_prompts,)
+            else:
+                gen = process_generation(pipe, upload_images, model_type, steps, img_style, denoise_or_ip_sacle,
+                                         style_strength_ratio, cfg,
+                                         seed, id_length,
+                                         character_prompt,
+                                         negative_prompt,
+                                         scene_prompts,
+                                         width,
+                                         height,
+                                         load_chars,
+                                         lora,
+                                         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face,
+                                         pulid, story_maker, input_id_emb_s_dict, input_id_img_s_dict,
+                                         input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
+                                         empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale,
+                                         cn_dict, input_tag_dict, SD35_mode, use_wrapper)
+        
         for value in gen:
             print(type(value))
         image_pil_list = phi_list(value)
