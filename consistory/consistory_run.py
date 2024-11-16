@@ -5,14 +5,13 @@
 import os.path
 
 import torch
-from diffusers import DDIMScheduler, UNet2DConditionModel
+from diffusers import DDIMScheduler
 from .consistory_unet_sdxl import ConsistorySDXLUNet2DConditionModel
 from .consistory_pipeline import ConsistoryExtendAttnSDXLPipeline
 from .consistory_utils import FeatureInjector, AnchorCache
 from .utils.general_utils import *
 import gc
 import folder_paths
-from .utils.ptp_utils import view_images
 
 LATENT_RESOLUTIONS = [32, 64]
 
@@ -21,7 +20,7 @@ def clear_memory():
     gc.collect()
 
 
-def load_pipeline(repo_id,unet_path,inject,gpu_id=0):
+def load_pipeline(repo_id,unet_path,gpu_id=0):
     float_type = torch.float16
     #sd_id = "stabilityai/stable-diffusion-xl-base-1.0"
     device = torch.device(f'cuda:{gpu_id}') if torch.cuda.is_available() else torch.device('cpu')
@@ -56,6 +55,7 @@ def load_pipeline(repo_id,unet_path,inject,gpu_id=0):
        
     else:
         raise "need a repo or chocie a sdxl checkpoints"
+    
     
     story_pipeline.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
     return story_pipeline
@@ -96,7 +96,8 @@ def create_latents(story_pipeline, seed, batch_size, same_latent, device, float_
             g = torch.Generator(device).manual_seed(seed_i)
             curr_latent = randn_tensor(shape, generator=g, device=device, dtype=float_type)
             latents[i] = curr_latent[i]
-
+    else:
+        raise "seed cause error"
     if same_latent:
         latents = latents[:1].repeat(batch_size, 1, 1, 1)
 
@@ -138,12 +139,14 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
         extended_attn_kwargs = {**default_extended_attn_kwargs, 't_range': []}
 
     print(extended_attn_kwargs['t_range'])
-    out = story_pipeline(prompt=prompts,negative_prompt=negative_prompt, generator=g, latents=latents,
-                        attention_store_kwargs=default_attention_store_kwargs,
-                        extended_attn_kwargs=extended_attn_kwargs,
-                        share_queries=share_queries,
-                        query_store_kwargs=query_store_kwargs,
-                        num_inference_steps=n_steps)
+    
+    out = story_pipeline(prompt=prompts, negative_prompt=negative_prompt, generator=g, latents=latents,
+                         attention_store_kwargs=default_attention_store_kwargs,
+                         extended_attn_kwargs=extended_attn_kwargs,
+                         share_queries=share_queries,
+                         query_store_kwargs=query_store_kwargs,
+                         num_inference_steps=n_steps)
+    
     
     # Extended attention with nn_map #
     
@@ -161,7 +164,7 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
                                            inject_range_alpha=[(n_steps // 10, n_steps // 3, 0.8)],
                                            swap_strategy='min', inject_unet_parts=['up', 'down'],
                                            dist_thr='dynamic')
-        
+       
         out = story_pipeline(prompt=prompts, generator=g, latents=latents,
                              attention_store_kwargs=default_attention_store_kwargs,
                              extended_attn_kwargs=extended_attn_kwargs,
@@ -169,6 +172,7 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
                              query_store_kwargs=query_store_kwargs,
                              feature_injector=feature_injector,
                              num_inference_steps=n_steps)
+        
         #img_all = view_images([np.array(x) for x in out.images], display_image=False, downscale_rate=downscale_rate)
         # display_attn_maps(story_pipeline.attention_store.last_mask, out.images)
         clear_memory()
@@ -212,14 +216,16 @@ def run_anchor_generation(story_pipeline, prompts, concept_token,negative_prompt
         extended_attn_kwargs = {**default_extended_attn_kwargs, 't_range': []}
 
     print(extended_attn_kwargs['t_range'])
-    out = story_pipeline(prompt=prompts,negative_prompt=negative_prompt, generator=g, latents=latents,
-                        attention_store_kwargs=default_attention_store_kwargs,
-                        extended_attn_kwargs=extended_attn_kwargs,
-                        share_queries=share_queries,
-                        query_store_kwargs=query_store_kwargs,
-                        anchors_cache=anchor_cache_first_stage,
-                        num_inference_steps=n_steps)
     
+    
+    out = story_pipeline(prompt=prompts, negative_prompt=negative_prompt, generator=g, latents=latents,
+                         attention_store_kwargs=default_attention_store_kwargs,
+                         extended_attn_kwargs=extended_attn_kwargs,
+                         share_queries=share_queries,
+                         query_store_kwargs=query_store_kwargs,
+                         anchors_cache=anchor_cache_first_stage,
+                         num_inference_steps=n_steps)
+   
     last_masks = story_pipeline.attention_store.last_mask
     
     dift_features = unet.latent_store.dift_features['251_0'][batch_size:]
@@ -323,7 +329,7 @@ def run_extra_generation(story_pipeline, prompts, concept_token, negative_prompt
     # ------------------ #
     # Extended attention with nn_map #
     last_masks = story_pipeline.attention_store.last_mask
-    dift_features = unet.latent_store.dift_features['251_0'][batch_size:]
+    dift_features = unet.latent_store.dift_features['251_0'][batch_size:] # 261_0 cause error
     unet.latent_store.reset()  # turn to {}
     clear_memory()
     dift_features = torch.stack([gaussian_smooth(x, kernel_size=3, sigma=1) for x in dift_features], dim=0)
