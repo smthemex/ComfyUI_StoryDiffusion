@@ -6,7 +6,7 @@
 **2024/11/15** 
 * 加入了consistory的支持，你可以在easyfunction输入consi开启此功能(cache,inject2个附属功能，显存大的可以试试)  
 * consistory模式只支持单主体，当然你也可以使用(cat)或者（boy）或者（hat）,来创造2个主体，比如在角色栏输入 a cure [girl],wearing a (hat).可查看示例图片
-* lora和controlnet迟点加入 
+* lora功能已加入 
 
 
 ## 特色功能
