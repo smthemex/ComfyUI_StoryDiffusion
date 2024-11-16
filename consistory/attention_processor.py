@@ -21,8 +21,8 @@ from diffusers.utils import USE_PEFT_BACKEND
 from typing import Callable, Optional
 import torch
 from diffusers.models.attention_processor import Attention
-
-from .consistory_utils import AnchorCache, FeatureInjector, QueryStore, xformers
+from xformers.ops import memory_efficient_attention
+from .consistory_utils import AnchorCache, FeatureInjector, QueryStore
 
 
 class ConsistoryAttnStoreProcessor:
@@ -179,7 +179,7 @@ class ConsistoryExtendedAttnXFormersAttnProcessor:
                 extended_value = attn.head_to_batch_dim(extended_value).contiguous()
 
                 # attn_masks needs to be of shape [batch_size, query_tokens, key_tokens]
-                hidden_states = xformers.ops.memory_efficient_attention(
+                hidden_states = memory_efficient_attention(
                     query, extended_key, extended_value,  op=self.attention_op, scale=attn.scale
                 )
             else:
@@ -213,7 +213,7 @@ class ConsistoryExtendedAttnXFormersAttnProcessor:
                     curr_k = attn.head_to_batch_dim(curr_k).contiguous()
                     curr_v = attn.head_to_batch_dim(curr_v).contiguous()
 
-                    hidden_states = xformers.ops.memory_efficient_attention(
+                    hidden_states = memory_efficient_attention(
                         curr_q, curr_k, curr_v, 
                         op=self.attention_op, scale=attn.scale
                     )
@@ -226,9 +226,13 @@ class ConsistoryExtendedAttnXFormersAttnProcessor:
             value = attn.head_to_batch_dim(value).contiguous()
 
             # attn_masks needs to be of shape [batch_size, query_tokens, key_tokens]
-            hidden_states = xformers.ops.memory_efficient_attention(
+            
+            hidden_states = memory_efficient_attention(
                 query, key, value, op=self.attention_op, scale=attn.scale
             )
+ 
+            
+            
 
         hidden_states = hidden_states.to(query.dtype)
         hidden_states = attn.batch_to_head_dim(hidden_states)
@@ -285,6 +289,7 @@ def register_extended_self_attn(unet, attnstore, extended_attn_kwargs):
             continue
 
         if is_self_attn:
+           
             attn_procs[name] = ConsistoryExtendedAttnXFormersAttnProcessor(place_in_unet, attnstore, extended_attn_kwargs)
         else:
             attn_procs[name] = ConsistoryAttnStoreProcessor(attnstore, place_in_unet)
