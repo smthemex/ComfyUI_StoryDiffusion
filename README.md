@@ -8,7 +8,7 @@
 **2024/11/15**
 * Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
 * The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；
-* Lora and ControlNet will join later;  
+* NOW,you can use lora when using consistory mode; 
   
 ## Function introduction  
 **story-diffusion**    
@@ -264,9 +264,9 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 4 Example
 ----
 **consistory**
-* whtn fill 'consi' in easyfunction is enable.. (Latest version)   
+* whtn fill 'consi' in easyfunction is enable.. (Latest version)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consitstory.png)
-
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consistorylora.png)
 
 **sd35**
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4_using_comfyUIclipandvae.png)
