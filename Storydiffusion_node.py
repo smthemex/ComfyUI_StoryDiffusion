@@ -1499,7 +1499,16 @@ class Storydiffusion_Model_Loader:
             elif consistory:
                 logging.info("start consistory mode processing...")
                 from .consistory.consistory_run import load_pipeline
-                pipe=load_pipeline(repo_id,ckpt_path,inject, gpu_id=0)
+                pipe=load_pipeline(repo_id,ckpt_path,gpu_id=0)
+                if lora is not None:
+                    active_lora = pipe.get_active_adapters()
+                    #print(active_lora)
+                    if active_lora:
+                        pipe.unload_lora_weights()  # make sure lora is not mix
+                    if lora in lora_lightning_list:
+                        pipe.load_lora_weights(lora_path)
+                    else:
+                        pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
                 use_storydif = False
             else:
                 logging.info("start story-diffusion mode processing...")
@@ -1552,8 +1561,16 @@ class Storydiffusion_Model_Loader:
             elif consistory:
                 logging.info("start consistory mode processing...")
                 from .consistory.consistory_run import load_pipeline
-                pipe = load_pipeline(repo_id, ckpt_path,inject, gpu_id=0)
-                use_storydif = False
+                pipe = load_pipeline(repo_id, ckpt_path,gpu_id=0)
+                if lora is not None:
+                    active_lora = pipe.get_active_adapters()
+                    if active_lora:
+                        pipe.unload_lora_weights()  # make sure lora is not mix
+                    if lora in lora_lightning_list:
+                        pipe.load_lora_weights(lora_path)
+                    else:
+                        pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+                
             else: # SDXL dif_repo
                 if  story_maker:
                     if not make_dual_only:
@@ -1569,6 +1586,7 @@ class Storydiffusion_Model_Loader:
                             controlnet = ControlNetModel.from_unet(pipe.unet)
                             cn_state_dict = load_file(controlnet_path, device="cpu")
                             controlnet.load_state_dict(cn_state_dict, strict=False)
+                            del cn_state_dict
                             controlnet.to(torch.float16)
                         if device != "mps":
                             if not low_vram:
@@ -1917,6 +1935,7 @@ class Storydiffusion_Sampler:
                         pipe.enable_model_cpu_offload()
                     else:
                         pipe.to(torch.float16)
+
                     anchor_out_images = run_batch_generation(pipe, replace_prompts, concept_token,negative_prompt, seed,n_steps=steps,
                                                          mask_dropout=mask_dropout, same_latent=same_latent, perform_injection=inject,n_achors=n_achors)
                 else:
