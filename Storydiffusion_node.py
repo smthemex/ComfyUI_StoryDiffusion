@@ -645,19 +645,6 @@ def process_generation(
                                 max_sequence_length=512,
                                 generator=generator
                             ).images
-                    elif consistory:
-                        from .consistory.consistory_run import run_anchor_generation
-                        
-                        id_images = run_anchor_generation(
-                            cur_positive_prompts,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=guidance,
-                            height=height,
-                            width=width,
-                            negative_prompt=cur_negative_prompt,
-                            max_sequence_length=512,
-                            generator=generator
-                        ).images
                     else:
                         if use_kolor:
                             cur_negative_prompt = [cur_negative_prompt]
