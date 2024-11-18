@@ -535,7 +535,7 @@ def kolor_loader(repo_id,model_type,set_attention_processor,id_length,kolor_face
             pipe = pipe.to("cuda")
             pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
             pipe.set_face_fidelity_scale(0.8)
-        return pipe
+    return pipe
     
     
 def quantized_nf4_extra(ckpt_path,dir_path,mode):
