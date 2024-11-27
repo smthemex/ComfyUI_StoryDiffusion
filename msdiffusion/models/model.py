@@ -62,7 +62,7 @@ class MSAdapter(torch.nn.Module):
     
     def set_ms_adapter(self, weight_dtype=torch.float16, cache_attention_maps=True):
         # set attention processor
-        attn_procs = {}
+        attn_procs_ = {}
         for name in self.unet.attn_processors.keys():
             cross_attention_dim = None if name.endswith("attn1.processor") else self.unet.config.cross_attention_dim
             if name.startswith("mid_block"):
@@ -74,15 +74,15 @@ class MSAdapter(torch.nn.Module):
                 block_id = int(name[len("down_blocks.")])
                 hidden_size = self.unet.config.block_out_channels[block_id]
             if cross_attention_dim is None:
-                attn_procs[name] = AttnProcessor()
+                attn_procs_[name] = AttnProcessor()
             else:
-                attn_procs[name] = IPAttnProcessor(
+                attn_procs_[name] = IPAttnProcessor(
                     hidden_size=hidden_size,
                     cross_attention_dim=cross_attention_dim,
                     num_tokens=self.num_tokens,
                     text_tokens=self.text_tokens,
                 ).to(self.device, dtype=weight_dtype)
-        self.unet.set_attn_processor(attn_procs)
+        self.unet.set_attn_processor(attn_procs_)
         self.adapter_modules = torch.nn.ModuleList(self.unet.attn_processors.values())
         if self.controlnet is not None:
             if isinstance(self.controlnet, MultiControlNetModel):
