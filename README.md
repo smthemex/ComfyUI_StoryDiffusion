@@ -5,10 +5,8 @@
 * The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) 
 
 ## Updates:
-**2024/11/15**
-* Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
-* The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；
-* NOW,you can use lora when using consistory mode; 
+**2024/11/27**
+* change some ms-diffusion'codes,if you use "[A] a (man) img " in role prompts,will get better of MS mode.
   
 ## Function introduction  
 **story-diffusion**    
@@ -311,8 +309,8 @@ img2img kolor face，参数输入没变化，非最新示例  (outdated version 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
 **ms-diffusion**   
-* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
+* img2img2role in 1 image，双角色同图，最新示例 (new version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/msdiffuion.png)
 * ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
@@ -383,6 +381,8 @@ Function Description of Nodes
 
 Previous updates
 ----
+* Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
+* The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；you can use lora when using consistory mode;  
 * if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
 * add sd3.5 large support,can infer in normal or nf4 mode,nf4 mode has two chocie: fill in all local sd3.5 repo(need pip install -U diffusers)  or fill  local sd3.5 repo and chocie [nf4](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer) checkpoint([example](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)). if use nf4 need fill in 'nf4' in easyfunction.   
 * add easy_function_lite node,you can use img2tag instead of scene prompts. The current models used are  [pzc163/MiniCPMv2_6-prompt-generator](https://huggingface.co/pzc163/MiniCPMv2_6-prompt-generator) and [thwri/CogFlorence-2-Large-Freeze](https://huggingface.co/thwri/CogFlorence-2-Large-Freeze) . Using "thwri/CogFlorence-2-Large-Freeze" requires inputting "flor" in the lite node's easy_function,Temporarily run CUDA during the testing phase.
