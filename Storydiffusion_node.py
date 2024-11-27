@@ -2083,16 +2083,16 @@ class Storydiffusion_Sampler:
                 else:
                     new_width = width
                     new_height = height
-                del pipe
-                gc.collect()
-                torch.cuda.empty_cache()
+                #del pipe
+                #gc.collect()
+                #torch.cuda.empty_cache()
                 from .model_loader_utils import msdiffusion_main
                 image_dual = msdiffusion_main(image_a, image_b, prompts_dual, new_width, new_height, steps, seed,
                                               img_style, char_describe, char_origin, negative_prompt, clip_vision_path,
                                               model_type, lora, lora_path, lora_scale,
                                               trigger_words, ckpt_path, repo_id, guidance,
                                               mask_threshold, start_step, controlnet_path, control_image,
-                                              controlnet_scale, cfg, guidance_list, scheduler_choice)
+                                              controlnet_scale, cfg, guidance_list, scheduler_choice,pipe)
             j = 0
             for i in positions_dual:  # 重新将双人场景插入原序列
                 if width != height:
