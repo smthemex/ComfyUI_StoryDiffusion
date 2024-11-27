@@ -401,10 +401,6 @@ sd1.5
 图生图  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
-**flux-pulid**   
-图生图 flux pulid  12G Vram,cpu  Flux使用PULID功能,不需要diffuser模型，非最新示例(outdated version example) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
-
 **kolor-face**   
 图生图 kolor face，参数输入没变化，非最新示例  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
@@ -414,8 +410,8 @@ sd1.5
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
 **ms-diffusion**   
-* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
+* img2img2role in 1 image，双角色同图，下图1为最新示例    
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/msdiffuion.png)
 * ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
