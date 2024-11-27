@@ -1,6 +1,7 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import datetime
+import gc
 import logging
 import os
 import sys
@@ -837,7 +838,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
                      negative_prompt,
                      clip_vision, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path, dif_repo,
                      guidance, mask_threshold, start_step, controlnet_path, control_image, controlnet_scale, cfg,
-                     guidance_list, scheduler_choice):
+                     guidance_list, scheduler_choice,pipe):
     tensor_a = phi2narry(image_1.copy())
     tensor_b = phi2narry(image_2.copy())
     in_img = torch.cat((tensor_a, tensor_b), dim=0)
@@ -852,20 +853,25 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     else:
         raise "no model"
     add_config = os.path.join(cur_path, "local_repo")
-    if single_files:
-        try:
-            pipe = StableDiffusionXLPipeline.from_single_file(
-                ckpt_path, config=add_config, original_config=original_config_file,
-                torch_dtype=torch.float16)
-        except:
+    if _model_type=="img2img":
+        del pipe
+        gc.collect()
+        torch.cuda.empty_cache()
+        if single_files:
             try:
                 pipe = StableDiffusionXLPipeline.from_single_file(
-                    ckpt_path, config=add_config, original_config_file=original_config_file,
+                    ckpt_path, config=add_config, original_config=original_config_file,
                     torch_dtype=torch.float16)
             except:
-                raise "load pipe error!,check you diffusers"
-    else:
-        pipe = StableDiffusionXLPipeline.from_pretrained(dif_repo, torch_dtype=torch.float16)
+                try:
+                    pipe = StableDiffusionXLPipeline.from_single_file(
+                        ckpt_path, config=add_config, original_config_file=original_config_file,
+                        torch_dtype=torch.float16)
+                except:
+                    raise "load pipe error!,check you diffusers"
+        else:
+            pipe = StableDiffusionXLPipeline.from_pretrained(dif_repo, torch_dtype=torch.float16)
+    
     
     if controlnet_path:
         controlnet = ControlNetModel.from_unet(pipe.unet)
@@ -888,6 +894,8 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     
     if device != "mps":
         pipe.enable_model_cpu_offload()
+        
+    
     torch.cuda.empty_cache()
     # 预加载 ms
     photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
@@ -940,9 +948,6 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     
     image_ouput = []
     
-    # get role name
-    role_a = char_origin[0].replace("]", "").replace("[", "")
-    role_b = char_origin[1].replace("]", "").replace("[", "")
     # get n p prompt
     prompts_dual, negative_prompt = apply_style(
         style_name, prompts_dual, negative_prompt
@@ -958,8 +963,22 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     prompts_dual = [item.replace(char_origin[0], char_describe[0]) for item in prompts_dual if char_origin[0] in item]
     prompts_dual = [item.replace(char_origin[1], char_describe[1]) for item in prompts_dual if char_origin[1] in item]
     
-    prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
-    # print(prompts_dual)
+    #print(char_origin,char_describe)# ['[Taylor]', '[Lecun]']
+
+    if "(" in char_describe[0] and "(" in char_describe[1] :
+
+        role_a = char_describe[0].split(")")[0].split("(")[-1]
+        role_b = char_describe[1].split(")")[0].split("(")[-1]
+        prompts_dual = [i.replace(char_origin[0], "") for i in prompts_dual if char_origin[0] in i]
+        prompts_dual=[i.replace(char_origin[1], "") for i in prompts_dual if char_origin[1] in i]
+    else:
+
+        # get role name
+        role_a = char_origin[0].replace("]", "").replace("[", "")
+        role_b = char_origin[1].replace("]", "").replace("[", "")
+        prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
+   
+    #print(prompts_dual,role_a,role_b)
     torch.cuda.empty_cache()
     
     phrases = [[role_a, role_b]]
@@ -967,14 +986,12 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     
     if mask_threshold:
         boxes = [box_add[:2]]
-        print(f"Roles position on {boxes}")
         # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
     else:
-        zero_list = [0 for _ in range(4)]
-        boxes = [zero_list for _ in range(2)]
-        boxes = [boxes]  # used if you want no layout guidance
+        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]
         # print(boxes)
-        
+    print(f"Roles position on {boxes}")
+    
     role_scale=guidance if guidance<=1 else guidance/10 if 1<guidance<=10 else guidance/100
     
     if controlnet_path:
