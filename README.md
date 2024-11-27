@@ -296,10 +296,6 @@ img2img using controlnet and 2roles in 1 img  纯storymaker生成，最新示例
 img2img  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
-**flux-pulid**   
-img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,非最新示例(outdated version examples) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
-
 **kolor-face**   
 img2img kolor face，参数输入没变化，非最新示例  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
