@@ -8,7 +8,7 @@ from .flux.util import load_ae, load_clip, load_flow_model, load_t5, load_flow_m
 from .pulid.pipeline_flux import PuLIDPipeline
 
 
-def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,aggressive_offload,device: torch.device, offload: bool,quantized_mode):
+def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,use_quantize,device: torch.device, offload: bool,quantized_mode):
     t5 = load_t5(name,clip_cf,if_repo,device, max_length=128)
     clip = load_clip(name,clip_cf,if_repo,device)
     if if_repo:
@@ -18,7 +18,7 @@ def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,aggressive_offload,de
         else:
             name = "flux-schnell"
     if quantized_mode=="fp8" or quantized_mode=="nf4":
-        model = load_flow_model_quintized(name, ckpt_path,quantized_mode,aggressive_offload,device="cpu" if offload else device)
+        model = load_flow_model_quintized(name, ckpt_path,quantized_mode,use_quantize,device="cpu" if offload else device)
     else:
         model = load_flow_model(name, ckpt_path,device="cpu" if offload else device)
     model.eval()
@@ -27,7 +27,7 @@ def get_models(name: str,ckpt_path,vae_cf, clip_cf,if_repo,aggressive_offload,de
 
 
 class FluxGenerator:
-    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path,clip_cf,vae_cf,if_repo,onnx_provider):
+    def __init__(self, model_name: str, ckpt_path,device: str, offload: bool,aggressive_offload: bool, pretrained_model,quantized_mode,clip_vision_path,clip_cf,vae_cf,if_repo,onnx_provider,use_quantize):
         self.device = torch.device(device)
         self.offload = offload
         self.model_name = model_name
@@ -35,12 +35,13 @@ class FluxGenerator:
         self.ckpt_path=ckpt_path
         self.clip_vision_path=clip_vision_path
         self.clip_cf=clip_cf
+        self.use_quantize=use_quantize
         self.vae_cf=vae_cf
         self.if_repo=if_repo
         self.onnx_provider=onnx_provider
         self.quantized_mode=quantized_mode
         self.model, self.ae, self.t5, self.clip = get_models(
-            model_name,self.ckpt_path,self.vae_cf,self.clip_cf,self.if_repo,self.aggressive_offload,
+            model_name,self.ckpt_path,self.vae_cf,self.clip_cf,self.if_repo,self.use_quantize,
             device=self.device,
             offload=self.offload,quantized_mode=self.quantized_mode,
         )
