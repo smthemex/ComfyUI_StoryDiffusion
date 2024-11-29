@@ -125,6 +125,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     consistory=False
     cached=False
     inject=False
+    use_quantize=True
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -157,7 +158,9 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             cached=True
         if "inject" in easy_function:
             inject=True
-   
+        if "noquan" in easy_function:
+            use_quantize=False
+    
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
     if character_weights != "none":
@@ -187,8 +190,12 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             SD35_mode = True
         else:
             pass
+    if pulid:
+        use_flux = True
+        photomake_mode = ""
     
-    return auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only, clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject
+    return (auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only,
+            clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize)
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -588,7 +595,7 @@ def quantized_nf4_extra(ckpt_path,dir_path,mode):
     
 
 def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
-                if_repo,dir_path,clip,onnx_provider):
+                if_repo,dir_path,clip,onnx_provider,use_quantize):
     # pip install optimum-quanto
     # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -667,7 +674,7 @@ def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_ty
             pipe = FluxGenerator(repo_id, ckpt_path, "cuda", offload=offload,
                                  aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
                                  quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
-                                 vae_cf=vae_path, if_repo=if_repo,onnx_provider=onnx_provider)
+                                 vae_cf=vae_path, if_repo=if_repo,onnx_provider=onnx_provider,use_quantize=use_quantize)
         else:
             if NF4:
                 logging.info("using repo_id and ckpt ,start flux nf4 quantize processing...")
