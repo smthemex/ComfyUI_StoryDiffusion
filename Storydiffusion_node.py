@@ -1101,7 +1101,7 @@ def process_generation(
                         true_cfg=1.0,
                         max_sequence_length=128,
                     )
-                if use_cf:
+                elif use_cf:
                     cfg = 1.0
                     results_dict[real_prompts_ind] = pipe.generate_image(
                         width=width,
@@ -1351,7 +1351,7 @@ class Storydiffusion_Model_Loader:
        
         # load model
         (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject)=get_easy_function(
+         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize)=get_easy_function(
             easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
         
         
@@ -1444,7 +1444,7 @@ class Storydiffusion_Model_Loader:
                                        lora_path=lora_path,
                                        trigger_words=trigger_words, lora_scale=lora_scale)
                     set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif "flux" in ckpt_path.lower():
+            elif "flux" in ckpt_path.lower() or use_flux:
                 use_flux=True
                 if pulid:
                     logging.info("start flux-pulid processing...")
@@ -1463,9 +1463,9 @@ class Storydiffusion_Model_Loader:
                     pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=offload,
                                          aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
                                          quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
-                                         vae_cf=vae_path,if_repo=if_repo,onnx_provider=onnx_provider)
+                                         vae_cf=vae_path,if_repo=if_repo,onnx_provider=onnx_provider,use_quantize=use_quantize)
                 else:
-                    raise "need pulid in easy function"
+                    raise "flux don't support single checkpoints loading now"
             
             elif "3.5" in ckpt_path.lower() and clip and (vae_id!="none" or front_vae):
                 logging.info("start sd3.5 mode processing...")
@@ -1550,7 +1550,7 @@ class Storydiffusion_Model_Loader:
             elif use_flux:
                 from .model_loader_utils import flux_loader
                 pipe=flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
-                if_repo,dir_path,clip,onnx_provider)
+                if_repo,dir_path,clip,onnx_provider,use_quantize)
                 if lora:
                     if not "Hyper" in lora_path : #can't support Hyper now
                         if not NF4:
