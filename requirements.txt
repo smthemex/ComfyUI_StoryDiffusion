@@ -1,3 +1,4 @@
 spaces
 peft
 diffusers
+omegaconf
