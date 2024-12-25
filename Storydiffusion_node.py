@@ -1404,7 +1404,7 @@ class Storydiffusion_Model_Loader:
                     vae = front_vae
             if not clip:
                 raise "Use comfyUI normal processing must need comfyUI clip,if using flux need dual clip ."
-            if consistory：
+            if consistory:
                 raise "Use comfyUI calss processing don't support consistory mode,please checke readme how to use consistory mode."
             use_cf = True
             if cf_model.model.model_type.value==8:
