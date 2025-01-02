@@ -33,7 +33,7 @@ from .PuLID.pulid.utils import resize_numpy_image_long
 from transformers import AutoModel, AutoTokenizer
 from comfy.utils import common_upscale,ProgressBar
 import folder_paths
-from comfy.model_management import cleanup_models
+
 from comfy.clip_vision import load as clip_load
 
 cur_path = os.path.dirname(os.path.abspath(__file__))
@@ -918,7 +918,6 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     ms_ckpt = get_instance_path(ms_path)
     image_processor = CLIPImageProcessor()
     image_encoder_type = "clip"
-    cleanup_models(keep_clone_weights_loaded=False)
     image_encoder = clip_load(clip_vision)
     use_repo = False
     config_path = os.path.join(cur_path, "config", "config.json")
