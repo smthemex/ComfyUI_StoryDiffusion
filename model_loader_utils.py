@@ -920,15 +920,8 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     image_processor = CLIPImageProcessor()
     image_encoder_type = "clip"
     image_encoder = clip_load(clip_vision)
-    from comfy.model_management import cleanup_models
-    try:
-        cleanup_models()
-    except:
-        try:
-            cleanup_models(keep_clone_weights_loaded=False)
-        except:
-            gc.collect()
-            torch.cuda.empty_cache()
+    gc.collect()
+    torch.cuda.empty_cache()
     use_repo = False
     config_path = os.path.join(cur_path, "config", "config.json")
     image_encoder_config = OmegaConf.load(config_path)
