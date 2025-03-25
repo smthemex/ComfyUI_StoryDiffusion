@@ -126,6 +126,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     cached=False
     inject=False
     use_quantize=True
+    use_inf=False
     if easy_function:
         easy_function = easy_function.strip().lower()
         if "auraface" in easy_function:
@@ -160,6 +161,9 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
             inject=True
         if "noquan" in easy_function:
             use_quantize=False
+        if "infinite" in easy_function:
+            use_inf=True
+
     
     if clip_vision != "none":
         clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
@@ -195,7 +199,7 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
         photomake_mode = ""
     
     return (auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only,
-            clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize)
+            clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize,use_inf)
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
                    model_type):
     if photomake_mode == "v1":
@@ -714,7 +718,7 @@ def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_ty
             pipe.enable_model_cpu_offload()
     return pipe
 
-def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual_only,use_storydif):
+def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual_only,use_storydif,use_inf=None):
     if use_storydif and photomake_mode == "v2" and not story_maker:
         from .utils.insightface_package import FaceAnalysis2, analyze_faces
         if auraface:
@@ -777,6 +781,24 @@ def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual
                                     providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
             app_face.prepare(ctx_id=0, det_size=(640, 640))
             app_face_ = None
+    elif use_inf:
+        from facexlib.recognition import init_recognition_model
+        from insightface.app import FaceAnalysis
+         # Load face encoder
+        insightface_root_path= folder_paths.base_path
+        app_face = FaceAnalysis(name='antelopev2', 
+                                root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        app_face.prepare(ctx_id=0, det_size=(640, 640))
+
+        # app_320 = FaceAnalysis(name='antelopev2', 
+        #                         root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        # app_320.prepare(ctx_id=0, det_size=(320, 320))
+
+        # app_160 = FaceAnalysis(name='antelopev2', 
+        #                         root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+
+        app_face_ = init_recognition_model('arcface', device='cuda')
+        pipeline_mask = None
     else:
         app_face = None
         pipeline_mask = None
@@ -920,8 +942,15 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
     image_processor = CLIPImageProcessor()
     image_encoder_type = "clip"
     image_encoder = clip_load(clip_vision)
-    gc.collect()
-    torch.cuda.empty_cache()
+    from comfy.model_management import cleanup_models
+    try:
+        cleanup_models()
+    except:
+        try:
+            cleanup_models(keep_clone_weights_loaded=False)
+        except:
+            gc.collect()
+            torch.cuda.empty_cache()
     use_repo = False
     config_path = os.path.join(cur_path, "config", "config.json")
     image_encoder_config = OmegaConf.load(config_path)
@@ -1045,7 +1074,7 @@ def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed,
 
 
 def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,condition_image,width, height,use_storydif):
+                     pulid,pipe,character_list_,condition_image,width, height,use_storydif,use_inf=None,image_proj_model=None):
     input_id_emb_s_dict = {}
     input_id_img_s_dict = {}
     input_id_emb_un_dict = {}
@@ -1114,6 +1143,61 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
             id_embed_list, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,
                                                                                     cal_uncond=use_true_cfg)
             crop_image = img
+
+        elif use_inf:
+            def _detect_face(app_face, id_image_cv2):
+                    face_info = app_face.get(id_image_cv2)
+                    if len(face_info) > 0:
+                        return face_info
+                    # face_info = app_320.get(id_image_cv2)
+                    # if len(face_info) > 0:
+                    #     return face_info
+
+                    # face_info = app_160.get(id_image_cv2)
+                    # return face_info
+            from .pipelines.pipeline_infu_flux import extract_arcface_bgr_embedding,resize_and_pad_image,draw_kps
+             # Extract ID embeddings
+            print('Preparing ID embeddings')
+            id_image_cv2 = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+            face_info = _detect_face(app_face,id_image_cv2)
+            if len(face_info) == 0:
+                raise ValueError('No face detected in the input ID image')
+            
+            face_info = sorted(face_info, key=lambda x:(x['bbox'][2]-x['bbox'][0])*(x['bbox'][3]-x['bbox'][1]))[-1] # only use the maximum face
+            landmark = face_info['kps']
+            id_embed = extract_arcface_bgr_embedding(id_image_cv2, landmark, app_face_)
+            id_embed = id_embed.clone().unsqueeze(0).float().cuda()
+            id_embed = id_embed.reshape([1, -1, 512])
+            id_embed = id_embed.to(device='cuda', dtype=torch.bfloat16)
+            with torch.no_grad():
+                id_embed = image_proj_model(id_embed)
+                bs_embed, seq_len, _ = id_embed.shape
+                id_embed = id_embed.repeat(1, 1, 1)
+                id_embed = id_embed.view(bs_embed * 1, seq_len, -1)
+                id_embed = id_embed.to(device='cuda', dtype=torch.bfloat16)
+            
+            # Load control image
+            print('Preparing the control image')
+            if isinstance(condition_image, torch.Tensor):
+                e1, _, _, _ = condition_image.size()
+                if e1 == 1:
+                    cn_image_load = [nomarl_upscale(condition_image, width, height)]
+                else:
+                    img_list = list(torch.chunk(condition_image, chunks=e1))
+                    cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
+                # control_image = control_image.convert("RGB")
+                # control_image = resize_and_pad_image(control_image, (width, height))
+                face_info = _detect_face(app_face,cv2.cvtColor(np.array(cn_image_load[ind]), cv2.COLOR_RGB2BGR)) #need check 
+                if len(face_info) == 0:
+                    raise ValueError('No face detected in the control image')
+                face_info = sorted(face_info, key=lambda x:(x['bbox'][2]-x['bbox'][0])*(x['bbox'][3]-x['bbox'][1]))[-1] # only use the maximum face
+                control_image = draw_kps(control_image, face_info['kps'])
+            else:
+                out_img = np.zeros([height, width, 3])
+                control_image = Image.fromarray(out_img.astype(np.uint8))
+            id_embed_list=id_embed
+            crop_image = control_image  # inf use crop to control img
+            uncond_id_embeddings = None 
         else:
             id_embed_list = None
             uncond_id_embeddings = None
@@ -1128,7 +1212,10 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
     if story_maker:
         del pipeline_mask
         torch.cuda.empty_cache()
-    
+    if use_inf:
+        del app_face,app_face_
+        torch.cuda.empty_cache()
+
     if isinstance(condition_image, torch.Tensor) and story_maker:
         e1, _, _, _ = condition_image.size()
         if e1 == 1:
