@@ -445,7 +445,7 @@ def process_generation(
         lora,
         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face, pulid, story_maker,
         input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
-        empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale, cn_dict,input_tag_dict,SD35_mode,use_wrapper
+        empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale, cn_dict,input_tag_dict,SD35_mode,use_wrapper,use_inf=None
 ):  # Corrected font_choice usage
     
     if len(general_prompt.splitlines()) >= 3:
@@ -714,7 +714,7 @@ def process_generation(
                             num_images_per_prompt=1,
                             generator=generator,
                         ).images
-                elif use_flux:
+                elif use_flux and not use_inf:
                     if pulid:
                         id_embeddings = input_id_emb_s_dict[character_key_str][0]
                         uncond_id_embeddings = input_id_emb_un_dict[character_key_str][0]
@@ -834,7 +834,38 @@ def process_generation(
                             generator=generator,
                             cloth=cloth_info,
                         ).images
-                
+                elif use_inf:
+                    crop_image = input_id_img_s_dict[character_key_str][0]
+                    face_embeds = input_id_emb_s_dict[character_key_str][0]
+                    if id_length > 1:
+                        id_images = []
+                        for index, i in enumerate(cur_positive_prompts):
+                            id_image = pipe (id_embed=face_embeds,prompt=i,
+                                control_image=crop_image,
+                                guidance_scale=guidance,
+                                num_steps=_num_steps,
+                                seed=seed_,
+                                infusenet_conditioning_scale=1.0,
+                                infusenet_guidance_start=0,
+                                infusenet_guidance_end=1.0,
+                                height=height,
+                                width=width,
+                                )
+                            id_images.append(id_image)
+                    else:
+                        id_image = pipe (id_embed=face_embeds,
+                                prompt=cur_positive_prompts,
+                                control_image=crop_image,
+                                guidance_scale=guidance,
+                                num_steps=_num_steps,
+                                seed=seed_,
+                                infusenet_conditioning_scale=[1.0]*len(cur_positive_prompts) if len(cur_positive_prompts) > 1 else [1.0],
+                                infusenet_guidance_start=0,
+                                infusenet_guidance_end=1.0,
+                                height=height,
+                                width=width,
+                                )
+                        id_images=[id_image] # need check
                 else:
                     if use_cf:
                         cur_negative_prompt = [cur_negative_prompt]
@@ -926,10 +957,13 @@ def process_generation(
             elif kolor_face and id_length > 1 and model_type == "img2img":
                 for index, ind in enumerate(character_index_dict[character_key]):
                     results_dict[ref_totals[ind]] = id_images[index]
-            elif use_flux and use_cf and id_length > 1 and model_type == "img2img":
+            elif use_flux and use_cf and not use_inf and id_length > 1 and model_type == "img2img":
                 for index, ind in enumerate(character_index_dict[character_key]):
                     results_dict[ref_totals[ind]] = id_images[index]
             elif use_cf and not use_flux and id_length > 1 and model_type == "img2img":
+                for index, ind in enumerate(character_index_dict[character_key]):
+                    results_dict[ref_totals[ind]] = id_images[index]
+            elif use_inf and id_length > 1 and model_type == "img2img":
                 for index, ind in enumerate(character_index_dict[character_key]):
                     results_dict[ref_totals[ind]] = id_images[index]
             else:
@@ -1081,7 +1115,7 @@ def process_generation(
                         generator=generator,
                         nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
                     ).images[0]
-            elif use_flux:
+            elif use_flux and not use_inf:
                 if pulid:
                     id_embeddings = input_id_emb_s_dict[cur_character[0]][
                         0] if real_prompts_ind not in nc_indexs else empty_emb_zero
@@ -1165,6 +1199,23 @@ def process_generation(
                     generator=generator,
                     cloth=cloth_info,
                 ).images[0]
+            elif use_inf:
+                empty_image = Image.new('RGB', (width, height), (255, 255, 255))
+                crop_image = input_id_img_s_dict[
+                    cur_character[0]] if real_prompts_ind not in nc_indexs else empty_image
+                face_embeds = input_id_emb_s_dict[cur_character[0]][
+                    0] if real_prompts_ind not in nc_indexs else empty_emb_zero
+                results_dict[real_prompts_ind] = pipe (id_embed=face_embeds,prompt=real_prompt,
+                    control_image=crop_image,
+                    guidance_scale=guidance,
+                    num_steps=_num_steps,
+                    seed=seed_,
+                    infusenet_conditioning_scale=1.0,
+                    infusenet_guidance_start=0,
+                    infusenet_guidance_end=1.0,
+                    height=height,
+                    width=width,
+                    )
             else:
                 if use_cf:
                     results_dict[real_prompts_ind] = pipe.generate_image(
@@ -1351,9 +1402,12 @@ class Storydiffusion_Model_Loader:
        
         # load model
         (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize)=get_easy_function(
+         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,
+         low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize,use_inf)=get_easy_function(
             easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
         
+        if use_inf and not isinstance(cf_model,dict):
+            raise "if you want to use InfiniteYou  mode,please link easy function node to the model..."
         
         photomaker_path,face_ckpt,photomake_mode,pulid_ckpt,face_adapter,kolor_ip_path=pre_checkpoint(
             photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path,use_kolor,model_type)
@@ -1387,8 +1441,9 @@ class Storydiffusion_Model_Loader:
         use_cf=False
         use_storydif=False
         use_wrapper = False
+        image_proj_model=None
         if not repo_id and not ckpt_path and not cf_model:
-            raise "you need choice a model or repo_id or a comfyUI model..."
+            raise "you need choice a model or repo_id or link a comfyUI model..."
         elif not repo_id and not ckpt_path and cf_model:
             from comfy.utils import load_torch_file as load_torch_file_
             from comfy.sd import VAE as cf_vae
@@ -1549,7 +1604,7 @@ class Storydiffusion_Model_Loader:
                              photomaker_dir, face_ckpt, AutoencoderKL, EulerDiscreteScheduler, UNet2DConditionModel)
                 pipe.enable_model_cpu_offload()
                 use_storydif = False
-            elif use_flux:
+            elif use_flux and not use_inf:
                 from .model_loader_utils import flux_loader
                 pipe=flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
                 if_repo,dir_path,clip,onnx_provider,use_quantize)
@@ -1576,7 +1631,88 @@ class Storydiffusion_Model_Loader:
                         pipe.load_lora_weights(lora_path)
                     else:
                         pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
+            elif use_inf:
+                logging.info("start InfiniteYou mode processing...")    
+                #from .pipelines.pipeline_flux_infusenet import FluxInfuseNetPipeline
+                from .pipelines.pipeline_infu_flux import InfUFluxPipeline
+                from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel, AutoencoderKL
+                from transformers import BitsAndBytesConfig as TransformersBitsAndBytesConfig,T5EncoderModel
+                from .pipelines.resampler import Resampler
+                from diffusers.models import FluxControlNetModel
+                quantize_T5=True
+                if quantize_T5:
+                    quant_config = TransformersBitsAndBytesConfig(
+                            load_in_4bit=True,
+                            bnb_4bit_quant_type="nf4",
+                        )
+
+                    text_encoder_2_4bit = T5EncoderModel.from_pretrained(
+                            repo_id,
+                            subfolder="text_encoder_2",
+                            quantization_config=quant_config,
+                            torch_dtype=torch.bfloat16,
+                        )
+
+                    transformer = FluxTransformer2DModel.from_pretrained(
+                        repo_id,
+                        subfolder="transformer",
+                        quantization_config=DiffusersBitsAndBytesConfig(
+                            load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                        ),
+                        torch_dtype=torch.bfloat16,)
+       
+
+                infusenet_path = os.path.join(cf_model.get("repo"), 'InfuseNetModel')
+                pipe = InfUFluxPipeline(
+                        repo_id,infusenet_path,
+                        text_encoder_2=text_encoder_2_4bit,
+                        transformer=transformer,
+                    )
+
+                # pipe = InfUFluxPipeline.from_pretrained(
+                #         repo_id,transformer=transformer,text_encoder_2=text_encoder_2_4bit,
+                #         controlnet=infusenet,
+                #         torch_dtype=torch.bfloat16,
+                #     )
+                # pipe = FluxInfuseNetPipeline.from_pretrained(
+                #         repo_id,
+                #         controlnet=infusenet,
+                #         torch_dtype=torch.bfloat16,
+                #     )
+                #pipe.to('cuda', torch.bfloat16)
+
                 
+                # Load image proj model
+                num_tokens = 8 # image_proj_num_tokens
+                image_emb_dim = 512
+                image_proj_model = Resampler(
+                    dim=1280,
+                    depth=4,
+                    dim_head=64,
+                    heads=20,
+                    num_queries=num_tokens,
+                    embedding_dim=image_emb_dim,
+                    output_dim=4096,
+                    ff_mult=4,
+                )
+                image_proj_model_path = os.path.join(cf_model.get("repo"), 'image_proj_model.bin')
+                ipm_state_dict = torch.load(image_proj_model_path, map_location="cpu")
+                image_proj_model.load_state_dict(ipm_state_dict['image_proj'])
+                del ipm_state_dict
+                image_proj_model.to('cuda', torch.bfloat16)
+                image_proj_model.eval()
+
+                #self.image_proj_model = image_proj_model
+
+                if lora is not None:
+                    loras = []
+                    if "realism" in lora_path:
+                        loras.append([lora_path, 'realism', 1.0])# single only now
+                    if  "blur" in lora_path:
+                        loras.append([lora_path, 'anti_blur', 1.0])
+                    pipe.load_loras(loras)
+                pipe.pipe.enable_model_cpu_offload()
+
             else: # SDXL dif_repo
                 if  story_maker:
                     if not make_dual_only:
@@ -1636,6 +1772,8 @@ class Storydiffusion_Model_Loader:
         # need get emb
         character_name_dict_, character_list_ = character_to_dict(character_prompt, lora, trigger_words)
         #print(character_list_)
+        print("prepare input image emb use insight_face_loader...,some methods need to be installed by pip install insightface")
+        
         if model_type=="img2img":
             d1, _, _, _ = image.size()
             if d1 == 1:
@@ -1645,10 +1783,10 @@ class Storydiffusion_Model_Loader:
                 image_load = [nomarl_upscale(img, width, height) for img in img_list]
                 
             from .model_loader_utils import insight_face_loader,get_insight_dict
-            app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only,use_storydif)
+            app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only,use_storydif,use_inf)
             input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict=get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
                                                                                                                  kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,condition_image,width, height,use_storydif)
+                     pulid,pipe,character_list_,condition_image,width, height,use_storydif,use_inf,image_proj_model)
         else:
             input_id_emb_s_dict = {}
             input_id_img_s_dict = {}
@@ -1678,7 +1816,7 @@ class Storydiffusion_Model_Loader:
                "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
                "scheduler":scheduler,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
                "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,"consistory":consistory,"cached":cached,"inject":inject,
-               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,
+               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,"use_inf": use_inf,
                "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,"SD35_mode":SD35_mode,"use_wrapper":use_wrapper,
                "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram,"input_tag_dict":input_tag_dict}
         return (model,)
@@ -1770,6 +1908,7 @@ class Storydiffusion_Sampler:
         use_storydif=model.get("use_storydif")
         low_vram=model.get("low_vram")
         SD35_mode=model.get("SD35_mode")
+        use_inf=model.get("use_inf")
         cf_scheduler=scheduler
         #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
         control_image=kwargs.get("control_image")
@@ -1783,7 +1922,7 @@ class Storydiffusion_Sampler:
 
         empty_emb_zero = None
         if model_type=="img2img":           
-            if pulid or kolor_face or (photomake_mode=="v2" and use_storydif):
+            if pulid or kolor_face or (photomake_mode=="v2" and use_storydif) or use_inf:
                 empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
         
         # 格式化文字内容
@@ -1853,11 +1992,15 @@ class Storydiffusion_Sampler:
                                      load_chars,
                                      lora,
                                      trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
-                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict, input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,controlnet_scale,cn_dict,input_tag_dict,SD35_mode,use_wrapper)
+                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict,
+                                     input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,
+                                     controlnet_scale,cn_dict,input_tag_dict,SD35_mode,use_wrapper,use_inf)
 
         else:
             if story_maker:
                 raise "story maker only support img2img now"
+            if use_inf:
+                raise "use_inf only support img2img now"
             upload_images = None
             if consistory:
                 if id_length>1:
@@ -2195,7 +2338,7 @@ class EasyFunction_Lite:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"repo": ("STRING", { "default": "F:/test/ComfyUI/models/diffusers/pzc163/MiniCPMv2_6-prompt-generator"}),
-                             "function_mode": (["tag", "clip","mask","llm",],),
+                             "function_mode": (["tag", "clip","mask","llm","infinite",],),
                              "select_method":("STRING",{ "default":""}),
                              "temperature": (
                                  "FLOAT", {"default": 0.7, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
@@ -2214,8 +2357,14 @@ class EasyFunction_Lite:
             model=None
         elif function_mode=="mask":
             model=None
-        else:
+        elif function_mode=="llm":
             model=None
+        else:  
+            if "v2" in select_method:
+                version='aes_stage2'
+            else:
+                version='sim_stage1'
+            model={"repo":repo,"version":version} #function_mode=="infinite":
         return (model,)
 
 
