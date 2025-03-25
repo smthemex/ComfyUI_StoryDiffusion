@@ -2,7 +2,7 @@
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)
-* The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) 
+* The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou)
 
 ## Updates:
 **2025/03/25**
@@ -535,6 +535,16 @@ Consistory
   publisher={ACM New York, NY, USA}
 }
 ```
+```
+@article{jiang2025infiniteyou,
+  title={{InfiniteYou}: Flexible Photo Recrafting While Preserving Your Identity},
+  author={Jiang, Liming and Yan, Qing and Jia, Yumin and Liu, Zichuan and Kang, Hao and Lu, Xin},
+  journal={arXiv preprint},
+  volume={arXiv:2503.16418},
+  year={2025}
+}
+```
+
 
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
