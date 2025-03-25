@@ -5,8 +5,8 @@
 * The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) 
 
 ## Updates:
-**2024/11/27**
-* change some ms-diffusion'codes,if you use "[A] a (man) img " in role prompts,will get better of MS mode.
+**2025/03/25**
+* add InfiniteYou function from [here](https://github.com/bytedance/InfiniteYou)
   
 ## Function introduction  
 **story-diffusion**    
@@ -36,7 +36,11 @@
 
 **Flux and PULID-FLUX**  
 * Flux supports img2img and txt2img, and supports FP8 and NF4 (recommended) quantization models；To enable it, enter the local path of flux diffuser in 'repo_id' and select the corresponding model in 'ckpt-name';example fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"; 
-* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8('Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL") model (with flux in the name),'ae.safetensors' in vae menu, fill in 'pulid, fp8' in 'easy-function' ;The accompanying 'insightface' model will be automatically downloaded; 
+* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8('Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL") model (with flux in the name),'ae.safetensors' in vae menu, fill in 'pulid, fp8' in 'easy-function' ;The accompanying 'insightface' model will be automatically downloaded;
+
+**InfiniteYou**
+* InfiniteYou only support img2img,download checkpoints from [here](https://huggingface.co/ByteDance/InfiniteYou),need link Easyfunction_lite,and fill in repo
+* only support repo mode now,default type is nf4 (if use fp16,need VRAM 40G)
 
 1.Installation  
 -----
@@ -259,8 +263,46 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 |         ├── genderage.onnx
 |         ├── w600k_r50.onnx
 ```
+**3.6 if using InfiniteYou**
+* 3.6.1 flux-dev repo frome [here](https://huggingface.co/black-forest-labs/FLUX.1-dev)
+* 3.6.2 infinite controlnet from [here ](https://huggingface.co/ByteDance/InfiniteYou) ,you can use  sim_stage1 or aes_stage2
+```
+├── any_path/sim_stage1/
+|         ├── image_proj_model.bin
+|         ├── InfuseNetModel/
+|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
+|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
+|             ├── diffusion_pytorch_model.safetensors.index.json
+|             ├── config.json
+```
+or 
+```
+├── any_path/aes_stage2/
+|         ├── image_proj_model.bin
+|         ├── InfuseNetModel/
+|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
+|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
+|             ├── diffusion_pytorch_model.safetensors.index.json
+|             ├── config.json
+```
+* 3.6.3 lora optional from [here](https://huggingface.co/ByteDance/InfiniteYou)
+* 3.6.4 insightface
+```
+├── ComfyUI/models/antelopev2/   
+|     ├──1k3d68.onnx  
+|     ├──2d106det.onnx
+|     ├──genderage.onnx
+|     ├──glintr100.onnx
+|     ├──scrfd_10g_bnkps.onnx  
+```
+* * 3.6.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) auto download
+  
+
 4 Example
 ----
+**InfiniteYou**
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite.png)
+
 **consistory**
 * whtn fill 'consi' in easyfunction is enable.. (Latest version)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consitstory.png)
@@ -377,6 +419,7 @@ Function Description of Nodes
 
 Previous updates
 ----
+* change some ms-diffusion'codes,if you use "[A] a (man) img " in role prompts,will get better of MS mode.
 * Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
 * The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；you can use lora when using consistory mode;  
 * if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
