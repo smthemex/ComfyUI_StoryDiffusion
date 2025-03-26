@@ -555,7 +555,15 @@ Consistory
   year={2025}
 }
 ```
-
-
+```
+@inproceedings{
+  li2024svdquant,
+  title={SVDQuant: Absorbing Outliers by Low-Rank Components for 4-Bit Diffusion Models},
+  author={Li*, Muyang and Lin*, Yujun and Zhang*, Zhekai and Cai, Tianle and Li, Xiuyu and Guo, Junxian and Xie, Enze and Meng, Chenlin and Zhu, Jun-Yan and Han, Song},
+  booktitle={The Thirteenth International Conference on Learning Representations},
+  year={2025}
+}
+```
+[GGUF](https://github.com/city96/ComfyUI-GGUF) 
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)
