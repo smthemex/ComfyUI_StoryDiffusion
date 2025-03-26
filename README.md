@@ -5,7 +5,8 @@
 * The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou)
 
 ## Updates:
-**2025/03/25**
+**2025/03/26**
+* and [gguf](https://github.com/city96/ComfyUI-GGUF)  and [SVDQuant](https://github.com/mit-han-lab/nunchaku?tab=readme-ov-file#Installation)  quantization model support for 'InfiniteYou',svdquant need torch>=2.6,use wheel to install it.
 * add InfiniteYou function from [here](https://github.com/bytedance/InfiniteYou)
   
 ## Function introduction  
@@ -40,7 +41,7 @@
 
 **InfiniteYou**
 * InfiniteYou only support img2img,download checkpoints from [here](https://huggingface.co/ByteDance/InfiniteYou),need link Easyfunction_lite,and fill in repo
-* only support repo mode now,default type is nf4 (if use fp16,need VRAM 40G)
+* only support repo mode now,default quant type is nf4 (if use fp16,need VRAM 40G)
 
 1.Installation  
 -----
@@ -295,13 +296,23 @@ or
 |     ├──glintr100.onnx
 |     ├──scrfd_10g_bnkps.onnx  
 ```
-* * 3.6.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) auto download
-  
+* 3.6.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) auto download,which embeded comfyui in "Lib\site-packages\facexlib\weights" dir 
+* 3.6.6 if use gguf quatization (optional)
+  download gguf from [here](https://huggingface.co/city96/FLUX.1-dev-gguf/tree/main),and  fill local path in 'easyfunction_lite' node's 'select_method'
+* 3.6.7 if use svdquant(optional)
+  download svdquant repo from [here](https://huggingface.co/mit-han-lab/svdq-fp4-flux.1-dev/tree/main) and  fill local path in 'easyfunction_lite' node's 'select_method'
+ 
+   
 
 4 Example
 ----
 **InfiniteYou**
+* normal use nf4 default,fast,quality best
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite.png)
+* use gguf quant,slowly(Q6,VRAM12G) quality best
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/gguf.png)
+* use svd quant,fast,quality normal(look like not useful)
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/svd.png) 
 
 **consistory**
 * whtn fill 'consi' in easyfunction is enable.. (Latest version)
