@@ -1408,9 +1408,11 @@ class Storydiffusion_Model_Loader:
         
         if use_inf and not isinstance(cf_model,dict):
             raise "if you want to use InfiniteYou  mode,please link easy function node to the model..."
+        if use_inf and image is None:
+            raise "if you want to use InfiniteYou  mode,please input a image..."
         
         photomaker_path,face_ckpt,photomake_mode,pulid_ckpt,face_adapter,kolor_ip_path=pre_checkpoint(
-            photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path,use_kolor,model_type)
+            photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path,use_kolor,model_type,use_flux,SD35_mode,use_inf) # FIX AUTO DOWNLOAD
     
         if total_vram > 45000.0:
             aggressive_offload = False
@@ -1639,20 +1641,34 @@ class Storydiffusion_Model_Loader:
                 from transformers import BitsAndBytesConfig as TransformersBitsAndBytesConfig,T5EncoderModel
                 from .pipelines.resampler import Resampler
                 from diffusers.models import FluxControlNetModel
-                quantize_T5=True
-                if quantize_T5:
-                    quant_config = TransformersBitsAndBytesConfig(
-                            load_in_4bit=True,
-                            bnb_4bit_quant_type="nf4",
-                        )
+                
+                # quantize T5 
+                quant_config = TransformersBitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_quant_type="nf4",
+                    )
 
-                    text_encoder_2_4bit = T5EncoderModel.from_pretrained(
-                            repo_id,
-                            subfolder="text_encoder_2",
-                            quantization_config=quant_config,
-                            torch_dtype=torch.bfloat16,
-                        )
-
+                text_encoder_2_4bit = T5EncoderModel.from_pretrained(
+                        repo_id,
+                        subfolder="text_encoder_2",
+                        quantization_config=quant_config,
+                        torch_dtype=torch.bfloat16,
+                    ) # init nf4 
+                if cf_model.get("use_svdq"):
+                    print("use svdq quantization")   
+                    from nunchaku import NunchakuFluxTransformer2dModel
+                    transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+                elif cf_model.get("use_gguf"):
+                    print("use gguf quantization")   
+                    from diffusers import  GGUFQuantizationConfig
+                    transformer = FluxTransformer2DModel.from_single_file(
+                        cf_model.get("select_method"),
+                        config=os.path.join(repo_id, "transformer"),
+                        quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
+                        torch_dtype=torch.bfloat16,
+                    )
+                else:
+                    print("use nf4 quantization")   
                     transformer = FluxTransformer2DModel.from_pretrained(
                         repo_id,
                         subfolder="transformer",
@@ -1660,7 +1676,6 @@ class Storydiffusion_Model_Loader:
                             load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
                         ),
                         torch_dtype=torch.bfloat16,)
-       
 
                 infusenet_path = os.path.join(cf_model.get("repo"), 'InfuseNetModel')
                 pipe = InfUFluxPipeline(
@@ -2350,6 +2365,8 @@ class EasyFunction_Lite:
     CATEGORY = "Storydiffusion"
     
     def easy_function_main(self, repo,function_mode,select_method,temperature):
+        use_svdq=False
+        use_gguf=False
         if function_mode=="tag":
             from .model_loader_utils import StoryLiteTag
             model = StoryLiteTag(device, temperature,select_method, repo)
@@ -2360,11 +2377,11 @@ class EasyFunction_Lite:
         elif function_mode=="llm":
             model=None
         else:  
-            if "v2" in select_method:
-                version='aes_stage2'
-            else:
-                version='sim_stage1'
-            model={"repo":repo,"version":version} #function_mode=="infinite":
+            if "svdq" in select_method:
+                use_svdq=True
+            elif "gguf" in select_method:
+                use_gguf=True
+            model={"repo":repo,"select_method":select_method,"use_svdq":use_svdq,"use_gguf":use_gguf} #function_mode=="infinite" or quantination:
         return (model,)
 
 
