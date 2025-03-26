@@ -3,7 +3,8 @@
 
 
 ## 更新:
-**2025/03/25** 
+**2025/03/26** 
+* 加入了gguf和svdquant对InfiniteYou的量化支持，svdquant需要torch>=2.6，且python版本有要求（windows），测试svdquant的量化似乎会导致InfiniteYou失效
 * 加入了InfiniteYou的支持，类IP方法人脸特征迁移，用于flux模型，可用lora，所有模型地址在[此](https://huggingface.co/ByteDance/InfiniteYou)，有两种风格的cn模型
 
 
@@ -37,7 +38,7 @@
 
 **InfiniteYou**
 * 模型加载节点填写本地或者在线flux dev 的repo地址，easyfunction填写infinite,注意不能有大写，前置model连节点easyfunction_lite（插件自带），easyfunction_lite的repo填写InfiniteYou的cn模型地址（见示例及说明）。
-* 因为模型显存要求较大，默认对flux模型使用nf4的量化，cpu加载，迟点再改成可选，12G目前可用，8G未测试
+* 因为模型显存要求较大，默认对flux模型使用nf4的量化，新增gguf和svd量化加速，12G目前可用，8G未测试
 
 1.安装
 -----
@@ -298,7 +299,11 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 |     ├──glintr100.onnx
 |     ├──scrfd_10g_bnkps.onnx  
 ```
-* 3.4.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) 自带下载，如果网络不通，手动下载放在控制台提示的地址，一般是C盘XXX
+* 3.4.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) 自带下载，如果网络不通，手动下载放在控制台提示的地址，一般是C盘XXX，便携包的地址在便携的python目录下的"Lib\site-packages\facexlib\weights"，秋叶类似
+* 3.4.6 如果使用gguf量化
+  下载 gguf 模型 from [here](https://huggingface.co/city96/FLUX.1-dev-gguf/tree/main),在'easyfunction_lite' 节点的'select_method'栏目里填写你下载的模型的绝对地址，反斜杠
+* 3.4.7 if use svdquant(optional)
+  下载 svdquant 的repo文件夹模型 from [here](https://huggingface.co/mit-han-lab/svdq-fp4-flux.1-dev/tree/main) 在'easyfunction_lite' 节点的'select_method'栏目里填写你下载的模型的绝对地址，反斜杠
 
 4 Example
 ----
