@@ -201,21 +201,22 @@ def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, 
     return (auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only,
             clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize,use_inf)
 def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
-                   model_type):
-    if photomake_mode == "v1":
-        if not os.path.exists(photomaker_path):
-            photomaker_path = hf_hub_download(
-                repo_id="TencentARC/PhotoMaker",
-                filename="photomaker-v1.bin",
-                local_dir=photomaker_dir,
-            )
-    else:
-        if not os.path.exists(photomaker_path):
-            photomaker_path = hf_hub_download(
-                repo_id="TencentARC/PhotoMaker-V2",
-                filename="photomaker-v2.bin",
-                local_dir=photomaker_dir,
-            )
+                   model_type,use_flux,SD35_mode,use_inf=False):
+    if not (use_inf or pulid or kolor_face or use_kolor or use_flux or SD35_mode):
+        if photomake_mode == "v1":
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker",
+                    filename="photomaker-v1.bin",
+                    local_dir=photomaker_dir,
+                )
+        else:
+            if not os.path.exists(photomaker_path):
+                photomaker_path = hf_hub_download(
+                    repo_id="TencentARC/PhotoMaker-V2",
+                    filename="photomaker-v2.bin",
+                    local_dir=photomaker_dir,
+                )
     if kolor_face:
         face_ckpt = os.path.join(photomaker_dir, "ipa-faceid-plus.bin")
         if not os.path.exists(face_ckpt):
