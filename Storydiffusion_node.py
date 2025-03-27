@@ -554,7 +554,12 @@ def process_generation(
     id_images = []
     results_dict = {}
     p_num = 0
-    
+
+    cond_img_length=0
+    if isinstance(condition_image, torch.Tensor):
+        cond_img_length = condition_image.shape[0]
+
+
     global cur_character
     if not load_chars:
         for character_key in character_dict.keys():  # 先生成角色对应第一句场景提示词的图片,图生图是批次生成
@@ -570,6 +575,9 @@ def process_generation(
                 style_name, current_prompts, negative_prompt
             )
             print(f"Sampler  {character_key_str} 's cur_positive_prompts :{cur_positive_prompts}")
+            # 1 role 2 prompts:  [Taylor] 's cur_positive_prompts :[' a woman img, wearing a white T-shirt, blue loose hair.  is walking ; 8k,RAW']
+            # 2 role 4 prompts[Taylor] 's cur_positive_prompts :[' a woman img, wearing a white T-shirt, blue loose hair.  wake up in the bed ; 8k,RAW', ' a woman img, wearing a white T-shirt, blue loose hair.  have breakfast by the window; 8k,RAW']
+            # [Lecun] 's cur_positive_prompts :[' a man img,wearing a suit,black hair.  driving a car; 8k,RAW', ' a man img,wearing a suit,black hair.  is working. 8k,RAW']
             if model_type == "txt2img":
                 if use_flux:
                     if not use_cf:
@@ -836,12 +844,15 @@ def process_generation(
                         ).images
                 elif use_inf:
                     crop_image = input_id_img_s_dict[character_key_str][0]
+                    if isinstance(crop_image, list):
+                        if len(cur_positive_prompts) > len(crop_image):#索引越界
+                            crop_image = crop_image + (len(cur_positive_prompts)-len(crop_image))*crop_image[0]
                     face_embeds = input_id_emb_s_dict[character_key_str][0]
                     if id_length > 1:
                         id_images = []
                         for index, i in enumerate(cur_positive_prompts):
                             id_image = pipe (id_embed=face_embeds,prompt=i,
-                                control_image=crop_image,
+                                control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[index],
                                 guidance_scale=guidance,
                                 num_steps=_num_steps,
                                 seed=seed_,
@@ -855,7 +866,7 @@ def process_generation(
                     else:
                         id_image = pipe (id_embed=face_embeds,
                                 prompt=cur_positive_prompts,
-                                control_image=crop_image,
+                                control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[0], #单人模式只取第一张
                                 guidance_scale=guidance,
                                 num_steps=_num_steps,
                                 seed=seed_,
@@ -977,7 +988,7 @@ def process_generation(
     if not load_chars:
         real_prompts_inds = [
             ind for ind in range(len(prompts)) if ind not in ref_totals
-        ]
+        ] # 去掉已采样的角色的prompt
     else:
         real_prompts_inds = [ind for ind in range(len(prompts))]
     print(real_prompts_inds)
@@ -1201,12 +1212,14 @@ def process_generation(
                 ).images[0]
             elif use_inf:
                 empty_image = Image.new('RGB', (width, height), (255, 255, 255))
+                print(cur_character,real_prompts_ind,123) #['[Taylor]'] 1 
                 crop_image = input_id_img_s_dict[
-                    cur_character[0]] if real_prompts_ind not in nc_indexs else empty_image
+                    cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_image #判断是否为非角色人物，如果是则使用空图像
+         
                 face_embeds = input_id_emb_s_dict[cur_character[0]][
                     0] if real_prompts_ind not in nc_indexs else empty_emb_zero
                 results_dict[real_prompts_ind] = pipe (id_embed=face_embeds,prompt=real_prompt,
-                    control_image=crop_image,
+                    control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[real_prompts_ind],
                     guidance_scale=guidance,
                     num_steps=_num_steps,
                     seed=seed_,
