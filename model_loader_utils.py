@@ -1147,15 +1147,18 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
 
         elif use_inf:
             def _detect_face(app_face, id_image_cv2):
-                    face_info = app_face.get(id_image_cv2)
-                    if len(face_info) > 0:
-                        return face_info
-                    # face_info = app_320.get(id_image_cv2)
-                    # if len(face_info) > 0:
-                    #     return face_info
+                face_info = app_face.get(id_image_cv2)
+                if face_info:
+                    return face_info
+                else:
+                    print("No face detected in the input ID image")
+                    return []
+                # face_info = app_320.get(id_image_cv2)
+                # if len(face_info) > 0:
+                #     return face_info
 
-                    # face_info = app_160.get(id_image_cv2)
-                    # return face_info
+                # face_info = app_160.get(id_image_cv2)
+                # return face_info
             from .pipelines.pipeline_infu_flux import extract_arcface_bgr_embedding,resize_and_pad_image,draw_kps
              # Extract ID embeddings
             print('Preparing ID embeddings')
@@ -1188,11 +1191,16 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
                     cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
                 # control_image = control_image.convert("RGB")
                 # control_image = resize_and_pad_image(control_image, (width, height))
-                face_info = _detect_face(app_face,cv2.cvtColor(np.array(cn_image_load[ind]), cv2.COLOR_RGB2BGR)) #need check 
-                if len(face_info) == 0:
-                    raise ValueError('No face detected in the control image')
-                face_info = sorted(face_info, key=lambda x:(x['bbox'][2]-x['bbox'][0])*(x['bbox'][3]-x['bbox'][1]))[-1] # only use the maximum face
-                control_image = draw_kps(control_image, face_info['kps'])
+                control_image=[] #如果是单人多张控制图，可能导致失序，所以统一改成列表，并在采样的时候依次调用
+                for img in cn_image_load:
+                    face_info = _detect_face(app_face,cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)) 
+                    if len(face_info) == 0:
+                        print('No face detected in the control image,use empty image,无法识别到面部,加载全黑图片替代.') #卡通人物很难识别，所以避免反复加载， 直接用黑图
+                        face_cn=Image.fromarray(np.zeros([height, width, 3]).astype(np.uint8))
+                    else:
+                        face_info = sorted(face_info, key=lambda x:(x['bbox'][2]-x['bbox'][0])*(x['bbox'][3]-x['bbox'][1]))[-1] # only use the maximum face
+                        face_cn = draw_kps(img, face_info['kps'])
+                    control_image.append(face_cn)
             else:
                 out_img = np.zeros([height, width, 3])
                 control_image = Image.fromarray(out_img.astype(np.uint8))
