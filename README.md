@@ -5,7 +5,8 @@
 * The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou)
 
 ## Updates:
-**2025/03/26**
+**2025/03/27**
+* fix some bug ,you can link condition_image for control infinite now (4 prompt use 4 condition is better)
 * and [gguf](https://github.com/city96/ComfyUI-GGUF)  and [SVDQuant](https://github.com/mit-han-lab/nunchaku?tab=readme-ov-file#Installation)  quantization model support for 'InfiniteYou',svdquant need torch>=2.6,use wheel to install it.
 * add InfiniteYou function from [here](https://github.com/bytedance/InfiniteYou)
   
@@ -307,6 +308,8 @@ or
 4 Example
 ----
 **InfiniteYou**
+* 2 role 4 prompt 2 control_image(need fit prompt) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite_control.png)
 * normal use nf4 default,fast,quality best
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite.png)
 * use gguf quant,slowly(Q6,VRAM12G) quality best
