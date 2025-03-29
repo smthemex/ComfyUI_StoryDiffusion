@@ -35,8 +35,6 @@ global sa32, sa64
 global write
 global height_s, width_s
 
-import transformers
-transformers_v=float(transformers.__version__.rsplit(".",1)[0])
 
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -1600,19 +1598,25 @@ class Storydiffusion_Model_Loader:
                 set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
             elif use_kolor:
                 logging.info("start kolor processing...")
-                if transformers_v>=4.45:
-                    import shutil
-                    print("transformers_v>=4.45 cause error,try fix it")
-                    chatglm_config_fix = os.path.join(dir_path, "kolors", "tokenization_chatglm.py")
-                    chatglm_config_origin = os.path.join(repo_id, "text_encoder", "tokenization_chatglm.py")
-                    chatglm_config_origin_tokens = os.path.join(repo_id, "tokenizer", "tokenization_chatglm.py")
+                from packaging import version
+                import transformers  
+                current_version = transformers.__version__ 
+                if version.parse(current_version) >= version.parse("4.45.0"):
                     try:
-                        if os.path.exists(chatglm_config_fix):
-                            shutil.copy2(chatglm_config_fix, chatglm_config_origin)
-                            shutil.copy2(chatglm_config_fix, chatglm_config_origin_tokens)
-                            print(f"replace {chatglm_config_origin_tokens}  and{chatglm_config_origin} from {chatglm_config_fix}")
+                        import shutil
+                        print("transformers_v>=4.45 cause error,try fix it")
+                        chatglm_config_fix = os.path.join(dir_path, "kolors", "tokenization_chatglm.py")
+                        chatglm_config_origin = os.path.join(repo_id, "text_encoder", "tokenization_chatglm.py")
+                        chatglm_config_origin_tokens = os.path.join(repo_id, "tokenizer", "tokenization_chatglm.py")
+                        try:
+                            if os.path.exists(chatglm_config_fix):
+                                shutil.copy2(chatglm_config_fix, chatglm_config_origin)
+                                shutil.copy2(chatglm_config_fix, chatglm_config_origin_tokens)
+                                print(f"replace {chatglm_config_origin_tokens}  and{chatglm_config_origin} from {chatglm_config_fix}")
+                        except:
+                            print(f"fix fail,you can copy from {chatglm_config_fix} ,then cover {chatglm_config_origin} and {chatglm_config_origin_tokens}")
                     except:
-                        print(f"fix fail,you can copy from {chatglm_config_fix} ,then cover {chatglm_config_origin} and {chatglm_config_origin_tokens}")
+                        pass
                         
                 pipe=kolor_loader(repo_id, model_type, set_attention_processor, id_length, kolor_face, clip_vision_path,
                              clip_load, CLIPVisionModelWithProjection, CLIPImageProcessor,
