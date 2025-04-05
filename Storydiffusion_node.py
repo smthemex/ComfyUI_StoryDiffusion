@@ -1,28 +1,23 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
 import random
-import gc
 import logging
 import numpy as np
 import torch
 import os
 from PIL import ImageFont,Image
-from diffusers import StableDiffusionXLPipeline, DiffusionPipeline,EulerDiscreteScheduler, UNet2DConditionModel,UniPCMultistepScheduler, AutoencoderKL
-from transformers import CLIPVisionModelWithProjection
-from transformers import CLIPImageProcessor
-import datetime
+from .StoryMaker.pipeline_sdxl_storymaker_wrapper import encode_prompt_image_emb_
 import folder_paths
-from comfy.clip_vision import load as clip_load
 from comfy.model_management import total_vram
-
+import comfy
+import latent_preview
 from .utils.utils import get_comic
-from .utils.load_models_utils import load_models
-from .model_loader_utils import  (story_maker_loader,kolor_loader,phi2narry,
-                                  extract_content_from_brackets,narry_list,remove_punctuation_from_strings,phi_list,center_crop_s,center_crop,
-                                  narry_list_pil,setup_seed,find_directories,
-                                  apply_style,get_scheduler,apply_style_positive,SD35Wrapper,load_images_list,
-                                  nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list,pre_checkpoint,get_easy_function,sd35_loader)
-from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available,process_original_prompt,get_ref_character,character_to_dict
+from .model_loader_utils import  (phi2narry,Loader_storydiffusion,Loader_Flux_Pulid,load_pipeline_consistory,Loader_KOLOR,replicate_data_by_indices,glm_single_encode,
+                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,tensortopil_list,tensortopil_list_upscale,
+                                  narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,
+                                  get_scheduler,apply_style_positive,fitter_cf_model_type,Infer_MSdiffusion,Loader_story_maker,Loader_InfiniteYou,
+                                  nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list)
+from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 if is_torch2_available():
     from .utils.gradio_utils import AttnProcessor2_0 as AttnProcessor
@@ -36,18 +31,21 @@ global write
 global height_s, width_s
 
 
-photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
+infer_type_g=torch.float16 if device=="cuda" else torch.float32 #？
+
 MAX_SEED = np.iinfo(np.int32).max
+
 dir_path = os.path.dirname(os.path.abspath(__file__))
+fonts_lists = os.listdir(os.path.join(dir_path, "fonts"))
+photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
+weigths_gguf_current_path = os.path.join(folder_paths.models_dir, "gguf")
+if not os.path.exists(weigths_gguf_current_path):
+    os.makedirs(weigths_gguf_current_path)
 
-fonts_path = os.path.join(dir_path, "fonts")
-fonts_lists = os.listdir(fonts_path)
+folder_paths.add_model_folder_path("gguf", weigths_gguf_current_path) # use gguf dir
 
-base_pt = os.path.join(photomaker_dir,"pt")
-if not os.path.exists(base_pt):
-    os.makedirs(base_pt)
     
 def set_attention_processor(unet, id_length, is_ipadapter=False):
     global attn_procs
@@ -84,74 +82,7 @@ def set_attention_processor(unet, id_length, is_ipadapter=False):
 
     unet.set_attn_processor(copy.deepcopy(attn_procs))
 
-def load_single_character_weights(unet, filepath):
-    """
-    从指定文件中加载权重到 attention_processor 类的 id_bank 中。
-    参数:
-    - model: 包含 attention_processor 类实例的模型。
-    - filepath: 权重文件的路径。
-    """
-    # 使用torch.load来读取权重
-    weights_to_load = torch.load(filepath, map_location=torch.device("cpu"))
-    weights_to_load.eval()
-    character = weights_to_load["character"]
-    description = weights_to_load["description"]
-    #print(character)
-    for attn_name, attn_processor in unet.attn_processors.items():
-        if isinstance(attn_processor, SpatialAttnProcessor2_0):
-            # 转移权重到GPU（如果GPU可用的话）并赋值给id_bank
-            attn_processor.id_bank[character] = {}
-            for step_key in weights_to_load[attn_name].keys():
-
-                attn_processor.id_bank[character][step_key] = [
-                    tensor.to(unet.device)
-                    for tensor in weights_to_load[attn_name][step_key]
-                ]
-    print("successsfully,load_single_character_weights")
-
-def load_character_files_on_running(unet, character_files: str):
-    if character_files == "":
-        return False
-    weights_list = os.listdir(character_files)#获取路径下的权重列表
-    #character_files_arr = character_files.splitlines()
-    for character_file in weights_list:
-        path_cur=os.path.join(character_files,character_file)
-        load_single_character_weights(unet, path_cur)
-    return True
-def save_single_character_weights(unet, character, description, filepath):
-    """
-    保存 attention_processor 类中的 id_bank GPU Tensor 列表到指定文件中。
-    参数:
-    - model: 包含 attention_processor 类实例的模型。
-    - filepath: 权重要保存到的文件路径。
-    """
-    weights_to_save = {}
-    weights_to_save["description"] = description
-    weights_to_save["character"] = character
-    for attn_name, attn_processor in unet.attn_processors.items():
-        if isinstance(attn_processor, SpatialAttnProcessor2_0):
-            # 将每个 Tensor 转到 CPU 并转为列表，以确保它可以被序列化
-            #print(attn_name, attn_processor)
-            weights_to_save[attn_name] = {}
-            for step_key in attn_processor.id_bank[character].keys():
-                weights_to_save[attn_name][step_key] = [
-                    tensor.cpu()
-                    for tensor in attn_processor.id_bank[character][step_key]
-                ]
-    # 使用torch.save保存权重
-    torch.save(weights_to_save, filepath)
     
-def save_results(unet):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    weight_folder_name =os.path.join(base_pt,f"{timestamp}")
-    #创建文件夹
-    if not os.path.exists(weight_folder_name):
-        os.makedirs(weight_folder_name)
-    global character_dict
-    for char in character_dict:
-        description = character_dict[char]
-        save_single_character_weights(unet,char,description,os.path.join(weight_folder_name, f'{char}.pt'))
-        
 class SpatialAttnProcessor2_0(torch.nn.Module):
     r"""
     Attention processor for IP-Adapater for PyTorch 2.0.
@@ -203,7 +134,7 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
         global write
         global height_s, width_s
         global character_dict
-        global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, cur_character
+        global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals
         if attn_count == 0 and cur_step == 0:
             indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
                 self.total_length,
@@ -423,1874 +354,6 @@ class SpatialAttnProcessor2_0(torch.nn.Module):
         return hidden_states
 
 
-def process_generation(
-        pipe,
-        upload_images,
-        model_type,
-        _num_steps,
-        style_name,
-        denoise_or_ip_sacle,
-        _style_strength_ratio,
-        cfg,
-        seed_,
-        id_length,
-        general_prompt,
-        negative_prompt,
-        prompt_array,
-        width,
-        height,
-        load_chars,
-        lora,
-        trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face, pulid, story_maker,
-        input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
-        empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale, cn_dict,input_tag_dict,SD35_mode,use_wrapper,use_inf=None
-):  # Corrected font_choice usage
-    
-    if len(general_prompt.splitlines()) >= 3:
-        raise "Support for more than three characters is temporarily unavailable due to VRAM limitations, but this issue will be resolved soon."
-    # _model_type = "Photomaker" if _model_type == "Using Ref Images" else "original"
-    
-    if not use_kolor and not use_flux and not story_maker:
-        if model_type == "img2img" and "img" not in general_prompt:
-            raise 'if using normal SDXL img2img ,need add the triger word " img "  behind the class word you want to customize, such as: man img or woman img'
-    
-    global total_length, attn_procs, cur_model_type
-    global write
-    global cur_step, attn_count
-    
-    # load_chars = load_character_files_on_running(unet, character_files=char_files)
-    
-    prompts_origin = prompt_array.splitlines()
-    prompts_origin = [i.strip() for i in prompts_origin]
-    prompts_origin = [i for i in prompts_origin if '[' in i]  # 删除空行
-    # print(prompts_origin)
-    prompts = [prompt for prompt in prompts_origin if not len(extract_content_from_brackets(prompt)) >= 2]  # 剔除双角色
-    
-    add_trigger_words = " " + trigger_words + " style "
-    if lora:
-        if lora in lora_lightning_list:
-            prompts = remove_punctuation_from_strings(prompts)
-        else:
-            prompts = remove_punctuation_from_strings(prompts)
-            prompts = [item + add_trigger_words for item in prompts]
-    
-    global character_index_dict, invert_character_index_dict, ref_indexs_dict, ref_totals
-    global character_dict
-    
-    character_dict, character_list = character_to_dict(general_prompt, lora, add_trigger_words)
-    # print(character_dict)
-    start_merge_step = int(float(_style_strength_ratio) / 100 * _num_steps)
-    if start_merge_step > 30:
-        start_merge_step = 30
-    print(f"start_merge_step:{start_merge_step}")
-    # generator = torch.Generator(device=device).manual_seed(seed_)
-    clipped_prompts = prompts[:]
-    nc_indexs = []
-    for ind, prompt in enumerate(clipped_prompts):
-        if "[NC]" in prompt:
-            nc_indexs.append(ind)
-            if ind < id_length:
-                raise f"The first {id_length} row is id prompts, cannot use [NC]!"
-    
-    prompts = [
-        prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
-        for prompt in clipped_prompts
-    ]
-    
-    if lora:
-        if lora in lora_lightning_list:
-            prompts = [
-                prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
-            ]
-        else:
-            prompts = [
-                prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in prompts
-            ]
-    else:
-        prompts = [
-            prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
-        ]
-    img_mode = False
-    if kolor_face or pulid or (story_maker and not make_dual_only) or model_type == "img2img":
-        img_mode = True
-    # id_prompts = prompts[:id_length]
-    (
-        character_index_dict,
-        invert_character_index_dict,
-        replace_prompts,
-        ref_indexs_dict,
-        ref_totals,
-    ) = process_original_prompt(character_dict, prompts, id_length, img_mode)
-    
-    if input_tag_dict:
-        if len(input_tag_dict)<len(replace_prompts):
-            raise "The number of input condition images is less than the number of scene prompts！"
-        replace_prompts=[prompt +" " + input_tag_dict[i] for i,prompt in enumerate(replace_prompts)]
-    #print(input_tag_dict)
-    #print(replace_prompts)
-    #[' a woman img, wearing a white T-shirt  wake up in the bed ;', ' a man img,wearing a suit,black hair.  is working.']
-    # print(character_index_dict,invert_character_index_dict,replace_prompts,ref_indexs_dict,ref_totals)
-    # character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
-    # invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}
-    # ref_indexs_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0]}
-    # ref_totals: [0, 3, 1, 2]  if 1 role [0]
-    if model_type == "img2img":
-        # _upload_images = [_upload_images]
-        input_id_images_dict = {}
-        if len(upload_images) != len(character_dict.keys()):
-            raise f"You upload images({len(upload_images)}) is not equal to the number of characters({len(character_dict.keys())})!"
-        for ind, img in enumerate(upload_images):
-            input_id_images_dict[character_list[ind]] = [img]  # 已经pil转化了 不用load {a:[img],b:[img]}
-            # input_id_images_dict[character_list[ind]] = [load_image(img)]
-    # real_prompts = prompts[id_length:]
-    # if device == "cuda":
-    #     torch.cuda.empty_cache()
-    write = True
-    cur_step = 0
-    attn_count = 0
-    total_results = []
-    id_images = []
-    results_dict = {}
-    p_num = 0
-
-    cond_img_length=0
-    if isinstance(condition_image, torch.Tensor):
-        cond_img_length = condition_image.shape[0]
-
-
-    global cur_character
-    if not load_chars:
-        for character_key in character_dict.keys():  # 先生成角色对应第一句场景提示词的图片,图生图是批次生成
-            character_key_str = character_key
-            cur_character = [character_key]
-            ref_indexs = ref_indexs_dict[character_key]
-            current_prompts = [replace_prompts[ref_ind] for ref_ind in ref_indexs]
-            if model_type == "txt2img":
-                setup_seed(seed_)
-            generator = torch.Generator(device=device).manual_seed(seed_)
-            cur_step = 0
-            cur_positive_prompts, cur_negative_prompt = apply_style(
-                style_name, current_prompts, negative_prompt
-            )
-            print(f"Sampler  {character_key_str} 's cur_positive_prompts :{cur_positive_prompts}")
-            # 1 role 2 prompts:  [Taylor] 's cur_positive_prompts :[' a woman img, wearing a white T-shirt, blue loose hair.  is walking ; 8k,RAW']
-            # 2 role 4 prompts[Taylor] 's cur_positive_prompts :[' a woman img, wearing a white T-shirt, blue loose hair.  wake up in the bed ; 8k,RAW', ' a woman img, wearing a white T-shirt, blue loose hair.  have breakfast by the window; 8k,RAW']
-            # [Lecun] 's cur_positive_prompts :[' a man img,wearing a suit,black hair.  driving a car; 8k,RAW', ' a man img,wearing a suit,black hair.  is working. 8k,RAW']
-            if model_type == "txt2img":
-                if use_flux:
-                    if not use_cf:
-                        id_images = pipe(
-                            prompt=cur_positive_prompts,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=guidance,
-                            output_type="pil",
-                            max_sequence_length=256,
-                            height=height,
-                            width=width,
-                            generator=generator
-                        ).images
-                    else:
-                        cur_negative_prompt = [cur_negative_prompt]
-                        cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                            cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                        id_images = []
-                        cfg = 1.0
-                        for index, text in enumerate(cur_positive_prompts):
-                            id_image = pipe.generate_image(
-                                width=width,
-                                height=height,
-                                num_steps=_num_steps,
-                                cfg=cfg,
-                                guidance=guidance,
-                                seed=seed_,
-                                prompt=text,
-                                negative_prompt=cur_negative_prompt[index],
-                                cf_scheduler=cf_scheduler,
-                                denoise=denoise_or_ip_sacle,
-                                image=None
-                            )
-                            id_images.append(id_image)
-                else:
-                    if use_cf:
-                        cur_negative_prompt = [cur_negative_prompt]
-                        cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                            cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                        id_images = []
-                        for index, text in enumerate(cur_positive_prompts):
-                            id_image = pipe.generate_image(
-                                width=width,
-                                height=height,
-                                num_steps=_num_steps,
-                                cfg=cfg,
-                                guidance=guidance,
-                                seed=seed_,
-                                prompt=text,
-                                negative_prompt=cur_negative_prompt[index],
-                                cf_scheduler=cf_scheduler,
-                                denoise=denoise_or_ip_sacle,
-                                image=None
-                            )
-                            id_images.append(id_image)
-                    elif SD35_mode:
-                        if use_wrapper:
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                num_inference_steps=_num_steps,
-                                guidance_scale=guidance,
-                                height=height,
-                                width=width,
-                                negative_prompt=cur_negative_prompt,
-                                max_sequence_length=512,
-                                generator=generator
-                            )
-                        else:
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                num_inference_steps=_num_steps,
-                                guidance_scale=guidance,
-                                height=height,
-                                width=width,
-                                negative_prompt=cur_negative_prompt,
-                                max_sequence_length=512,
-                                generator=generator
-                            ).images
-                    else:
-                        if use_kolor:
-                            cur_negative_prompt = [cur_negative_prompt]
-                            cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                                cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                        id_images = pipe(
-                            cur_positive_prompts,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            height=height,
-                            width=width,
-                            negative_prompt=cur_negative_prompt,
-                            generator=generator
-                        ).images
-            
-            elif model_type == "img2img":
-                if use_kolor:
-                    cur_negative_prompt = [cur_negative_prompt]
-                    cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                        cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                    if kolor_face:
-                        crop_image = input_id_img_s_dict[character_key_str][0]
-                        face_embeds = input_id_emb_s_dict[character_key_str][0]
-                        face_embeds = face_embeds.to(device, dtype=torch.float16)
-                        if id_length > 1:
-                            id_images = []
-                            for index, i in enumerate(cur_positive_prompts):
-                                id_image = pipe(
-                                    prompt=i,
-                                    negative_prompt=cur_negative_prompt[index],
-                                    height=height,
-                                    width=width,
-                                    num_inference_steps=_num_steps,
-                                    guidance_scale=cfg,
-                                    num_images_per_prompt=1,
-                                    generator=generator,
-                                    face_crop_image=crop_image,
-                                    face_insightface_embeds=face_embeds,
-                                ).images
-                                id_images.append(id_image)
-                        else:
-                            id_images = pipe(
-                                prompt=cur_positive_prompts,
-                                negative_prompt=cur_negative_prompt,
-                                height=height,
-                                width=width,
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                num_images_per_prompt=1,
-                                generator=generator,
-                                face_crop_image=crop_image,
-                                face_insightface_embeds=face_embeds,
-                            ).images
-                    else:
-                        pipe.set_ip_adapter_scale([denoise_or_ip_sacle])
-                        id_images = pipe(
-                            prompt=cur_positive_prompts,
-                            ip_adapter_image=input_id_images_dict[character_key],
-                            negative_prompt=cur_negative_prompt,
-                            num_inference_steps=_num_steps,
-                            height=height,
-                            width=width,
-                            guidance_scale=cfg,
-                            num_images_per_prompt=1,
-                            generator=generator,
-                        ).images
-                elif use_flux and not use_inf:
-                    if pulid:
-                        id_embeddings = input_id_emb_s_dict[character_key_str][0]
-                        uncond_id_embeddings = input_id_emb_un_dict[character_key_str][0]
-                        if id_length > 1:
-                            id_images = []
-                            for index, i in enumerate(cur_positive_prompts):
-                                id_image = pipe.generate_image(
-                                    prompt=i,
-                                    seed=seed_,
-                                    start_step=2,
-                                    num_steps=_num_steps,
-                                    height=height,
-                                    width=width,
-                                    id_embeddings=id_embeddings,
-                                    uncond_id_embeddings=uncond_id_embeddings,
-                                    id_weight=1,
-                                    guidance=guidance,
-                                    true_cfg=1.0,
-                                    max_sequence_length=128,
-                                )
-                                id_images.append(id_image)
-                        
-                        else:
-                            id_images = pipe.generate_image(
-                                prompt=cur_positive_prompts,
-                                seed=seed_,
-                                start_step=2,
-                                num_steps=_num_steps,
-                                height=height,
-                                width=width,
-                                id_embeddings=id_embeddings,
-                                uncond_id_embeddings=uncond_id_embeddings,
-                                id_weight=1,
-                                guidance=guidance,
-                                true_cfg=1.0,
-                                max_sequence_length=128,
-                            )
-                            id_images = [id_images]
-                    elif use_cf:
-                        cfg = 1.0
-                        cur_negative_prompt = [cur_negative_prompt]
-                        cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                            cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                        id_images = []
-                        for index, text in enumerate(cur_positive_prompts):
-                            id_image = pipe.generate_image(
-                                width=width,
-                                height=height,
-                                num_steps=_num_steps,
-                                cfg=cfg,
-                                guidance=guidance,
-                                seed=seed_,
-                                prompt=text,
-                                negative_prompt=cur_negative_prompt[index],
-                                cf_scheduler=cf_scheduler,
-                                denoise=denoise_or_ip_sacle,
-                                image=input_id_images_dict[character_key][0]
-                            )
-                            id_images.append(id_image)
-                    else:
-                        cfg = cfg if cfg <= 1 else cfg / 10 if 1 < cfg <= 10 else cfg / 100
-                        id_images = pipe(
-                            prompt=cur_positive_prompts,
-                            image=input_id_images_dict[character_key],
-                            strength=cfg,
-                            latents=None,
-                            num_inference_steps=_num_steps,
-                            height=height,
-                            width=width,
-                            output_type="pil",
-                            max_sequence_length=256,
-                            guidance_scale=guidance,
-                            generator=generator,
-                        ).images
-                
-                elif story_maker and not make_dual_only:
-                    img = input_id_images_dict[character_key][0]
-                    # print(character_key_str,input_id_images_dict)
-                    mask_image = input_id_img_s_dict[character_key_str][0]
-                    face_info = input_id_emb_s_dict[character_key_str][0]
-                    cloth_info = None
-                    if isinstance(condition_image, torch.Tensor):
-                        cloth_info = input_id_cloth_dict[character_key_str][0]
-                    cur_negative_prompt = [cur_negative_prompt]
-                    cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                        cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                    if id_length > 1:
-                        id_images = []
-                        for index, i in enumerate(cur_positive_prompts):
-                            id_image = pipe(
-                                image=img if not controlnet_path else [img, cn_dict[ref_indexs[index]][
-                                    0]] if cn_dict else img,
-                                mask_image=mask_image,
-                                face_info=face_info,
-                                prompt=i,
-                                negative_prompt=cur_negative_prompt[index],
-                                ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
-                                controlnet_conditioning_scale=controlnet_scale,
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                height=height, width=width,
-                                generator=generator,
-                                cloth=cloth_info,
-                            ).images
-                            id_images.append(id_image)
-                    else:
-                        id_images = pipe(
-                            image=img if not controlnet_path else [img, cn_dict[ref_indexs[0]][0]] if cn_dict else img,
-                            mask_image=mask_image,
-                            face_info=face_info,
-                            prompt=cur_positive_prompts,
-                            negative_prompt=cur_negative_prompt,
-                            ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            height=height, width=width,
-                            generator=generator,
-                            cloth=cloth_info,
-                        ).images
-                elif use_inf:
-                    crop_image = input_id_img_s_dict[character_key_str][0]
-                    if isinstance(crop_image, list):
-                        if len(cur_positive_prompts) > len(crop_image):#索引越界
-                            crop_image = crop_image + (len(cur_positive_prompts)-len(crop_image))*crop_image[0]
-                    face_embeds = input_id_emb_s_dict[character_key_str][0]
-                    if id_length > 1:
-                        id_images = []
-                        for index, i in enumerate(cur_positive_prompts):
-                            id_image = pipe (id_embed=face_embeds,prompt=i,
-                                control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[index],
-                                guidance_scale=guidance,
-                                num_steps=_num_steps,
-                                seed=seed_,
-                                infusenet_conditioning_scale=1.0,
-                                infusenet_guidance_start=0,
-                                infusenet_guidance_end=1.0,
-                                height=height,
-                                width=width,
-                                )
-                            id_images.append(id_image)
-                    else:
-                        id_image = pipe (id_embed=face_embeds,
-                                prompt=cur_positive_prompts,
-                                control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[0], #单人模式只取第一张
-                                guidance_scale=guidance,
-                                num_steps=_num_steps,
-                                seed=seed_,
-                                infusenet_conditioning_scale=[1.0]*len(cur_positive_prompts) if len(cur_positive_prompts) > 1 else [1.0],
-                                infusenet_guidance_start=0,
-                                infusenet_guidance_end=1.0,
-                                height=height,
-                                width=width,
-                                )
-                        id_images=[id_image] # need check
-                else:
-                    if use_cf:
-                        cur_negative_prompt = [cur_negative_prompt]
-                        cur_negative_prompt = cur_negative_prompt * len(cur_positive_prompts) if len(
-                            cur_negative_prompt) != len(cur_positive_prompts) else cur_negative_prompt
-                        id_images = []
-                        for index, text in enumerate(cur_positive_prompts):
-                            id_image = pipe.generate_image(
-                                width=width,
-                                height=height,
-                                num_steps=_num_steps,
-                                cfg=cfg,
-                                guidance=guidance,
-                                seed=seed_,
-                                prompt=text,
-                                negative_prompt=cur_negative_prompt[index],
-                                cf_scheduler=cf_scheduler,
-                                denoise=denoise_or_ip_sacle,
-                                image=input_id_images_dict[character_key][0]
-                            )
-                            id_images.append(id_image)
-                    elif SD35_mode:
-                        if use_wrapper:
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                image=input_id_images_dict[character_key],
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                strength=denoise_or_ip_sacle,
-                                negative_prompt=cur_negative_prompt,
-                                generator=generator,
-                                max_sequence_length=512
-                            )
-                        else:
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                image=input_id_images_dict[character_key],
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                strength=denoise_or_ip_sacle,
-                                negative_prompt=cur_negative_prompt,
-                                generator=generator,
-                                max_sequence_length=512
-                            ).images
-                        
-                    else:
-                        if photomake_mode == "v2":
-                            id_embeds = input_id_emb_s_dict[character_key_str][0]
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                input_id_images=input_id_images_dict[character_key],
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                start_merge_step=start_merge_step,
-                                height=height,
-                                width=width,
-                                negative_prompt=cur_negative_prompt,
-                                id_embeds=id_embeds,
-                                generator=generator
-                            ).images
-                        else:
-                            # print("v1 mode,load_chars", cur_positive_prompts, negative_prompt,character_key )
-                            id_images = pipe(
-                                cur_positive_prompts,
-                                input_id_images=input_id_images_dict[character_key],
-                                num_inference_steps=_num_steps,
-                                guidance_scale=cfg,
-                                start_merge_step=start_merge_step,
-                                height=height,
-                                width=width,
-                                negative_prompt=cur_negative_prompt,
-                                generator=generator
-                            ).images
-            
-            else:
-                raise NotImplementedError(
-                    "You should choice between original and Photomaker!",
-                    f"But you choice {model_type}",
-                )
-            p_num += 1
-            # total_results = id_images + total_results
-            # yield total_results
-            if story_maker and not make_dual_only and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            elif pulid and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            elif kolor_face and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            elif use_flux and use_cf and not use_inf and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            elif use_cf and not use_flux and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            elif use_inf and id_length > 1 and model_type == "img2img":
-                for index, ind in enumerate(character_index_dict[character_key]):
-                    results_dict[ref_totals[ind]] = id_images[index]
-            else:
-                for ind, img in enumerate(id_images):
-                    results_dict[ref_indexs[ind]] = img
-            # real_images = []
-            # print(results_dict)
-            yield [results_dict[ind] for ind in results_dict.keys()]
-    
-    write = False
-    if not load_chars:
-        real_prompts_inds = [
-            ind for ind in range(len(prompts)) if ind not in ref_totals
-        ] # 去掉已采样的角色的prompt
-    else:
-        real_prompts_inds = [ind for ind in range(len(prompts))]
-    print(real_prompts_inds)
-    real_prompt_no, negative_prompt_style = apply_style_positive(style_name, "real_prompt")
-    negative_prompt = str(negative_prompt) + str(negative_prompt_style)
-    # print(f"real_prompts_inds is {real_prompts_inds}")
-    for real_prompts_ind in real_prompts_inds:  #
-        real_prompt = replace_prompts[real_prompts_ind]
-        cur_character = get_ref_character(prompts[real_prompts_ind], character_dict)
-        
-        if model_type == "txt2img":
-            setup_seed(seed_)
-        generator = torch.Generator(device=device).manual_seed(seed_)
-        
-        if len(cur_character) > 1 and model_type == "img2img":
-            raise "Temporarily Not Support Multiple character in Ref Image Mode!"
-        cur_step = 0
-        real_prompt, negative_prompt_style_no = apply_style_positive(style_name, real_prompt)
-        print(f"Sample real_prompt : {real_prompt}")
-        if model_type == "txt2img":
-            # print(results_dict,real_prompts_ind)
-            if use_flux:
-                if not use_cf:
-                    results_dict[real_prompts_ind] = pipe(
-                        prompt=real_prompt,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=guidance,
-                        output_type="pil",
-                        max_sequence_length=256,
-                        height=height,
-                        width=width,
-                        generator=torch.Generator("cpu").manual_seed(seed_)
-                    ).images[0]
-                else:
-                    cfg = 1.0
-                    results_dict[real_prompts_ind] = pipe.generate_image(
-                        width=width,
-                        height=height,
-                        num_steps=_num_steps,
-                        cfg=cfg,
-                        guidance=guidance,
-                        seed=seed_,
-                        prompt=real_prompt,
-                        negative_prompt=negative_prompt,
-                        cf_scheduler=cf_scheduler,
-                        denoise=denoise_or_ip_sacle,
-                        image=None
-                    )
-            else:
-                if use_cf:
-                    results_dict[real_prompts_ind] = pipe.generate_image(
-                        width=width,
-                        height=height,
-                        num_steps=_num_steps,
-                        cfg=cfg,
-                        guidance=guidance,
-                        seed=seed_,
-                        prompt=real_prompt,
-                        negative_prompt=negative_prompt,
-                        cf_scheduler=cf_scheduler,
-                        denoise=denoise_or_ip_sacle,
-                        image=None
-                    )
-                elif SD35_mode:
-                    if use_wrapper:
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            height=height,
-                            width=width,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            max_sequence_length=512,
-                        )
-                    else:
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            height=height,
-                            width=width,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            max_sequence_length=512,
-                        ).images[0]
-                    
-                else:
-                    results_dict[real_prompts_ind] = pipe(
-                        real_prompt,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=cfg,
-                        height=height,
-                        width=width,
-                        negative_prompt=negative_prompt,
-                        generator=generator,
-                    ).images[0]
-        
-        elif model_type == "img2img":
-            empty_img = Image.new('RGB', (height, width), (255, 255, 255))
-            if use_kolor:
-                if kolor_face:
-                    empty_image = Image.new('RGB', (336, 336), (255, 255, 255))
-                    crop_image = input_id_img_s_dict[
-                        cur_character[0]] if real_prompts_ind not in nc_indexs else empty_image
-                    face_embeds = input_id_emb_s_dict[cur_character[0]][
-                        0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                    face_embeds = face_embeds.to(device, dtype=torch.float16)
-                    results_dict[real_prompts_ind] = pipe(
-                        prompt=real_prompt,
-                        negative_prompt=negative_prompt,
-                        height=height,
-                        width=width,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=cfg,
-                        num_images_per_prompt=1,
-                        generator=generator,
-                        face_crop_image=crop_image,
-                        face_insightface_embeds=face_embeds,
-                    ).images[0]
-                else:
-                    results_dict[real_prompts_ind] = pipe(
-                        prompt=real_prompt,
-                        ip_adapter_image=(
-                            input_id_images_dict[cur_character[0]]
-                            if real_prompts_ind not in nc_indexs
-                            else empty_img
-                        ),
-                        negative_prompt=negative_prompt,
-                        height=height,
-                        width=width,
-                        num_inference_steps=_num_steps,
-                        guidance_scale=cfg,
-                        num_images_per_prompt=1,
-                        generator=generator,
-                        nc_flag=True if real_prompts_ind in nc_indexs else False,  # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
-                    ).images[0]
-            elif use_flux and not use_inf:
-                if pulid:
-                    id_embeddings = input_id_emb_s_dict[cur_character[0]][
-                        0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                    uncond_id_embeddings = input_id_emb_un_dict[cur_character[0]][
-                        0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                    results_dict[real_prompts_ind] = pipe.generate_image(
-                        prompt=real_prompt,
-                        seed=seed_,
-                        start_step=2,
-                        num_steps=_num_steps,
-                        height=height,
-                        width=width,
-                        id_embeddings=id_embeddings,
-                        uncond_id_embeddings=uncond_id_embeddings,
-                        id_weight=1,
-                        guidance=guidance,
-                        true_cfg=1.0,
-                        max_sequence_length=128,
-                    )
-                elif use_cf:
-                    cfg = 1.0
-                    results_dict[real_prompts_ind] = pipe.generate_image(
-                        width=width,
-                        height=height,
-                        num_steps=_num_steps,
-                        cfg=cfg,
-                        guidance=guidance,
-                        seed=seed_,
-                        prompt=real_prompt,
-                        negative_prompt=negative_prompt,
-                        cf_scheduler=cf_scheduler,
-                        denoise=denoise_or_ip_sacle,
-                        image=(input_id_images_dict[cur_character[0]]
-                               if real_prompts_ind not in nc_indexs
-                               else empty_img
-                               )
-                    )
-                else:
-                    cfg = cfg if cfg <= 1 else cfg / 10 if 1 < cfg <= 10 else cfg / 100
-                    results_dict[real_prompts_ind] = pipe(
-                        prompt=real_prompt,
-                        image=(
-                            input_id_images_dict[cur_character[0]]
-                            if real_prompts_ind not in nc_indexs
-                            else empty_img
-                        ),
-                        latents=None,
-                        strength=cfg,
-                        num_inference_steps=_num_steps,
-                        height=height,
-                        width=width,
-                        output_type="pil",
-                        max_sequence_length=256,
-                        guidance_scale=guidance,
-                        generator=generator,
-                    ).images[0]
-            elif story_maker and not make_dual_only:
-                mask_image = input_id_img_s_dict[cur_character[0]][0]
-                img_2 = input_id_images_dict[cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_img
-                cloth_info = None
-                if isinstance(condition_image, torch.Tensor):
-                    if controlnet_path:
-                        cn_img = input_id_cloth_dict[cur_character[0]][0]
-                        img_2 = [img_2, cn_img]
-                    else:
-                        cloth_info = input_id_cloth_dict[cur_character[0]][0]
-                face_info = input_id_emb_s_dict[cur_character[0]][
-                    0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                
-                results_dict[real_prompts_ind] = pipe(
-                    image=img_2 if not controlnet_path else [img_2, cn_dict[real_prompts_ind][0]] if cn_dict else img_2,
-                    mask_image=mask_image,
-                    face_info=face_info,
-                    prompt=real_prompt,
-                    negative_prompt=negative_prompt,
-                    ip_adapter_scale=denoise_or_ip_sacle, lora_scale=0.8,
-                    num_inference_steps=_num_steps,
-                    guidance_scale=cfg,
-                    controlnet_conditioning_scale=controlnet_scale,
-                    height=height, width=width,
-                    generator=generator,
-                    cloth=cloth_info,
-                ).images[0]
-            elif use_inf:
-                empty_image = Image.new('RGB', (width, height), (255, 255, 255))
-                print(cur_character,real_prompts_ind,123) #['[Taylor]'] 1 
-                crop_image = input_id_img_s_dict[
-                    cur_character[0]][0] if real_prompts_ind not in nc_indexs else empty_image #判断是否为非角色人物，如果是则使用空图像
-         
-                face_embeds = input_id_emb_s_dict[cur_character[0]][
-                    0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                results_dict[real_prompts_ind] = pipe (id_embed=face_embeds,prompt=real_prompt,
-                    control_image=crop_image if isinstance(crop_image,Image.Image) else crop_image[real_prompts_ind],
-                    guidance_scale=guidance,
-                    num_steps=_num_steps,
-                    seed=seed_,
-                    infusenet_conditioning_scale=1.0,
-                    infusenet_guidance_start=0,
-                    infusenet_guidance_end=1.0,
-                    height=height,
-                    width=width,
-                    )
-            else:
-                if use_cf:
-                    results_dict[real_prompts_ind] = pipe.generate_image(
-                        width=width,
-                        height=height,
-                        num_steps=_num_steps,
-                        cfg=cfg,
-                        guidance=guidance,
-                        seed=seed_,
-                        prompt=real_prompt,
-                        negative_prompt=negative_prompt,
-                        cf_scheduler=cf_scheduler,
-                        denoise=denoise_or_ip_sacle,
-                        image=(input_id_images_dict[cur_character[0]]
-                               if real_prompts_ind not in nc_indexs
-                               else empty_img
-                               )
-                    )
-                elif SD35_mode:
-                    # print(real_prompts_ind, real_prompt, "v1 mode", )
-                    if use_wrapper:
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            image=(
-                                input_id_images_dict[cur_character[0]]
-                                if real_prompts_ind not in nc_indexs
-                                else input_id_images_dict[character_list[0]]
-                            ),
-                            num_inference_steps=_num_steps,
-                            strength=denoise_or_ip_sacle,
-                            guidance_scale=cfg,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            max_sequence_length=512,
-                        )
-                    else:
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            image=(
-                                input_id_images_dict[cur_character[0]]
-                                if real_prompts_ind not in nc_indexs
-                                else input_id_images_dict[character_list[0]]
-                            ),
-                            num_inference_steps=_num_steps,
-                            strength=denoise_or_ip_sacle,
-                            guidance_scale=cfg,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            max_sequence_length=512,
-                        ).images[0]
-                   
-                else:
-                    if photomake_mode == "v2":
-                        # V2版本必须要有id_embeds，只能用input_id_images作为风格参考
-                        print(cur_character)
-                        id_embeds = input_id_emb_s_dict[cur_character[0]][
-                            0] if real_prompts_ind not in nc_indexs else empty_emb_zero
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            input_id_images=(
-                                input_id_images_dict[cur_character[0]]
-                                if real_prompts_ind not in nc_indexs
-                                else input_id_images_dict[character_list[0]]
-                            ),
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            start_merge_step=start_merge_step,
-                            height=height,
-                            width=width,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            id_embeds=id_embeds,
-                            nc_flag=True if real_prompts_ind in nc_indexs else False,
-                        ).images[0]
-                    else:
-                        # print(real_prompts_ind, real_prompt, "v1 mode", )
-                        results_dict[real_prompts_ind] = pipe(
-                            real_prompt,
-                            input_id_images=(
-                                input_id_images_dict[cur_character[0]]
-                                if real_prompts_ind not in nc_indexs
-                                else input_id_images_dict[character_list[0]]
-                            ),
-                            num_inference_steps=_num_steps,
-                            guidance_scale=cfg,
-                            start_merge_step=start_merge_step,
-                            height=height,
-                            width=width,
-                            negative_prompt=negative_prompt,
-                            generator=generator,
-                            nc_flag=True if real_prompts_ind in nc_indexs else False,
-                            # nc_flag，用索引标记，主要控制非角色人物的生成，默认false
-                        ).images[0]
-        
-        else:
-            raise NotImplementedError(
-                "You should choice between original and Photomaker!",
-                f"But you choice {model_type}",
-            )
-        yield [results_dict[ind] for ind in results_dict.keys()]
-    total_results = [results_dict[ind] for ind in range(len(prompts))]
-    torch.cuda.empty_cache()
-    yield total_results
-
-
-class Storydiffusion_Model_Loader:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "character_prompt": ("STRING", {"multiline": True,
-                                                "default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n"
-                                                           "[Lecun] a man img,wearing a suit,black hair."}),
-                "repo_id": ("STRING", {"default": ""}),
-                "ckpt_name": (["none"]+folder_paths.get_filename_list("checkpoints"),),
-                "vae_id":(["none"]+folder_paths.get_filename_list("vae"),),
-                "character_weights": (["none"]+find_directories(base_pt),),
-                "lora": (["none"] + folder_paths.get_filename_list("loras"),),
-                "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
-                "controlnet_model": (["none"] + folder_paths.get_filename_list("controlnet"),),
-                "clip_vision": (["none"] + folder_paths.get_filename_list("clip_vision"),),
-                "trigger_words": ("STRING", {"default": "best quality"}),
-                "sampeler_name": (SAMPLER_NAMES,),
-                "scheduler": (SCHEDULER_NAMES,),
-                "sa32_degree": (
-                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "sa64_degree": (
-                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-                "height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 32, "display": "number"}),
-                "photomake_mode": (["v1", "v2"],),
-                "easy_function":("STRING", {"default": ""}),
-            },
-            "optional": {"image": ("IMAGE",),
-                         "condition_image": ("IMAGE",),
-                         "model": ("MODEL",),
-                         "clip":("CLIP",),
-                         "vae":("VAE",),
-        },
-        }
-
-    RETURN_TYPES = ("STORY_DICT", )
-    RETURN_NAMES = ("model", )
-    FUNCTION = "story_model_loader"
-    CATEGORY = "Storydiffusion"
-    
-    def story_model_loader(self,character_prompt, repo_id, ckpt_name, vae_id, character_weights, lora, lora_scale,controlnet_model, clip_vision,trigger_words,sampeler_name, scheduler,
-                           sa32_degree, sa64_degree, width, height, photomake_mode, easy_function,**kwargs):
-        
-        cf_model=kwargs.get("model")
-        clip = kwargs.get("clip")
-        front_vae=kwargs.get("vae")
-        
-        scheduler_choice = get_scheduler(sampeler_name,scheduler)
-        scheduler={"name":sampeler_name,"scheduler":scheduler}
-        id_number=len(character_prompt.splitlines())
-        if id_number > 2:
-            id_number=2
-        
-        image = kwargs.get("image")
-        if isinstance(image,torch.Tensor):
-            #print(image.shape)
-            batch_num,_,_,_=image.size()
-            model_type="img2img"
-            if batch_num!=id_number:
-                raise "role prompt numbers don't match input image numbers...example:2 roles need 2 input images,"
-        else:
-            model_type = "txt2img"
-            image=None
-            
-        logging.info(f"Process using {id_number} roles,mode is {model_type}....")
-        
-        if controlnet_model=="none":
-            controlnet_path=None
-        else:
-            controlnet_path=folder_paths.get_full_path("controlnet", controlnet_model)
-
-        condition_image=kwargs.get("condition_image")
-        photomaker_path = os.path.join(photomaker_dir, f"photomaker-{photomake_mode}.bin")
-        photomake_mode_=photomake_mode
-       
-        # load model
-        (auraface, NF4, save_model, kolor_face,flux_pulid_name,pulid,quantized_mode,story_maker,make_dual_only,
-         clip_vision_path,char_files,ckpt_path,lora,lora_path,use_kolor,photomake_mode,use_flux,onnx_provider,
-         low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize,use_inf)=get_easy_function(
-            easy_function,clip_vision,character_weights,ckpt_name,lora,repo_id,photomake_mode)
-        
-        if use_inf and not isinstance(cf_model,dict):
-            raise "if you want to use InfiniteYou  mode,please link easy function node to the model..."
-        if use_inf and image is None:
-            raise "if you want to use InfiniteYou  mode,please input a image..."
-        
-        photomaker_path,face_ckpt,photomake_mode,pulid_ckpt,face_adapter,kolor_ip_path=pre_checkpoint(
-            photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path,use_kolor,model_type,use_flux,SD35_mode,use_inf) # FIX AUTO DOWNLOAD
-    
-        if total_vram > 45000.0:
-            aggressive_offload = False
-            offload = False
-        elif 17000.0<total_vram < 45000.0:
-            aggressive_offload = False
-            offload = True
-        else:
-            aggressive_offload = True
-            offload = True
-        logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
-        # global
-        global  attn_procs
-        global sa32, sa64, write, height_s, width_s
-        global attn_count, total_count, id_length, total_length, cur_step
-
-        sa32 = sa32_degree
-        sa64 = sa64_degree
-        attn_count = 0
-        total_count = 0
-        cur_step = 0
-        id_length = id_number
-        total_length = 5
-        attn_procs = {}
-        write = False
-        height_s = height
-        width_s = width
-        use_cf=False
-        use_storydif=False
-        use_wrapper = False
-        image_proj_model=None
-        if not repo_id and not ckpt_path and not cf_model:
-            raise "you need choice a model or repo_id or link a comfyUI model..."
-        elif not repo_id and not ckpt_path and cf_model:
-            from comfy.utils import load_torch_file as load_torch_file_
-            from comfy.sd import VAE as cf_vae
-            from .utils.comfy_normal import CFGenerator
-            if vae_id != "none":
-                vae_path = folder_paths.get_full_path("vae", vae_id)
-                sd = load_torch_file_(vae_path)
-                vae = cf_vae(sd=sd)
-            else:
-                if not front_vae:
-                    raise "Now,using comfyUI normal processing  must choice 'vae' or 'ae' from  'vae' menu."
-                else:
-                    vae = front_vae
-            if not clip:
-                raise "Use comfyUI normal processing must need comfyUI clip,if using flux need dual clip ."
-            if consistory:
-                raise "Use comfyUI calss processing don't support consistory mode,please checke readme how to use consistory mode."
-            use_cf = True
-            if cf_model.model.model_type.value==8:
-                use_flux=True
-                cf_model_type="FLUX"
-            elif cf_model.model.model_type.value==4:
-                cf_model_type = "CASCADE"
-            elif cf_model.model.model_type.value==6:
-                cf_model_type = "FLOW"
-            elif cf_model.model.model_type.value==5:
-                cf_model_type = "EDM"
-            elif cf_model.model.model_type.value==1:
-                cf_model_type = "EPS"
-            elif cf_model.model.model_type.value == 2:
-                cf_model_type = "V_PREDICTION"
-            elif cf_model.model.model_type.value == 3:
-                cf_model_type = "V_PREDICTION_EDM"
-            elif cf_model.model.model_type.value == 7:
-                cf_model_type = "PREDICTION_CONTINUOUS"
-            else:
-                try:
-                    use_flux = True
-                    cf_model_type = "FLUX"
-                except:
-                    raise "unsupport checkpoints"
-            pipe=CFGenerator(cf_model,clip,vae,cf_model_type,device)
-            pulid = False
-        elif not repo_id and ckpt_path: # load ckpt
-            if_repo = False
-            if story_maker:
-                if not make_dual_only: #default dual
-                    logging.info("start story-make processing...")
-                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path, face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram)
-                else:
-                    use_storydif=True
-                    logging.info("start story-diffusion and story-make processing...")
-                    pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
-                                       photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
-                                       lora_path=lora_path,
-                                       trigger_words=trigger_words, lora_scale=lora_scale)
-                    set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif "flux" in ckpt_path.lower() or use_flux:
-                use_flux=True
-                if pulid:
-                    logging.info("start flux-pulid processing...")
-                    from .PuLID.app_flux import FluxGenerator
-                    if not clip_vision_path:
-                        raise "need 'EVA02_CLIP_L_336_psz14_s6B.pt' in comfyUI/models/clip_vision"
-                    if NF4:
-                        quantized_mode = "nf4"
-                    if vae_id == "none" :
-                        if not front_vae:
-                           raise "Now,using pulid must choice 'ae' from 'vae' menu."
-                        else:
-                           raise "Now,using pulid must choice 'ae' from 'vae' menu(come soon)"
-                    else:
-                        vae_path = folder_paths.get_full_path("vae", vae_id)
-                    pipe = FluxGenerator(flux_pulid_name, ckpt_path, "cuda", offload=offload,
-                                         aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
-                                         quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
-                                         vae_cf=vae_path,if_repo=if_repo,onnx_provider=onnx_provider,use_quantize=use_quantize)
-                else:
-                    raise "flux don't support single checkpoints loading now"
-            
-            elif "3.5" in ckpt_path.lower() and clip and (vae_id!="none" or front_vae):
-                logging.info("start sd3.5 mode processing...")
-                sd35repo = os.path.join(dir_path, "config/stable-diffusion-3.5-large")
-                vae_config=os.path.join(sd35repo,"vae")
-                cf_vae = False
-                if vae_id!="none":
-                    vae_path = folder_paths.get_full_path("vae", vae_id)
-                    vae = AutoencoderKL.from_single_file(vae_path,config=vae_config, torch_dtype=torch.bfloat16)
-                    #vae = AutoencoderKL.from_pretrained("F:/test/ComfyUI/models/diffusers/stabilityai/stable-diffusion-3.5-large/vae", torch_dtype=torch.bfloat16)
-                else:
-                    if front_vae:
-                        vae=front_vae
-                        cf_vae = True
-                    else:
-                        raise "need choice a vae model,or link vae in the front."
-                pipe=SD35Wrapper(ckpt_path,clip,vae,cf_vae,sd35repo,dir_path)
-                pipe.pipe.enable_model_cpu_offload()
-                use_wrapper=True
-                use_storydif = False
-            elif consistory:
-                logging.info("start consistory mode processing...")
-                from .consistory.consistory_run import load_pipeline
-                pipe=load_pipeline(repo_id,ckpt_path,gpu_id=0)
-                if lora is not None:
-                    active_lora = pipe.get_active_adapters()
-                    #print(active_lora)
-                    if active_lora:
-                        pipe.unload_lora_weights()  # make sure lora is not mix
-                    if lora in lora_lightning_list:
-                        pipe.load_lora_weights(lora_path)
-                    else:
-                        pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
-                use_storydif = False
-            else:
-                logging.info("start story-diffusion mode processing...")
-                use_storydif=True
-                pipe = load_models(ckpt_path, model_type=model_type, single_files=True, use_safetensors=True,
-                                   photomake_mode=photomake_mode, photomaker_path=photomaker_path, lora=lora,
-                                   lora_path=lora_path,
-                                   trigger_words=trigger_words, lora_scale=lora_scale)
-                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-                
-        else: #if repo or no ckpt,choice repo
-            if_repo=True
-            if repo_id.rsplit("/")[-1].lower()=="playground-v2.5-1024px-aesthetic":
-                logging.info("start playground story-diffusion  processing...")
-                use_storydif = True
-                pipe = DiffusionPipeline.from_pretrained(
-                    repo_id,
-                    torch_dtype=torch.float16,
-                )
-                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif repo_id.rsplit("/")[-1].lower()=="sdxl-unstable-diffusers-y":
-                logging.info("start sdxl-unstable story-diffusion  processing...")
-                use_storydif = True
-                pipe = StableDiffusionXLPipeline.from_pretrained(
-                    repo_id, torch_dtype=torch.float16,use_safetensors=False
-                )
-                set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-            elif use_kolor:
-                logging.info("start kolor processing...")
-                from packaging import version
-                import transformers  
-                current_version = transformers.__version__ 
-                if version.parse(current_version) >= version.parse("4.45.0"):
-                    try:
-                        import shutil
-                        print("transformers_v>=4.45 cause error,try fix it")
-                        chatglm_config_fix = os.path.join(dir_path, "kolors", "tokenization_chatglm.py")
-                        chatglm_config_origin = os.path.join(repo_id, "text_encoder", "tokenization_chatglm.py")
-                        chatglm_config_origin_tokens = os.path.join(repo_id, "tokenizer", "tokenization_chatglm.py")
-                        try:
-                            if os.path.exists(chatglm_config_fix):
-                                shutil.copy2(chatglm_config_fix, chatglm_config_origin)
-                                shutil.copy2(chatglm_config_fix, chatglm_config_origin_tokens)
-                                print(f"replace {chatglm_config_origin_tokens}  and{chatglm_config_origin} from {chatglm_config_fix}")
-                        except:
-                            print(f"fix fail,you can copy from {chatglm_config_fix} ,then cover {chatglm_config_origin} and {chatglm_config_origin_tokens}")
-                    except:
-                        pass
-                        
-                pipe=kolor_loader(repo_id, model_type, set_attention_processor, id_length, kolor_face, clip_vision_path,
-                             clip_load, CLIPVisionModelWithProjection, CLIPImageProcessor,
-                             photomaker_dir, face_ckpt, AutoencoderKL, EulerDiscreteScheduler, UNet2DConditionModel)
-                pipe.enable_model_cpu_offload()
-                use_storydif = False
-            elif use_flux and not use_inf:
-                from .model_loader_utils import flux_loader
-                pipe=flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
-                if_repo,dir_path,clip,onnx_provider,use_quantize)
-                if lora:
-                    if not "Hyper" in lora_path : #can't support Hyper now
-                        if not NF4:
-                            logging.info("try using lora in flux quantize processing...")
-                            pipe.load_lora_weights(lora_path)
-                            pipe.fuse_lora(lora_scale=0.125)  # lora_scale=0.125
-            elif SD35_mode:
-                logging.info("start sd3.5 processing...")
-                pipe=sd35_loader(repo_id,ckpt_path,dir_path,NF4,model_type,lora, lora_path, lora_scale,)
-                pipe.enable_model_cpu_offload()
-                use_storydif = False
-            elif consistory:
-                logging.info("start consistory mode processing...")
-                from .consistory.consistory_run import load_pipeline
-                pipe = load_pipeline(repo_id, ckpt_path,gpu_id=0)
-                if lora is not None:
-                    active_lora = pipe.get_active_adapters()
-                    if active_lora:
-                        pipe.unload_lora_weights()  # make sure lora is not mix
-                    if lora in lora_lightning_list:
-                        pipe.load_lora_weights(lora_path)
-                    else:
-                        pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
-            elif use_inf:
-                logging.info("start InfiniteYou mode processing...")    
-                #from .pipelines.pipeline_flux_infusenet import FluxInfuseNetPipeline
-                from .pipelines.pipeline_infu_flux import InfUFluxPipeline
-                from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel, AutoencoderKL
-                from transformers import BitsAndBytesConfig as TransformersBitsAndBytesConfig,T5EncoderModel
-                from .pipelines.resampler import Resampler
-                from diffusers.models import FluxControlNetModel
-                
-                # quantize T5 
-                quant_config = TransformersBitsAndBytesConfig(
-                        load_in_4bit=True,
-                        bnb_4bit_quant_type="nf4",
-                    )
-
-                text_encoder_2_4bit = T5EncoderModel.from_pretrained(
-                        repo_id,
-                        subfolder="text_encoder_2",
-                        quantization_config=quant_config,
-                        torch_dtype=torch.bfloat16,
-                    ) # init nf4 
-                if cf_model.get("use_svdq"):
-                    print("use svdq quantization")   
-                    from nunchaku import NunchakuFluxTransformer2dModel
-                    transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
-                elif cf_model.get("use_gguf"):
-                    print("use gguf quantization")   
-                    from diffusers import  GGUFQuantizationConfig
-                    transformer = FluxTransformer2DModel.from_single_file(
-                        cf_model.get("select_method"),
-                        config=os.path.join(repo_id, "transformer"),
-                        quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
-                        torch_dtype=torch.bfloat16,
-                    )
-                else:
-                    print("use nf4 quantization")   
-                    transformer = FluxTransformer2DModel.from_pretrained(
-                        repo_id,
-                        subfolder="transformer",
-                        quantization_config=DiffusersBitsAndBytesConfig(
-                            load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
-                        ),
-                        torch_dtype=torch.bfloat16,)
-
-                infusenet_path = os.path.join(cf_model.get("repo"), 'InfuseNetModel')
-                pipe = InfUFluxPipeline(
-                        repo_id,infusenet_path,
-                        text_encoder_2=text_encoder_2_4bit,
-                        transformer=transformer,
-                    )
-
-                # pipe = InfUFluxPipeline.from_pretrained(
-                #         repo_id,transformer=transformer,text_encoder_2=text_encoder_2_4bit,
-                #         controlnet=infusenet,
-                #         torch_dtype=torch.bfloat16,
-                #     )
-                # pipe = FluxInfuseNetPipeline.from_pretrained(
-                #         repo_id,
-                #         controlnet=infusenet,
-                #         torch_dtype=torch.bfloat16,
-                #     )
-                #pipe.to('cuda', torch.bfloat16)
-
-                
-                # Load image proj model
-                num_tokens = 8 # image_proj_num_tokens
-                image_emb_dim = 512
-                image_proj_model = Resampler(
-                    dim=1280,
-                    depth=4,
-                    dim_head=64,
-                    heads=20,
-                    num_queries=num_tokens,
-                    embedding_dim=image_emb_dim,
-                    output_dim=4096,
-                    ff_mult=4,
-                )
-                image_proj_model_path = os.path.join(cf_model.get("repo"), 'image_proj_model.bin')
-                ipm_state_dict = torch.load(image_proj_model_path, map_location="cpu")
-                image_proj_model.load_state_dict(ipm_state_dict['image_proj'])
-                del ipm_state_dict
-                image_proj_model.to('cuda', torch.bfloat16)
-                image_proj_model.eval()
-
-                #self.image_proj_model = image_proj_model
-
-                if lora is not None:
-                    loras = []
-                    if "realism" in lora_path:
-                        loras.append([lora_path, 'realism', 1.0])# single only now
-                    if  "blur" in lora_path:
-                        loras.append([lora_path, 'anti_blur', 1.0])
-                    pipe.load_loras(loras)
-                pipe.pipe.enable_model_cpu_offload()
-
-            else: # SDXL dif_repo
-                if  story_maker:
-                    if not make_dual_only:
-                        logging.info("start story_maker processing...")
-                        from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
-                        
-                        pipe = StableDiffusionXLStoryMakerPipeline.from_pretrained(
-                            repo_id, torch_dtype=torch.float16)
-                        controlnet=None
-                        if controlnet_path:
-                            from diffusers import ControlNetModel
-                            from safetensors.torch import load_file
-                            controlnet = ControlNetModel.from_unet(pipe.unet)
-                            cn_state_dict = load_file(controlnet_path, device="cpu")
-                            controlnet.load_state_dict(cn_state_dict, strict=False)
-                            del cn_state_dict
-                            controlnet.to(torch.float16)
-                        if device != "mps":
-                            if not low_vram:
-                                pipe.cuda()
-                        image_encoder=clip_load(clip_vision_path)
-                        pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=lora_scale,controlnet=controlnet)
-                        pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-                        #pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-                        #pipe.enable_vae_slicing()
-                        if device != "mps":
-                            if low_vram:
-                                pipe.enable_model_cpu_offload()
-                else:
-                    logging.info("start story_diffusion processing...")
-                    use_storydif = True
-                    pipe = load_models(repo_id, model_type=model_type, single_files=False, use_safetensors=True,
-                                       photomake_mode=photomake_mode,
-                                       photomaker_path=photomaker_path, lora=lora,
-                                       lora_path=lora_path,
-                                       trigger_words=trigger_words, lora_scale=lora_scale)
-                    set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-                    
-        if vae_id != "none":
-            vae_id = folder_paths.get_full_path("vae", vae_id)
-            vae_config = os.path.join(dir_path, "local_repo", "vae")
-            if use_storydif:
-                pipe.vae=AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
-            elif consistory:
-                pipe.vae = AutoencoderKL.from_single_file(vae_id, config=vae_config,torch_dtype=torch.float16)
-        load_chars = False
-        if use_storydif:
-            pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-            load_chars = load_character_files_on_running(pipe.unet, character_files=char_files)
-            pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-            pipe.enable_vae_slicing()
-            if device != "mps":
-                if low_vram:
-                    pipe.enable_model_cpu_offload()
-        
-        torch.cuda.empty_cache()
-        # need get emb
-        character_name_dict_, character_list_ = character_to_dict(character_prompt, lora, trigger_words)
-        #print(character_list_)
-        print("prepare input image emb use insight_face_loader...,some methods need to be installed by pip install insightface")
-        
-        if model_type=="img2img":
-            d1, _, _, _ = image.size()
-            if d1 == 1:
-                image_load = [nomarl_upscale(image, width, height)]
-            else:
-                img_list = list(torch.chunk(image, chunks=d1))
-                image_load = [nomarl_upscale(img, width, height) for img in img_list]
-                
-            from .model_loader_utils import insight_face_loader,get_insight_dict
-            app_face,pipeline_mask,app_face_=insight_face_loader(photomake_mode, auraface, kolor_face, story_maker, make_dual_only,use_storydif,use_inf)
-            input_id_emb_s_dict, input_id_img_s_dict, input_id_emb_un_dict, input_id_cloth_dict=get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
-                                                                                                                 kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,condition_image,width, height,use_storydif,use_inf,image_proj_model)
-        else:
-            input_id_emb_s_dict = {}
-            input_id_img_s_dict = {}
-            input_id_emb_un_dict ={}
-            input_id_cloth_dict = {}
-        #print(input_id_img_s_dict)
-        role_name_list = [i for i in character_name_dict_.keys()]
-        
-        if TAG_mode and isinstance(condition_image,torch.Tensor) and cf_model: #using cf_model as tag input
-            k1, _, _, _ = condition_image.size()
-            if k1 == 1:
-                image_tag = [nomarl_upscale(condition_image, width, height)]
-            else:
-                img_list = list(torch.chunk(condition_image, chunks=k1))
-                image_tag = [nomarl_upscale(img, width, height) for img in img_list]
-            input_tag_dict = {}
-            for i,img in enumerate(image_tag):
-                input_tag_dict[i] =cf_model.run_tag(img)
-            del cf_model
-            gc.collect()
-            torch.cuda.empty_cache()
-        else:
-            input_tag_dict={}
-        
-        #print( role_name_list)
-        model={"pipe":pipe,"use_flux":use_flux,"use_kolor":use_kolor,"photomake_mode":photomake_mode,"trigger_words":trigger_words,"lora_scale":lora_scale,
-               "load_chars":load_chars,"repo_id":repo_id,"lora_path":lora_path,"ckpt_path":ckpt_path,"model_type":model_type, "lora": lora,
-               "scheduler":scheduler,"width":width,"height":height,"kolor_face":kolor_face,"pulid":pulid,"story_maker":story_maker,
-               "make_dual_only":make_dual_only,"face_adapter":face_adapter,"clip_vision_path":clip_vision_path,"consistory":consistory,"cached":cached,"inject":inject,
-               "controlnet_path":controlnet_path,"character_prompt":character_prompt,"image":image,"condition_image":condition_image,"use_inf": use_inf,
-               "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"use_cf":use_cf,"SD35_mode":SD35_mode,"use_wrapper":use_wrapper,
-               "input_id_emb_un_dict":input_id_emb_un_dict,"input_id_cloth_dict":input_id_cloth_dict,"role_name_list":role_name_list,"use_storydif":use_storydif,"low_vram":low_vram,"input_tag_dict":input_tag_dict}
-        return (model,)
-
-
-class Storydiffusion_Sampler:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "model": ("STORY_DICT",),
-                "scene_prompts": ("STRING", {"multiline": True,
-                                             "default": "[Taylor] wake up in the bed ;\n[Taylor] have breakfast by the window;\n[Lecun] driving a car;\n[Lecun] is working."}),
-                "negative_prompt": ("STRING", {"multiline": True,
-                                               "default": "bad anatomy, bad hands, missing fingers, extra fingers, "
-                                                          "three hands, three legs, bad arms, missing legs, "
-                                                          "missing arms, poorly drawn face, bad face, fused face, "
-                                                          "cloned face, three crus, fused feet, fused thigh, "
-                                                          "extra crus, ugly fingers, horn,"
-                                                          "amputation, disconnected limbs"}),
-                "img_style": (
-                    ["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character",
-                     "Photographic", "Comic_book",
-                     "Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
-                "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED}),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 100}),
-                "cfg": ("FLOAT", {"default": 7, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
-                "denoise_or_ip_sacle": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "style_strength_ratio": ("INT", {"default": 20, "min": 1, "max": 100, "step": 1, "display": "number"}),
-                "guidance": (
-                    "FLOAT", {"default": 3.5, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
-                "mask_threshold": (
-                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "start_step": ("INT", {"default": 5, "min": 1, "max": 1024}),
-                "save_character": ("BOOLEAN", {"default": False},),
-                "controlnet_scale": (
-                    "FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
-                "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
-            },
-            "optional": {"control_image": ("IMAGE",),
-                         },
-            }
-
-      
-    RETURN_TYPES = ("IMAGE", "STRING",)
-    RETURN_NAMES = ("image", "prompt_array",)
-    FUNCTION = "story_sampler"
-    CATEGORY = "Storydiffusion"
-
-    def story_sampler(self, model,scene_prompts, negative_prompt, img_style, seed, steps,
-                  cfg, denoise_or_ip_sacle, style_strength_ratio,
-                  guidance, mask_threshold, start_step,save_character,controlnet_scale,guidance_list,**kwargs):
-        # get value from dict
-        pipe=model.get("pipe")
-        use_flux=model.get("use_flux")
-        photomake_mode=model.get("photomake_mode")
-        use_kolor=model.get("use_kolor")
-        load_chars=model.get("load_chars")
-        model_type=model.get("model_type")
-        trigger_words=model.get("trigger_words")
-        repo_id=model.get("repo_id")
-        lora_path=model.get("lora_path")
-        ckpt_path=model.get("ckpt_path")
-        lora=model.get("lora")
-        lora_scale =model.get("lora_scale")
-        scheduler=model.get("scheduler")
-        height=model.get("height")
-        width = model.get("width")
-        kolor_face= model.get("kolor_face")
-        story_maker=model.get("story_maker")
-        face_adapter=model.get("face_adapter")
-        pulid= model.get("pulid")
-        controlnet_path=model.get("controlnet_path")
-        clip_vision_path=model.get("clip_vision_path")
-        make_dual_only= model.get("make_dual_only")
-        scheduler_choice = get_scheduler(scheduler["name"],scheduler["scheduler"])
-        character_prompt=model.get("character_prompt")
-        condition_image=model.get("condition_image")
-        image=model.get("image")
-        use_cf=model.get("use_cf")
-        input_id_emb_s_dict = model.get("input_id_emb_s_dict")
-        input_id_img_s_dict = model.get("input_id_img_s_dict")
-        input_id_emb_un_dict = model.get("input_id_emb_un_dict")
-        input_id_cloth_dict = model.get("input_id_cloth_dict")
-        role_name_list=model.get("role_name_list")
-        use_storydif=model.get("use_storydif")
-        low_vram=model.get("low_vram")
-        SD35_mode=model.get("SD35_mode")
-        use_inf=model.get("use_inf")
-        cf_scheduler=scheduler
-        #print(input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,role_name_list) #'[Taylor]',['[Taylor]']
-        control_image=kwargs.get("control_image")
-        input_tag_dict=model.get("input_tag_dict")
-        use_wrapper=model.get("use_wrapper")
-        consistory=model.get("consistory")
-        cached=model.get("cached")
-        inject=model.get("inject")
-        if use_storydif:
-            pipe.to(device)
-
-        empty_emb_zero = None
-        if model_type=="img2img":           
-            if pulid or kolor_face or (photomake_mode=="v2" and use_storydif) or use_inf:
-                empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_name_list[0]][0]).to(device)
-        
-        # 格式化文字内容
-        scene_prompts=scene_prompts.strip()
-        character_prompt=character_prompt.strip()
-        # 从角色列表获取角色方括号信息
-        char_origin = character_prompt.splitlines()
-        char_origin=[i for i in char_origin if "[" in i]
-        #print(char_origin)
-        char_describe = char_origin # [A a men...,B a girl ]
-        char_origin = ["["+ char.split("]")[0].split("[")[-1] +"]" for char in char_origin]
-        #print(char_origin)
-        # 判断是否有双角色prompt，如果有，获取双角色列表及对应的位置列表，
-        prompts_origin = scene_prompts.splitlines()
-        prompts_origin=[i.strip() for i in prompts_origin]
-        prompts_origin = [i for i in prompts_origin if "[" in i]
-        #print(prompts_origin)
-        positions_dual = [index for index, prompt in enumerate(prompts_origin) if len(extract_content_from_brackets(prompt))>=2]  #改成单句中双方括号方法，利于MS组句，[A]... [B]...[C]
-        prompts_dual = [prompt for prompt in prompts_origin if len(extract_content_from_brackets(prompt))>=2]
-        
-        positions_nc = [index for index, prompt in enumerate(prompts_origin) if"[NC]" in prompt]  # 找到NC的位置
-        prompts_no_dual = [prompt for prompt in prompts_origin if not len(extract_content_from_brackets(prompt)) >= 2]
-        prompts_no_nc_dual = [prompt for prompt in prompts_no_dual if "[NC]" not in prompt]
-        
-        if len(char_origin) == 2:
-            positions_char_1 = [index for index, prompt in enumerate(prompts_origin) if char_origin[0] in prompt][
-                0]  # 获取角色出现的索引列表，并获取首次出现的位置
-            positions_char_2 = [index for index, prompt in enumerate(prompts_origin) if char_origin[1] in prompt][
-                0]  # 获取角色出现的索引列表，并获取首次出现的位置
-        
-        cn_dict = {}  # {0:[img]} story_maker
-        if isinstance(control_image, torch.Tensor) and story_maker and controlnet_path and not make_dual_only:
-            f1, _, _, _ = control_image.size()
-            if f1!=len(prompts_origin):
-                raise "if using story-maker controlnet,The number of input control-images and scene prompts should be consistent!! "
-            else:
-                if f1 == 1:
-                    cn_image_load = [nomarl_upscale(control_image, width, height)]
-                else:
-                    img_list = list(torch.chunk(control_image, chunks=f1))
-                    cn_image_load = [nomarl_upscale(img, width, height) for img in img_list]
-                    
-                for index, img in enumerate(cn_image_load):
-                    cn_dict[index] = [img]
-                
-                for i in  positions_dual:  #  dual to {dual_num:[None]}
-                    cn_dict[i] = [None]
-                    
-        if model_type=="img2img":
-            if consistory:
-                raise "consistory don't support img2img now"
-            d1, _, _, _ = image.size()
-            if d1 == 1:
-                image_load = [nomarl_upscale(image, width, height)]
-            else:
-                img_list = list(torch.chunk(image, chunks=d1))
-                image_load = [nomarl_upscale(img, width, height) for img in img_list]
-
-            gen = process_generation(pipe, image_load, model_type, steps, img_style, denoise_or_ip_sacle,
-                                     style_strength_ratio, cfg,
-                                     seed, id_length,
-                                     character_prompt,
-                                     negative_prompt,
-                                     scene_prompts,
-                                     width,
-                                     height,
-                                     load_chars,
-                                     lora,
-                                     trigger_words,photomake_mode,use_kolor,use_flux,make_dual_only,
-                                     kolor_face,pulid,story_maker,input_id_emb_s_dict, input_id_img_s_dict,input_id_emb_un_dict,
-                                     input_id_cloth_dict,guidance,condition_image,empty_emb_zero,use_cf,cf_scheduler,controlnet_path,
-                                     controlnet_scale,cn_dict,input_tag_dict,SD35_mode,use_wrapper,use_inf)
-
-        else:
-            if story_maker:
-                raise "story maker only support img2img now"
-            if use_inf:
-                raise "use_inf only support img2img now"
-            upload_images = None
-            if consistory:
-                if id_length>1:
-                    raise "consistory support 1 role now "
-                from .consistory.consistory_run import run_batch_generation,run_anchor_generation, run_extra_generation
-                mask_dropout = 0.5
-                same_latent = False
-                n_achors = 2
-                img_mode=False
-                
-                prompts_origin = scene_prompts.splitlines()
-                prompts_origin = [i.strip() for i in prompts_origin]
-                prompts_origin = [i for i in prompts_origin if '[' in i]  # 删除空行
-                # print(prompts_origin)
-                prompts = [prompt for prompt in prompts_origin if
-                           not len(extract_content_from_brackets(prompt)) >= 2]  # 剔除双角色
-                
-                add_trigger_words = " " + trigger_words + " style "
-                if lora:
-                    if lora in lora_lightning_list:
-                        prompts = remove_punctuation_from_strings(prompts)
-                    else:
-                        prompts = remove_punctuation_from_strings(prompts)
-                        prompts = [item + add_trigger_words for item in prompts]
-                character_dict_, character_list_ = character_to_dict(character_prompt, lora, add_trigger_words)
-                
-                clipped_prompts = prompts[:]
-                nc_indexs = []
-                for ind, prompt in enumerate(clipped_prompts):
-                    if "[NC]" in prompt:
-                        nc_indexs.append(ind)
-                        if ind < id_length:
-                            raise f"The first {id_length} row is id prompts, cannot use [NC]!"
-                
-                prompts = [
-                    prompt if "[NC]" not in prompt else prompt.replace("[NC]", "")
-                    for prompt in clipped_prompts
-                ]
-                
-                if lora:
-                    if lora in lora_lightning_list:
-                        prompts = [
-                            prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
-                        ]
-                    else:
-                        prompts = [
-                            prompt.rpartition("#")[0] + add_trigger_words if "#" in prompt else prompt for prompt in
-                            prompts
-                        ]
-                else:
-                    prompts = [
-                        prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts
-                    ]
-                
-                (
-                    character_index_dict_,
-                    invert_character_index_dict_,
-                    replace_prompts,
-                    ref_indexs_dict_,
-                    ref_totals_,
-                ) = process_original_prompt(character_dict_, prompts, id_length, img_mode)
-                
-                if input_tag_dict:
-                    if len(input_tag_dict) < len(replace_prompts):
-                        raise "The number of input condition images is less than the number of scene prompts！"
-                    replace_prompts = [prompt + " " + input_tag_dict[i] for i, prompt in enumerate(replace_prompts)]
-                
-                main_role = char_origin[0].replace("]", "").replace("[", "")
-                concept_token = [main_role]
-                if ")" in character_prompt:
-                   object_role = character_prompt.split(")")[0].split("(")[-1]
-                   concept_token=[main_role,object_role]
-                style = "A photo of "
-                subject=f"a {main_role} "
-                replace_prompts= [f'{style}{subject} {i}' for i in replace_prompts]
-                gpu = 0
-                torch.cuda.reset_max_memory_allocated(gpu)
-                if not cached:
-                    if not inject:
-                        pipe.enable_vae_slicing()
-                        pipe.enable_model_cpu_offload()
-                    else:
-                        pipe.to(torch.float16)
-
-                    anchor_out_images = run_batch_generation(pipe, replace_prompts, concept_token,negative_prompt, seed,n_steps=steps,
-                                                         mask_dropout=mask_dropout, same_latent=same_latent, perform_injection=inject,n_achors=n_achors)
-                else:
-                    if len(replace_prompts)>2:
-                        spilit_prompt=replace_prompts[:2]
-                    else:
-                        spilit_prompt=replace_prompts
-                        
-                    anchor_out_images, anchor_cache_first_stage, anchor_cache_second_stage = run_anchor_generation(
-                        pipe, spilit_prompt, concept_token,negative_prompt,
-                        seed=seed, n_steps=steps, mask_dropout=mask_dropout, same_latent=same_latent,perform_injection=inject,
-                        cache_cpu_offloading=True)
-                    if len(replace_prompts) > 2:
-                        left_prompt=replace_prompts[2:]
-                    else:
-                        left_prompt=replace_prompts[:1]  # use default
-                    
-                    for extra_prompt in left_prompt:
-                        extra_image = run_extra_generation(pipe, [extra_prompt],
-                                                                                 concept_token,negative_prompt,
-                                                                                 anchor_cache_first_stage,
-                                                                                 anchor_cache_second_stage,
-                                                                                 seed=seed, n_steps=steps,
-                                                                                 mask_dropout=mask_dropout,
-                                                                                 same_latent=same_latent,
-                                                                                 perform_injection=inject,
-                                                                                 cache_cpu_offloading=True)
-                        anchor_out_images.append(extra_image[0])
-                #Report maximum GPU memory usage in GB
-                max_memory_used = torch.cuda.max_memory_allocated(gpu) / (1024 ** 3)  # Convert to GB
-                print(f"Maximum GPU memory used: {max_memory_used:.2f} GB")
-    
-                img=load_images_list(anchor_out_images)
-                return (img, scene_prompts,)
-            else:
-                gen = process_generation(pipe, upload_images, model_type, steps, img_style, denoise_or_ip_sacle,
-                                         style_strength_ratio, cfg,
-                                         seed, id_length,
-                                         character_prompt,
-                                         negative_prompt,
-                                         scene_prompts,
-                                         width,
-                                         height,
-                                         load_chars,
-                                         lora,
-                                         trigger_words, photomake_mode, use_kolor, use_flux, make_dual_only, kolor_face,
-                                         pulid, story_maker, input_id_emb_s_dict, input_id_img_s_dict,
-                                         input_id_emb_un_dict, input_id_cloth_dict, guidance, condition_image,
-                                         empty_emb_zero, use_cf, cf_scheduler, controlnet_path, controlnet_scale,
-                                         cn_dict, input_tag_dict, SD35_mode, use_wrapper)
-        
-        for value in gen:
-            print(type(value))
-        image_pil_list = phi_list(value)
-
-        image_pil_list_ms = image_pil_list.copy()
-        if save_character:
-            print("saving character...")
-            save_results(pipe.unet)
-        if prompts_dual:
-            if not clip_vision_path:
-                raise "need a clip_vison weight."
-            if use_flux or use_kolor:
-                raise "flux or kolor don't support MS diffsion."
-            if model_type == "img2img":
-                image_a = image_load[0]
-                image_b = image_load[1]
-            else:
-                image_a = image_pil_list_ms[positions_char_1]
-                image_b = image_pil_list_ms[positions_char_2]
-            if story_maker:
-                print("start sampler dual prompt using story maker")
-                if make_dual_only:
-                    del pipe
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    controlnet_path=None
-                    pipe=story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram)
-                mask_image_1=input_id_img_s_dict[role_name_list[0]][0]
-                mask_image_2=input_id_img_s_dict[role_name_list[1]][0]
-                
-                if photomake_mode=="v2":
-                    face_info_1 = input_id_emb_un_dict[role_name_list[0]][0]
-                    face_info_2 = input_id_emb_un_dict[role_name_list[1]][0]
-                else:
-                    face_info_1 = input_id_emb_s_dict[role_name_list[0]][0]
-                    face_info_2 = input_id_emb_s_dict[role_name_list[1]][0]
-                
-                cloth_info_1=None
-                cloth_info_2=None
-                if isinstance(condition_image,torch.Tensor):
-                    cloth_info_1 = input_id_cloth_dict[role_name_list[0]][0]
-                    cloth_info_2 = input_id_cloth_dict[role_name_list[1]][0]
-                
-                prompts_dual, negative_prompt = apply_style(
-                    img_style, prompts_dual, negative_prompt
-                )
-                # 添加Lora trigger
-                add_trigger_words = " " + trigger_words+ " style "
-                if lora:
-                    prompts_dual = remove_punctuation_from_strings(prompts_dual)
-                    if lora not in lora_lightning_list:  # 加速lora不需要trigger
-                        prompts_dual = [item + add_trigger_words for item in prompts_dual]
-                
-                prompts_dual = [item.replace(char_origin[0], char_describe[0]) for item in prompts_dual if
-                                char_origin[0] in item]
-                prompts_dual = [item.replace(char_origin[1], char_describe[1]) for item in prompts_dual if
-                                char_origin[1] in item]
-                
-                prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
-                image_dual = []
-                if model_type=="txt2img":
-                   setup_seed(seed)
-                generator = torch.Generator(device=device).manual_seed(seed)
-                for i,prompt in enumerate(prompts_dual):
-                    output = pipe(
-                        image=image_a, mask_image=mask_image_1, face_info=face_info_1,  # first person
-                        image_2=image_b, mask_image_2=mask_image_2, face_info_2=face_info_2,  # second person
-                        prompt=prompt,
-                        negative_prompt=negative_prompt,
-                        ip_adapter_scale=denoise_or_ip_sacle, lora_scale=lora_scale,
-                        num_inference_steps=steps,
-                        guidance_scale=cfg,
-                        height=height, width=width,
-                        controlnet_conditioning_scale=controlnet_scale,
-                        generator=generator,
-                        cloth=cloth_info_1,
-                        cloth_2=cloth_info_2
-                    ).images[0]
-                    image_dual.append(output)
-            else: #using ms diffusion
-                print("start sampler dual prompt using ms-diffusion")
-                if controlnet_path:
-                    if not isinstance(control_image,torch.Tensor):
-                        raise "using controlnet need controlnet image input"
-                if width != height:
-                    square = max(height, width)
-                    new_height, new_width = square, square
-                    image_a = center_crop(image_a)
-                    image_b = center_crop(image_b)
-                else:
-                    new_width = width
-                    new_height = height
-                #del pipe
-                #gc.collect()
-                #torch.cuda.empty_cache()
-                from .model_loader_utils import msdiffusion_main
-                image_dual = msdiffusion_main(image_a, image_b, prompts_dual, new_width, new_height, steps, seed,
-                                              img_style, char_describe, char_origin, negative_prompt, clip_vision_path,
-                                              model_type, lora, lora_path, lora_scale,
-                                              trigger_words, ckpt_path, repo_id, guidance,
-                                              mask_threshold, start_step, controlnet_path, control_image,
-                                              controlnet_scale, cfg, guidance_list, scheduler_choice,pipe)
-            j = 0
-            for i in positions_dual:  # 重新将双人场景插入原序列
-                if width != height:
-                    img = center_crop_s(image_dual[j], width, height)
-                else:
-                    img = image_dual[j]
-                image_pil_list.insert(int(i), img)
-                j += 1
-            image_list = narry_list(image_pil_list)
-            torch.cuda.empty_cache()
-        else:
-            image_list = narry_list(image_pil_list)
-        image = torch.from_numpy(np.fromiter(image_list, np.dtype((np.float32, (height, width, 3)))))
-        if use_storydif and not prompts_dual:
-            try:
-               pipe.to("cpu")
-            except:
-                pass
-        gc.collect()
-        torch.cuda.empty_cache()
-        return (image, scene_prompts,)
     
 class Comic_Type:
     @classmethod
@@ -2304,7 +367,7 @@ class Comic_Type:
                              }}
 
     RETURN_TYPES = ("IMAGE",)
-    ETURN_NAMES = ("image",)
+    RETURN_NAMES = ("image",)
     FUNCTION = "comic_gen"
     CATEGORY = "Storydiffusion"
 
@@ -2369,51 +432,1267 @@ class Pre_Translate_prompt:
 class EasyFunction_Lite:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"repo": ("STRING", { "default": "F:/test/ComfyUI/models/diffusers/pzc163/MiniCPMv2_6-prompt-generator"}),
-                             "function_mode": (["tag", "clip","mask","llm","infinite",],),
-                             "select_method":("STRING",{ "default":""}),
-                             "temperature": (
+        return {"required": {"extra_repo": ("STRING", { "default": ""}),
+                            "checkpoints": (["none"] + folder_paths.get_filename_list("diffusion_models")+folder_paths.get_filename_list("gguf")+folder_paths.get_filename_list("clip"),),
+                            "clip_vision": (["none"] + folder_paths.get_filename_list("clip_vision"),),
+                            "function_mode": (["none","tag", "clip","mask","infinite",],),
+                            "select_method":("STRING",{ "default":""}),
+                            "temperature": (
                                  "FLOAT", {"default": 0.7, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                              }}
     
-    RETURN_TYPES = ("MODEL",)
-    ETURN_NAMES = ("model",)
+    RETURN_TYPES = ("MODEL","CLIP")
+    RETURN_NAMES = ("model","clip")
     FUNCTION = "easy_function_main"
     CATEGORY = "Storydiffusion"
     
-    def easy_function_main(self, repo,function_mode,select_method,temperature):
-        use_svdq=False
-        use_gguf=False
+    def easy_function_main(self, extra_repo,checkpoints,clip_vision,function_mode,select_method,temperature):
+        use_gguf,use_unet=False,False
+        model_path,clip=None,None
+    
+        if checkpoints != "none":
+            if checkpoints.endswith(".gguf"):
+                model_path = folder_paths.get_full_path("gguf", checkpoints)
+                use_gguf=True
+            elif "glm" in checkpoints:
+                model_path = folder_paths.get_full_path("clip", checkpoints)
+            else:
+                model_path = folder_paths.get_full_path("diffusion_models", checkpoints)
+                use_unet=True
+
+        if clip_vision != "none":
+            clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
+        else:
+            clip_vision_path=None
         if function_mode=="tag":
             from .model_loader_utils import StoryLiteTag
-            model = StoryLiteTag(device, temperature,select_method, repo)
+            model = StoryLiteTag(device, temperature,select_method, extra_repo)
         elif function_mode=="clip":
+            from .model_loader_utils import GLM_clip
+            clip=GLM_clip(dir_path,model_path)
             model=None
         elif function_mode=="mask":
             model=None
-        elif function_mode=="llm":
+        else:
             model=None
-        else:  
-            if "svdq" in select_method:
-                use_svdq=True
-            elif "gguf" in select_method:
-                use_gguf=True
-            model={"repo":repo,"select_method":select_method,"use_svdq":use_svdq,"use_gguf":use_gguf} #function_mode=="infinite" or quantination:
-        return (model,)
+        
+        use_svdq=True if "svdq" in select_method else False
+
+        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
+        return (pipe,clip)
+
+
+class StoryDiffusion_Apply:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+                             "model": ("MODEL",),
+                             "vae": ("VAE",),
+                             "infer_mode": (["story", "classic","flux_pulid","infiniteyou","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                             "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
+                             "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
+                             "quantize_mode": ([ "fp8", "nf4","fp16", ],),
+                             "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
+                             "extra_funtion":("STRING", {"default": ""}),
+                             },
+                "optional":{"CLIP_VISION": ("CLIP_VISION",),
+                            }
+                }
+    
+    RETURN_TYPES = ("MODEL","DIFFCONDI",)
+    RETURN_NAMES = ("model","switch",)
+    FUNCTION = "main_apply"
+    CATEGORY = "Storydiffusion"
+    
+    def main_apply(self,model,vae,infer_mode,photomake_ckpt,ipadapter_ckpt,quantize_mode,lora_scale,extra_funtion, **kwargs):
+
+        
+        photomake_ckpt_path = None if photomake_ckpt == "none"  else  folder_paths.get_full_path("photomaker", photomake_ckpt)
+        ipadapter_ckpt_path = None if ipadapter_ckpt == "none"  else  folder_paths.get_full_path("photomaker", ipadapter_ckpt)
+    
+        CLIP_VISION=kwargs.get("CLIP_VISION")
+        
+ 
+        unet_type=torch.float16 #use for sdxl
+        image_proj_model=None
+        
+        if isinstance(model,dict):
+            cf_model_type=model.get("extra_easy")
+            clip_vision_path=model.get("clip_vision_path")
+            repo=model.get("extra_repo")
+        else:
+            cf_model_type=fitter_cf_model_type(model)
+            clip_vision_path=None
+            repo=None
+
+        print(f"infer model type is {cf_model_type}")
+
+        
+        if clip_vision_path is None:    # 有2种加载clip vision的方式 
+            clip_vision_path=CLIP_VISION if CLIP_VISION is not None else None
+ 
+        if infer_mode=="msdiffusion" :
+            if CLIP_VISION is None and clip_vision_path is None:
+                raise "msdiffusion need a clipvison g model"
+            elif CLIP_VISION is  None and clip_vision_path is not None:
+                from comfy.clip_vision import load as clip_load
+                CLIP_VISION=clip_load(clip_vision_path).model
+        
+        if infer_mode in ["story_maker" ,"story_and_maker"] and not CLIP_VISION  and ipadapter_ckpt_path is None:
+             raise "story_maker need a clipvison H model,mask.bin"
+
+        
+
+        if infer_mode in["story", "story_and_maker","msdiffusion"]:# mix mode,use maker or ms to make 2 roles in on image
+            model = Loader_storydiffusion(model,photomake_ckpt_path,vae)
+        elif infer_mode =="story_maker":
+            model = Loader_story_maker(model,ipadapter_ckpt_path,vae,False,lora_scale)
+        elif infer_mode == "flux_pulid":
+            
+             # check vram only using in flux pulid
+            if total_vram > 45000.0:
+                aggressive_offload = False
+                offload = False
+            elif 17000.0 < total_vram < 45000.0:
+                aggressive_offload = False
+                offload = True
+            else:
+                aggressive_offload = True
+                offload = True
+    
+            logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
+            
+            from .PuLID.app_flux import get_models
+            if isinstance(model,dict):
+               ckpt_path=model.get("model_path")
+               if ckpt_path is None:
+                   raise "EasyFunction_Lite node must chocie a model"
+            else:
+                raise "PuLID can't link a normal comfyui model "
+            
+            model_=get_models("flux-dev",ckpt_path,False,aggressive_offload,device=device,offload=offload,quantized_mode=quantize_mode,)
+            model = Loader_Flux_Pulid(model_,model,ipadapter_ckpt_path,quantize_mode,aggressive_offload,offload,False,clip_vision_path)
+        elif infer_mode == "infiniteyou":
+            model,image_proj_model = Loader_InfiniteYou(model,vae,quantize_mode)
+        elif infer_mode == "consistory":
+            model = load_pipeline_consistory(model,vae)
+        elif infer_mode == "kolor_face":
+            if not  isinstance(model,dict) :
+                raise " must link EasyFunction_Lite node "
+            else:
+                if repo is None:
+                    raise "EasyFunction_Lite node extra_repo must fill kolor repo"
+            model = Loader_KOLOR(repo,clip_vision_path,ipadapter_ckpt_path)
+        else:  # can not choice a mode
+            print("infer use comfyui classic mode")
+        
+
+        story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
+        model_=model if infer_mode=="flux_pulid" or story_img else None
+
+        return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"lora_scale":lora_scale,"image_proj_model":image_proj_model,
+                       "CLIP_VISION":CLIP_VISION,"VAE":vae,"repo":repo,"model_":model_,"unet_type":unet_type,"extra_funtion":extra_funtion,"clip_vision_path":clip_vision_path})
+
+
+        
+class StoryDiffusion_CLIPTextEncode:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "clip": ("CLIP", {"tooltip": "The CLIP model used for encoding the text."}),
+                "switch": ("DIFFCONDI", {
+                    "tooltip": "Switch infer mode witch your chocie."}),
+                "width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 16, "display": "number"}),
+                "height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 16, "display": "number"}),
+                "role_text": ("STRING", {"multiline": True,"default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n""[Lecun] a man img,wearing a suit,black hair."}),
+                "scene_text":("STRING", {"multiline": True,
+                                             "default": "[Taylor] wake up in the bed ;\n[Taylor] have breakfast by the window;\n[Lecun] driving a car;\n[Lecun] is working."}),
+                "pos_text": ("STRING", {"multiline": True,"default": "best"}),
+                "neg_text": ("STRING", {"multiline": True,
+                                               "default": "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn "
+                                                          "face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs"}),
+                "lora_trigger_words": ("STRING", {"default": "best quality"}),
+                "add_style": (["No_style", "Realistic", "Japanese_Anime", "Digital_Oil_Painting", "Pixar_Disney_Character","Photographic", "Comic_book","Line_art", "Black_and_White_Film_Noir", "Isometric_Rooms"],),
+                "mask_threshold": (
+                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "extra_param":("STRING", {"default": ""}),
+                "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
+            },
+            "optional": {"tag_txt": ("CONDITIONING"),
+                         "image":("IMAGE",),
+                         "control_image":("IMAGE",),
+                         }
+        }
+    RETURN_TYPES = ("CONDITIONING","CONDITIONING","DIFFINFO","INT","INT",)
+    RETURN_NAMES = ("positive", "negative","info","width","height",)
+    OUTPUT_TOOLTIPS = ("A conditioning containing the embedded text used to guide the diffusion model.",)
+    FUNCTION = "encode"
+    CATEGORY = "Storydiffusion"
+    DESCRIPTION = "Encodes a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images."
+
+    def encode(self, clip,switch,width,height, role_text,scene_text,pos_text,neg_text,lora_trigger_words,add_style,mask_threshold,extra_param,guidance_list,**kwargs):
+        infer_mode=switch.get("infer_mode")
+        use_lora=switch.get("use_lora")
+        clip_vision = switch.get("CLIP_VISION")
+        extra_funtion=switch.get("extra_funtion")
+        photomake_ckpt_path=switch.get("photomake_ckpt_path")
+        ipadapter_ckpt_path = switch.get("ipadapter_ckpt_path")
+        unet_type=switch.get("unet_type")
+        model_=switch.get("model_")
+        vae=switch.get("VAE")
+        
+        
+        tag_dict=kwargs.get("tag_txt")
+        image=kwargs.get("image")
+        control_image=kwargs.get("control_image")
+        
+        auraface,use_photov2,img2img_mode,cached,inject,onnx_provider=get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer_mode)
+
+        
+        (replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,
+         nc_txt_list,nc_indexs,positions_index_char_1,positions_index_char_2,positions_index_dual,prompts_dual,index_char_1_list,index_char_2_list)=pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict)
+        #print("role_index_dict:",replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,nc_txt_list,nc_indexs,positions_index_char_1,positions_index_char_2,positions_index_dual,prompts_dual,index_char_1_list,index_char_2_list)
+        #role_index_dict: {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
+        # invert_role_index_dict{0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Lecun]'], 3: ['[Lecun]']}
+        # ref_role_index_dict {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
+        # ref_role_totals[0, 1, 2, 3]
+        # role_list ['[Taylor]', '[Lecun]']
+        # role_dict {'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.', '[Lecun]': ' a man img,wearing a suit,black hair.'} 
+        # nc_txt_list [' a panda'] 
+        # nc_indexs[4]
+        # positions_index_dual[]
+        # positions_index_char_1 0 2 
+        # positions_index_char_2 [] 
+        # prompts_dual[]
+        # index_char_1_list [0, 1] 
+        # index_char_2_list[2, 3]
+
+
+        global character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, character_dict
+        character_index_dict=role_index_dict
+        invert_character_index_dict=invert_role_index_dict
+        ref_indexs_dict=ref_role_index_dict
+        ref_totals=ref_role_totals
+        character_dict=role_dict
+        
+        _, style_neg = apply_style_positive(add_style, " ") #get n
+        neg_text = neg_text + style_neg
+        
+        replace_prompts=[i+pos_text for i in replace_prompts]
+
+        if len(role_list)==1:
+            role_key_list=role_list*len(only_role_list)
+        else:
+            role_key_list=replicate_data_by_indices(role_list, index_char_1_list, index_char_2_list)
+            role_key_list=[i for i in role_key_list if i is not None]
+
+        # if prompts_dual and infer_mode not in ["story_and_maker","story_maker","msdiffusion"]:
+        #     raise "only support prompts_dual role in story maker and msdiffusion"
+
+        if not img2img_mode and infer_mode=="flux_pulid":
+            raise "flux_pulid mode only support image2image"
+
+        if infer_mode=="msdiffusion" and not prompts_dual:
+            raise "use msdiffusion mode need  have [role1] and [role2] in sence txt."
+        
+        if img2img_mode and   photomake_ckpt_path is None and infer_mode=="story":
+            raise "need chocie photomake v1 or v2 when use img2img mode"
+  
+        if infer_mode=="story_maker"  and image is None:
+            raise "story_maker only support  img2img mode,you can use story_and_maker or link a iamge"
+
+        if infer_mode=="msdiffusion" and photomake_ckpt_path  and  not img2img_mode:
+            raise "if use msdiffusion txt2img mode,can not use photomake_ckpt_path"
+
+        
+
+        only_role_emb_ne=None
+        image_emb = None
+        if img2img_mode:
+            if infer_mode == "story_and_maker" or infer_mode == "story_maker":
+                k1, _, _, _ = image.size()
+                if k1 == 1:
+                    image_emb = [clip_vision.encode_image(image)["penultimate_hidden_states"]]
+                else:
+                    img_list = list(torch.chunk(image, chunks=k1))
+                    image_emb=[]
+                    for i in img_list:
+                        image_emb.append(clip_vision.encode_image(i)["penultimate_hidden_states"].to(device, dtype=unet_type))   
+            elif infer_mode=="story":
+                image_emb = None  # story的图片模式的emb要从ip的模型里单独拿，
+            elif infer_mode=="msdiffusion":
+                image_emb = clip_vision.encode_image(image)["penultimate_hidden_states"] #MS分情况，图生图直接在前面拿，文生图在在sample拿
+                if not image_emb.is_cuda:#确保emb在cuda,以及type的正确
+                    image_emb = image_emb.to(device,dtype=unet_type)
+            elif infer_mode == "kolor_face":
+                pass
+            elif infer_mode == "flux_pulid":
+                # get emb use insightface
+                pass
+            elif infer_mode == "infiniteyou":
+                pass
+            else:
+                pass
+
+        # pre insight face model and emb
+        if img2img_mode:
+            if infer_mode in ["story_and_maker","story_maker","flux_pulid","kolor_face","infiniteyou"] or (use_photov2 and infer_mode=="story"):
+
+                from .model_loader_utils import insight_face_loader,get_insight_dict
+                if switch.get("extra_repo") and switch.get("function_mode")=="mask":
+                    mask_repo=switch.get("extra_repo")
+                else:
+                    mask_repo="briaai/RMBG-1.4"
+                app_face,pipeline_mask,app_face_=insight_face_loader(infer_mode,use_photov2, auraface,onnx_provider,mask_repo)
+                image_list=tensortopil_list_upscale(image, 640, 640)
+                
+                input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict=get_insight_dict(app_face,app_face_,pipeline_mask,infer_mode,use_photov2,image_list,
+                     role_list,control_image,width, height,model_,switch.get("image_proj_model")) # CHECK role_list
+                
+            else:
+                input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict={}, {}, {}, {}
+                
+        else:
+            input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict={}, {}, {}, {}
+
+        input_id_images_dict={}
+        image_list=[]
+        
+        if img2img_mode and image is not None:
+             if len(role_list)==1:
+                image_pil=nomarl_upscale(image, width, height)
+                input_id_images_dict[role_list[0]]=image_pil
+                image_list=[image_pil]
+             else:
+                f1, _, _, _ = image.size()
+                img_list = list(torch.chunk(image, chunks=f1))
+                image_list = [nomarl_upscale(img, width, height) for img in img_list]
+                for index, key in enumerate(role_list):
+                    input_id_images_dict[key]=image_list[index]     
+              
+        # pre roles txt emb
+        only_role_list=[apply_style_positive(add_style,i)[0] for i in replace_prompts]
+        #print("only_role_list",only_role_list) ##w,m,w
+
+        if len(role_list)>1: #重新整理prompt排序，便于后续emb和ID的对应
+            nc_dual_list=[]
+            for i in nc_indexs:
+                nc_dual_list.append(i)
+            for i in positions_index_dual:
+                nc_dual_list.append(i) 
+            adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
+            adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
+            a_list = [only_role_list[i] for i in adjusted_a if 0 <= i < len(only_role_list)]
+            b_list = [only_role_list[i] for i in adjusted_b if 0 <= i < len(only_role_list)]
+
+            inf_list_split=[a_list,b_list]
+        else:
+            inf_list_split=only_role_list
+
+        #print("inf_list_split",inf_list_split)
+        # pre clip txt emb
+        if infer_mode=="msdiffusion":
+            if not prompts_dual:
+                prompts_dual=replace_prompts
+            prompts_dual=[i+pos_text for i in prompts_dual]
+            prompts_dual=[i+neg_text for i in prompts_dual]
+
+        noise_x=[]
+        inp_neg_list=[]
+        if  infer_mode=="consistory":
+            only_role_emb=None
+        elif infer_mode=="flux_pulid":
+            from .PuLID.flux.util import load_clip, load_t5
+            from .PuLID.app_flux  import get_emb_flux_pulid
+
+            #repo_in="flux-dev" if not repo else repo
+            if_repo =False
+            t5_ = load_t5("flux-dev",clip,if_repo,device, max_length=128)
+            clip_ = load_clip("flux-dev",clip,if_repo,device)
+            only_role_emb,noise_x,inp_neg_list={},{},{}
+            
+            for key ,prompts in zip(role_list,inf_list_split):
+                ip_emb,noise_,inp_n=[],[],[]
+                seed_random = random.randint(0, MAX_SEED) #pulid的emb需要随机数
+                for p,n in zip(prompts,[neg_text]*len(prompts)): 
+                    inp,inp_neg,x=get_emb_flux_pulid(t5_,clip_,if_repo,seed_random,p,n,width,height,num_steps=20,guidance=3.5,device=device)
+                    ip_emb.append(inp)
+                    inp_n.append(inp_neg)
+                    noise_.append(x)
+                only_role_emb[key]=ip_emb
+                noise_x[key]=noise_
+                inp_neg_list[key]=inp_n
+        elif infer_mode=="kolor_face":
+            from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
+            tokenizer = ChatGLMTokenizer.from_pretrained(os.path.join(switch.get("repo"),'text_encoder'))
+
+            chatglm3_model = {
+                'text_encoder': clip, 
+                'tokenizer': tokenizer
+                }
+            only_role_emb,only_role_emb_ne=glm_single_encode(chatglm3_model, inf_list_split,role_list, neg_text, 1) 
+        else:
+            if photomake_ckpt_path is not None and img2img_mode and infer_mode in["story","story_maker","story_and_maker","msdiffusion"]: #img2img模式下SDXL的story的clip要特殊处理，有2个imgencoder进程，所以分离出来 TODO
+                if use_photov2:
+                    if len(role_list)==1:
+                        emb_dict=photomaker_clip_v2(clip,model_,only_role_list,neg_text,image_list,input_id_emb_s_dict[role_key_list[0]][0])
+                        only_role_emb=[emb_dict]
+                    else:
+                        
+                        only_role_emb=[]
+                        for role_list_s,role_list_id,key in zip(inf_list_split,image_list,role_key_list):
+                            #print(input_id_emb_s_dict[key][0].shape) #torch.Size([512])
+                            emb_dict=photomaker_clip_v2(clip,model_,role_list_s,neg_text,[role_list_id],input_id_emb_s_dict[key][0])
+                            only_role_emb.append(emb_dict)
+                  
+                else: 
+                    if len(role_list)==1:
+                        emb_dict=photomaker_clip(clip,model_,only_role_list,neg_text,image_list)
+                        only_role_emb=[emb_dict]
+                    else:
+                    
+                        only_role_emb=[]
+                        for role_list_s,role_list_id in zip(inf_list_split,image_list):
+                            emb_dict=photomaker_clip(clip,model_,role_list_s,neg_text,[role_list_id])
+                            only_role_emb.append(emb_dict)
+                    
+            else:
+                if infer_mode=="classic": #TODO 逆序的角色会出现iD不匹配，受影响的有story文生图
+                    only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
+                else:
+                    only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
+        # pre nc txt emb
+        if nc_txt_list and not infer_mode=="consistory":
+            nc_txt_list=[i+pos_text for i in nc_txt_list]
+            if photomake_ckpt_path is not None and img2img_mode and infer_mode in["story","story_maker","story_and_maker","msdiffusion"]: #img2img模式下SDXL的story的clip要特殊处理，有2个imgencoder进程，所以分离出来 TODO
+                nc_emb=[]
+                for  i  in nc_txt_list:
+                    if use_photov2:
+                        empty_emb_zero = torch.zeros_like(input_id_emb_s_dict[role_list[0]][0]).to(device,dtype=torch.float16)
+                        emb_dict_=photomaker_clip_v2(clip,model_,[i],neg_text,image_list,empty_emb_zero,nc_flag=True)
+                    else:
+                        emb_dict_=photomaker_clip(clip,model_,[i],neg_text,image_list,nc_flag=True)
+                    nc_emb.append(emb_dict_)
+            else:
+                if infer_mode!="kolor_face":
+                    nc_emb=cf_clip(nc_txt_list, clip, infer_mode,role_list,input_split=False)
+                else:
+                    nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
+        else:
+            nc_emb=None
+        # pre dual role txt emb
+        grounding_kwargs=None
+        cross_attention_kwargs=None
+        if prompts_dual and infer_mode in["story_maker","story_and_maker","msdiffusion"] : #忽略不支持的模式
+    
+            prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
+            prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
+            if use_lora:
+                prompts_dual=[i+lora_trigger_words for i in prompts_dual]
+            prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual]
+            if infer_mode=="msdiffusion":
+                phrases = [role_list[0].replace("]", "").replace("[", ""),
+                            role_list[1].replace("]", "").replace("[", "")]
+                box_add = []  # 获取预设box
+                guidance_list = guidance_list.strip().split(";")
+                for i in range(len(guidance_list)):
+                    box_add.append(get_float(guidance_list[i]))
+                
+                if mask_threshold == 0:
+                    mask_threshold = None
+                if mask_threshold:
+                    boxes = [box_add[:2]]  # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
+                else:
+                    boxes = [[[0, 0, 0, 0], [0, 0, 0, 0]]]  # used if you want no layout guidance
+                print(f"Roles position on {boxes}")
+                for i in prompts_dual:
+                    phrase_idxes = [get_phrases_idx_cf(clip, phrases[0], i)]
+                    eot_idxes = [[get_eot_idx_cf(clip, i)] * len(phrases[0])]
+                    cross_attention_kwargs, grounding_kwargs = get_ms_phrase_emb(boxes, device, infer_type_g,
+                                                                             [0], 1, phrase_idxes,
+                                                                             1, eot_idxes, phrases, clip)
+                daul_emb = cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False)
+            else:
+                daul_emb=cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False) # maker
+        else:
+            daul_emb=None
+        # neg
+        if infer_mode=="consistory":
+            negative = None
+            postive_dict={}
+        elif infer_mode=="flux_pulid":
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} #不支持NC
+            negative = [inp_neg_list,noise_x]
+        elif infer_mode=="kolor_face":
+            postive_dict = {"role": only_role_emb, "nc": nc_emb, "daul": daul_emb}
+            negative = only_role_emb_ne[0]
+        else:
+            tokens_n = clip.tokenize(neg_text)
+            output_n = clip.encode_from_tokens(tokens_n, return_pooled=True, return_dict=True) #{"pooled_output":tensor}
+            cond_n = output_n.pop("cond")
+            if cond_n.shape[1] /77>1 and infer_mode != "classic":
+                logging.warning("nagetive prompt'tokens length is abvoe 77,will split it.")
+                cond_n=torch.chunk(cond_n,cond_n.shape[1] //77,dim=1)[0]
+        
+            if infer_mode == "classic":
+                if nc_emb is not None:
+                    for index,i in zip(nc_indexs,nc_emb):
+                        only_role_emb.insert(index,i)
+                if  daul_emb is not None:
+                    for index,i in zip(positions_index_dual,daul_emb):
+                        only_role_emb.insert(index,i)
+                postive_dict = only_role_emb
+                negative = [[cond_n, output_n]]
+            else:
+                postive_dict = {"role": only_role_emb, "nc": nc_emb, "daul": daul_emb}
+                negative = [cond_n, output_n]
+        
+            
+
+        # Pre emb for maker,
+        
+        if img2img_mode and infer_mode in ["story_and_maker","story_maker"]:
+            num_images_per_prompt=1
+            make_img,make_mask_img,make_face_info,make_cloth_info=[],[],[],[]
+            
+            for key in role_list:
+                img_ = input_id_emb_un_dict[key][0]
+                # print(character_key_str,input_id_images_dict)
+                mask_image_ = input_id_img_s_dict[key][0] #mask_image
+                face_info_ = input_id_emb_s_dict[key][0]
+                cloth_info_ = None
+                if isinstance(control_image, torch.Tensor):
+                    cloth_info_ = input_id_cloth_dict[key][0]
+                make_img.append(img_)
+                make_mask_img.append(mask_image_)
+                make_face_info.append(face_info_)
+                make_cloth_info.append(cloth_info_)
+            
+            mask_image_2=None
+            face_info_2=None
+            cloth_2=None
+            image_2=None
+            prompt_image_emb_dual=None
+            if len(role_list)>1:
+               
+                if isinstance(control_image, torch.Tensor):
+                    cn_image_list=tensortopil_list_upscale(control_image,width,height)
+                    if len(cn_image_list)<len(only_role_list): #防止溢出
+                        cn_image_list=cn_image_list + cn_image_list[0]*len(only_role_list)-len(cn_image_list)
+                    nc_dual_list=[]
+                    for i in nc_indexs:
+                        nc_dual_list.append(i)
+                    for i in positions_index_dual:
+                        nc_dual_list.append(i) 
+                    
+                    adjusted_a_ = adjust_indices(index_char_1_list, nc_dual_list)
+                    adjusted_b_ = adjust_indices(index_char_2_list, nc_dual_list)
+                    a_list = [cn_image_list[i] for i in adjusted_a_ if 0 <= i < len(cn_image_list)]
+                    b_list = [cn_image_list[i] for i in adjusted_b_ if 0 <= i < len(cn_image_list)]
+                    
+                    prompt_image_emb,maker_control_image={},{}
+                    for j,(key,cnlist) in enumerate(zip(role_list,[a_list,b_list])):
+                        p_list,maker_cn_list=[],[]
+
+                        for cn_img in cnlist:
+                            prompt_image_emb_,maker_control_image_=encode_prompt_image_emb_([make_img[j],cn_img[i]], a_list, make_mask_img[j], b_list, make_face_info[j], face_info_2, make_cloth_info[j],
+                                                                                             cloth_2,device, num_images_per_prompt, unet_type, clip_vision,vae,do_classifier_free_guidance=True)
+                            p_list.append(prompt_image_emb_)
+                            maker_cn_list.append(maker_control_image_)
+                        prompt_image_emb[key]=p_list#输出改为字典
+                        maker_control_image[key]=maker_cn_list#输出改为字典
+                    # 还要将每个元素转为列表，改为[img,cn_img]
+
+                else:
+                    prompt_image_emb,maker_control_image={},{}
+                    
+                    for i,key in enumerate(role_list):
+                        prompt_image_emb_,maker_control_image_=encode_prompt_image_emb_(make_img[i], image_2, make_mask_img[i], mask_image_2, make_face_info[i], face_info_2, make_cloth_info[i], cloth_2,device, num_images_per_prompt, unet_type, clip_vision,vae,do_classifier_free_guidance=True)
+                        prompt_image_emb[key]=[prompt_image_emb_]#输出改为字典
+                        maker_control_image[key]=[maker_control_image_]#输出改为字典
+      
+            else:
+                prompt_image_emb,maker_control_image=encode_prompt_image_emb_(make_img[0], image_2, make_mask_img[0], mask_image_2, make_face_info[0], face_info_2, make_cloth_info[0], cloth_2,device, num_images_per_prompt, unet_type, clip_vision,vae,do_classifier_free_guidance=True)
+                prompt_image_emb=={role_list[0]:len(only_role_list)*[prompt_image_emb]}#输出改为字典
+                maker_control_image={role_list[0]:len(only_role_list)*[maker_control_image]}#输出改为字典
+
+            maker_control_image_dual=None
+            if daul_emb is not None:
+                prompt_image_emb_dual,maker_control_image_dual=encode_prompt_image_emb_(make_img[0], make_img[1], make_mask_img[0], make_mask_img[1], make_face_info[0], make_face_info[1], make_cloth_info[0], make_cloth_info[1],device, num_images_per_prompt, unet_type, clip_vision,vae,do_classifier_free_guidance=True)
+                prompt_image_emb_dual=len(prompts_dual)*[prompt_image_emb_dual]
+                maker_control_image_dual=len(prompts_dual)*[maker_control_image_dual] 
+        else:   
+            prompt_image_emb,maker_control_image,prompt_image_emb_dual,maker_control_image_dual=None,None,None,None
+
+              
+        
+        # switch
+        switch["id_len"]=len(role_list)
+        switch["role_list"] = role_list
+        switch["invert_role_index_dict"]=invert_role_index_dict
+        switch["nc_index"] = nc_indexs
+        switch["dual_index"] = positions_index_dual
+        switch["grounding_kwargs"]=grounding_kwargs
+        switch["cross_attention_kwargs"]=cross_attention_kwargs
+        switch["image_embeds"] = image_emb
+        switch["img2img_mode"] =img2img_mode
+        switch["positions_index_char_1"] =positions_index_char_1
+        switch["positions_index_char_2"] =positions_index_char_2
+        switch["mask_threshold"] =mask_threshold
+        switch["clip_vision"]=clip_vision
+        switch["input_id_emb_s_dict"]=input_id_emb_s_dict
+        switch["input_id_img_s_dict"]=input_id_img_s_dict
+        switch["input_id_emb_un_dict"]=input_id_emb_un_dict
+        switch["maker_control_image"]=maker_control_image
+        switch["prompt_image_emb"]=prompt_image_emb
+        switch["prompt_image_emb_dual"]=prompt_image_emb_dual
+        switch["maker_control_image_dual"]=maker_control_image_dual
+        switch["prompts_dual"]= prompts_dual
+        switch["control_image"] = control_image
+        switch["only_role_list"]=only_role_list
+        switch["nc_txt_list"]=nc_txt_list
+        switch["neg_text"]=neg_text
+        switch["role_text"]=role_text
+        switch["cf_clip"] =clip
+        switch["cached"]=cached
+        switch["inject"]=inject
+        switch["role_key_list"]=role_key_list
+        switch["input_id_images_dict"]=input_id_images_dict
+        switch["id_index"]=(index_char_1_list,index_char_2_list)
+        
+ 
+        return (postive_dict,negative,switch,width,height)
+        
+
+class StoryDiffusion_KSampler:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL", {"tooltip": "The model used for denoising the input latent."}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": MAX_SEED,
+                                 "tooltip": "The random seed used for creating the noise."}),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000,
+                                  "tooltip": "The number of steps used in the denoising process."}),
+                "cfg": ("FLOAT", {"default": 8.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
+                                  "tooltip": "The Classifier-Free Guidance scale balances creativity and adherence to the prompt. Higher values result in images more closely matching the prompt however too high values will negatively impact quality."}),
+                "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {
+                    "tooltip": "The algorithm used when sampling, this can affect the quality, speed, and style of the generated output."}),
+                "scheduler": (comfy.samplers.KSampler.SCHEDULERS,
+                              {"tooltip": "The scheduler controls how noise is gradually removed to form the image."}),
+                "positive": ("CONDITIONING", {
+                    "tooltip": "The conditioning describing the attributes you want to include in the image."}),
+                "negative": ("CONDITIONING", {
+                    "tooltip": "The conditioning describing the attributes you want to exclude from the image."}),
+                "info":("DIFFINFO",{
+                    "tooltip": "Switch infer mode witch your chocie."}),
+                "latent_image": ("LATENT", {"tooltip": "The latent image to denoise."}),
+                "sa32_degree": (
+                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "sa64_degree": (
+                    "FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01,
+                                      "tooltip": "The amount of denoising applied, lower values will maintain the structure of the initial image allowing for image to image sampling."}),
+            },
+                
+        }
+    
+    RETURN_TYPES = ("LATENT",)
+    OUTPUT_TOOLTIPS = ("The denoised latent.",)
+    FUNCTION = "sample"
+    
+    CATEGORY = "Storydiffusion"
+    DESCRIPTION = "Uses the provided model, positive and negative conditioning to denoise the latent image."
+    
+    def common_ksampler(self,model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=1.0,
+                        disable_noise=False, start_step=None, last_step=None, force_full_denoise=False):
+        
+        latent_image = latent["samples"]
+        latent_image = comfy.sample.fix_empty_latent_channels(model, latent_image)
+        
+        if disable_noise:
+            noise = torch.zeros(latent_image.size(), dtype=latent_image.dtype, layout=latent_image.layout, device="cpu")
+        else:
+            batch_inds = latent["batch_index"] if "batch_index" in latent else None
+            noise = comfy.sample.prepare_noise(latent_image, seed, batch_inds)
+        
+        noise_mask = None
+        if "noise_mask" in latent:
+            noise_mask = latent["noise_mask"]
+        
+        callback = latent_preview.prepare_callback(model, steps)
+        disable_pbar = not comfy.utils.PROGRESS_BAR_ENABLED
+        samples = comfy.sample.sample(model, noise, steps, cfg, sampler_name, scheduler, positive, negative,
+                                      latent_image,
+                                      denoise=denoise, disable_noise=disable_noise, start_step=start_step,
+                                      last_step=last_step,
+                                      force_full_denoise=force_full_denoise, noise_mask=noise_mask, callback=callback,
+                                      disable_pbar=disable_pbar, seed=seed)
+        # out = latent.copy()
+        # out["samples"] = samples
+        return samples
+    def sample(self, model, seed, steps, cfg, sampler_name, scheduler, positive, negative,info, latent_image,sa32_degree,sa64_degree, denoise=1.0, **kwargs):
+       
+        infer_mode=info.get("infer_mode")
+        id_len=info.get("id_len")
+        nc_index=info.get("nc_index")
+        dual_index=info.get("dual_index")
+        role_list=info.get("role_list")
+        mask_threshold=info.get("mask_threshold")
+        grounding_kwargs=info.get("grounding_kwargs")
+        cross_attention_kwargs=info.get("cross_attention_kwargs")
+        image_embeds=info.get("image_embeds")
+        img2img_mode=info.get("img2img_mode")
+        num_images_per_prompt=1
+        photomake_ckpt_path = info.get("photomake_ckpt_path")
+        ipadapter_ckpt_path = info.get("ipadapter_ckpt_path")
+        prompt_image_emb=info.get("prompt_image_emb")
+        maker_control_image=info.get("maker_control_image")
+        prompt_image_emb_dual=info.get("prompt_image_emb_dual")
+        maker_control_image_dual=info.get("maker_control_image_dual")
+        controlnet=info.get("controlnet")
+        prompts_dual=info.get("prompts_dual")
+        input_id_emb_un_dict=info.get("input_id_emb_un_dict")
+        input_id_img_s_dict=info.get("input_id_img_s_dict")
+        input_id_emb_s_dict=info.get("input_id_emb_s_dict")
+        input_id_cloth_dict=info.get("input_id_cloth_dict")
+        only_role_list=info.get("only_role_list")
+        nc_txt_list=info.get("nc_txt_list")
+        neg_text=info.get("neg_text")
+        cached=info.get("cached")
+        inject=info.get("inject")
+        input_id_images_dict=info.get("input_id_images_dict")
+        
+        invert_role_index_dict=info.get("invert_role_index_dict")
+        latent_init=latent_image["samples"]
+        scheduler_choice = get_scheduler(sampler_name, scheduler)
+        #from latent get h & w
+        batch_size,_,height, width = latent_init.size()
+        height=height*8
+        width=width*8
+        empty_img_init = Image.new('RGB', (height, width), (255, 255, 255))
+        zero_tensor =  torch.zeros((height, width), dtype=torch.float32, device="cpu")
+        
+        control_image_zero = Image.fromarray(np.zeros([height, width, 3]).astype(np.uint8))
+        start_merge_step = int(float(20) / 100 * steps) # TODO: 20% of steps
+        if start_merge_step > 30:
+            start_merge_step = 30
+
+        if  infer_mode =="classic":
+            samples_list=[]
+            for i in positive:
+                seed_random=random.randint(0, seed)
+                samples=self.common_ksampler(model, seed_random, steps, cfg, sampler_name, scheduler, i, negative, latent_image,
+                                denoise=denoise)  #torch.Size([1, 4, 64, 64])
+               
+                samples_list.append(samples)
+            out = latent_image.copy()
+            out["samples"] = torch.cat(samples_list,dim=0)
+            return (out,)
+        else:
+            #get emb
+            only_role_emb=positive.get("role")
+            nc_emb=positive.get("nc")
+            daul_emb=positive.get("daul")
+            daul_emb_ms=daul_emb
+            
+            if infer_mode in["story" ,"msdiffusion","story_and_maker"]: #三者都调用story的unet方法，只是双角色引入ms或者maker
+                if ipadapter_ckpt_path is None and infer_mode=="msdiffusion":
+                    raise "msdiffusion  need a ms_adapter.bin file at ipadapter_ckpt menu."
+                global attn_procs,sa32, sa64, write, height_s, width_s,attn_count, total_count, id_length, total_length, cur_step,cur_character
+
+                sa32 = sa32_degree
+                sa64 = sa64_degree
+                attn_count = 0
+                total_count = 0
+                cur_step = 0
+                id_length = id_len
+                total_length = 5
+                attn_procs = {}
+                write = False
+                height_s = height
+                width_s = width
+                
+                set_attention_processor(model.unet, id_len, is_ipadapter=False)
+                
+                model.scheduler = scheduler_choice.from_config(model.scheduler.config)
+                model.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+                
+                samples_list = []
+                if img2img_mode and photomake_ckpt_path:
+                    generator=torch.Generator(device=device).manual_seed(seed)
+                    #print(invert_role_index_dict)
+                    for emb_dict,r_key,key in zip(only_role_emb,role_list,invert_role_index_dict.keys()):
+                        write = True
+                        cur_character = invert_role_index_dict[key] #全局角色名称，需要
+                        #print(input_id_images_dict) #{'[Taylor]': <PIL.Image>, '[Lecun]': <PIL.Image>}
+                        #print(r_key)# '[Taylor]'
+                        # print(emb_dict)
+                        samples = model(
+                                input_id_images=input_id_images_dict[r_key],
+                                num_inference_steps=steps,
+                                guidance_scale=cfg,
+                                start_merge_step=start_merge_step,
+                                height=height,
+                                width=width,
+                                negative_prompt=neg_text,
+                                generator=generator,
+                                emb_dict=emb_dict,
+                                )[0]  # torch.Size([1, 4, 64, 64])
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                    if nc_emb: #no role 无角色的emb
+                        nc_list=[]
+                        for i in (nc_emb):
+                            write = False
+                            samples = model(input_id_images=[input_id_images_dict[role_list[0]]],
+                                    num_inference_steps=steps,
+                                    guidance_scale=cfg,
+                                    start_merge_step=start_merge_step,
+                                    height=height,
+                                    width=width,
+                                    negative_prompt=neg_text,
+                                    generator=generator,
+                                    emb_dict=i,
+                                    nc_flag=True)[0]  # torch.Size([1, 4, 64, 64])
+                            nc_list.append(samples)
+                        for index_,sample_nc in zip(nc_index,nc_list):
+                            samples_list.insert(int(index_), sample_nc)
+                else:
+                    for key in role_list: # i:{a:[[tensor,tensor],[tensor,tensor]],b:[[tensor,tensor],[tensor,tensor]]} 只跑第一张图生成ID
+                        seed_random = random.randint(0, seed)
+                        write = True
+                        cur_character = [key]
+                        samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                                        generator=torch.Generator(device=device).manual_seed(seed_random),
+                                        prompt_embeds=only_role_emb[key][0][0],
+                                        negative_prompt_embeds=negative[0],
+                                        pooled_prompt_embeds=only_role_emb[key][0][1].get("pooled_output"),
+                                        negative_pooled_prompt_embeds=negative[1].get("pooled_output"))[
+                            0]  # torch.Size([1, 4, 64, 64])
+                        samples_list.append(samples)
+                       
+                        write = False #关闭角色生成
+                    
+                        for index,emb in enumerate(only_role_emb[key]):
+                            if index==0:
+                                continue
+                            samples_ = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                                                generator=torch.Generator(device=device).manual_seed(seed_random),
+                                                prompt_embeds=emb[0],
+                                                negative_prompt_embeds=negative[0],
+                                                pooled_prompt_embeds=emb[1].get("pooled_output"),
+                                                negative_pooled_prompt_embeds=negative[1].get("pooled_output"))[
+                                    0]  # torch.Size([1, 4, 64, 64])
+                            samples_list.append(samples_)
+                                
+                    if nc_emb: #no role 无角色的emb
+                        for index, i in zip(nc_index, nc_emb):
+                            seed_random = random.randint(0, seed)
+                            write = False
+                            samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                                            generator=torch.Generator(device=device).manual_seed(seed_random),
+                                            prompt_embeds=i[0],
+                                            negative_prompt_embeds=negative[0],
+                                            pooled_prompt_embeds=i[1].get("pooled_output"),
+                                            negative_pooled_prompt_embeds=negative[1].get("pooled_output"))[
+                                0]  # torch.Size([1, 4, 64, 64])
+                            samples_list.insert(index, samples)
+                if infer_mode=="msdiffusion" or infer_mode =="story_and_maker":
+                    daul_emb = None #确保pass后段dual的执行
+                    if daul_emb_ms:
+                        # del model
+                        # gc.collect()
+                        # torch.cuda.empty_cache()
+                       
+                        VAE=info.get("VAE")
+                        for j ,(index, i) in enumerate(zip(dual_index, daul_emb_ms)):
+                            seed_random = random.randint(0, seed)
+                            write = False
+                            if not img2img_mode: #文生图模式，以文生图第一张为ID参考拿emb
+                                clip_vision = info.get("CLIP_VISION")
+                                
+                                out_1, out_2 = {}, {}
+                                out_1["samples"]=samples_list[int(info.get("positions_index_char_1"))]
+                                out_2["samples"] =samples_list[int(info.get("positions_index_char_2"))]
+                                role_1=VAE.decode(out_1["samples"])
+                                role_2 = VAE.decode(out_2["samples"])
+                               
+                                if  infer_mode=="msdiffusion":
+                                    role_tensor=torch.cat((role_1,role_2),dim=0)
+                                    image_embeds=clip_vision.encode_image(role_tensor)["penultimate_hidden_states"]
+                                    image_embeds = image_embeds.to(device, dtype=model.unet.dtype)
+                                    if controlnet:
+                                        model=model #TO DO
+                                    #write = False
+                                    samples = Infer_MSdiffusion(model,ipadapter_ckpt_path,image_embeds, i[0],negative[0],grounding_kwargs,cross_attention_kwargs,
+                                                                 1,mask_threshold,height,width,steps,seed_random,cfg,i[1].get("pooled_output"),negative[1].get("pooled_output") )
+
+                                else: #maker的emb要单独处理，用列表形式传入 make
+                                    # image_embeds=[]
+                                    # for X in [role_1,role_2]:
+                                    #     image_embeds.append(clip_vision.encode_image(X)["penultimate_hidden_states"].to(device, dtype=model.unet.dtype))
+                                    make_img,make_mask_img,make_face_info,make_cloth_info=[],[],[],[]
+                                    from .model_loader_utils import insight_face_loader,get_insight_dict
+                                    app_face,pipeline_mask,app_face_=insight_face_loader(infer_mode,False, False)
+                                   
+                                    image_list = [tensor_to_image(role_1),tensor_to_image(role_2)]
+                                    input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict=get_insight_dict(app_face,app_face_,pipeline_mask,infer_mode,False,image_list,role_list,info.get("control_image"),width, height) 
+                                    for key in role_list:
+                                        img_ = input_id_emb_un_dict[key][0]
+                                        # print(character_key_str,input_id_images_dict)
+                                        mask_image_ = input_id_img_s_dict[key][0] #mask_image
+                                        face_info_ = input_id_emb_s_dict[key][0]
+                                        cloth_info_ = None
+                                        if isinstance(info.get("control_image"), torch.Tensor):
+                                            cloth_info_ = input_id_cloth_dict[key][0]
+                                        make_img.append(img_)
+                                        make_mask_img.append(mask_image_)
+                                        make_face_info.append(face_info_)
+                                        make_cloth_info.append(cloth_info_)
+
+                                    prompt_image_emb_dual,maker_control_image_dual=encode_prompt_image_emb_(make_img[0], make_img[1], make_mask_img[0], make_mask_img[1], make_face_info[0],
+                                                                                                             make_face_info[1], make_cloth_info[0], make_cloth_info[1],device, num_images_per_prompt, info.get("unet_type"), clip_vision,VAE,do_classifier_free_guidance=True)
+                                    prompt_image_emb_dual=len(prompts_dual)*[prompt_image_emb_dual]
+                                    maker_control_image_dual=len(prompts_dual)*[maker_control_image_dual]
+                                    samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                                        generator=torch.Generator(device=device).manual_seed(seed_random),
+                                        prompt_embeds=i[0],
+                                        negative_prompt_embeds=negative[0],
+                                        pooled_prompt_embeds=i[1].get("pooled_output"),
+                                        negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                                        prompt_image_emb=prompt_image_emb_dual[j],
+                                        control_image=maker_control_image_dual[j],
+                                        )[0]  # torch.Size([1, 4, 64, 64])
+                            else:
+                                if  infer_mode=="msdiffusion":
+                                    #del model
+                                    model=Loader_storydiffusion(None,None,None,model)
+                                    gc_cleanup()
+                                    samples = Infer_MSdiffusion(model,ipadapter_ckpt_path,image_embeds, i[0],negative[0],grounding_kwargs,cross_attention_kwargs,
+                                                                 1,mask_threshold,height,width,steps,seed_random,cfg,i[1].get("pooled_output"),negative[1].get("pooled_output") )
+                                #del model
+                                else:
+                                    print("reload maker") 
+                                    model=Loader_story_maker(None,ipadapter_ckpt_path,VAE,False,info.get("lora_scale"),UNET=model)
+                                    gc_cleanup()
+                                    if controlnet:
+                                        model.controlnet = controlnet
+                                        
+                                    seed_random = random.randint(0, seed)
+                                   
+                                    #print(i)
+                                    samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                                        generator=torch.Generator(device=device).manual_seed(seed_random),
+                                        prompt_embeds=i[0],
+                                        negative_prompt_embeds=negative[0],
+                                        pooled_prompt_embeds=i[1].get("pooled_output"),
+                                        negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                                        prompt_image_emb=prompt_image_emb_dual[j],
+                                        control_image=maker_control_image_dual[j],
+                                        )[0]  # torch.Size([1, 4, 64, 64])
+                            samples_list.insert(index,samples)
+            
+                if daul_emb: #双角色的emb，即便不是msdiffusion，其他方法也能用，只是ID不一致而已
+                    for index, i in zip(dual_index, daul_emb):
+                        seed_random = random.randint(0, seed)
+                        write = False
+                        samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                            generator=torch.Generator(device=device).manual_seed(seed_random),
+                            prompt_embeds=i[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=i[1].get("pooled_output"),
+                            negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                            )[0]  # torch.Size([1, 4, 64, 64])
+                        samples_list.insert(index, samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+            elif infer_mode == "story_maker" : #单纯使用maker，兼容单体双人及双人同框，目前需要修改源码，将cn的图片与衣服的emb拿出来提前处理，再传入pipe
+                model.scheduler = scheduler_choice.from_config(model.scheduler.config)
+                seed_random = random.randint(0, seed)
+                samples_list = []
+                for key in role_list :
+                    for i,emb in enumerate(only_role_emb[key]): 
+                        samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                            generator=torch.Generator(device=device).manual_seed(seed_random),
+                            prompt_embeds=emb[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=emb[1].get("pooled_output"),
+                            negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                            prompt_image_emb=prompt_image_emb[key][i],
+                            control_image=maker_control_image[key][i],
+                            )[0]  # torch.Size([1, 4, 64, 64])
+                        samples_list.append(samples)
+                if nc_emb: #no role 无角色的emb
+                    id_embeds_z, clip_image_embeds_z, clip_face_embeds_z = torch.zeros_like(prompt_image_emb[0]), torch.zeros_like(prompt_image_emb[1]), torch.zeros_like(prompt_image_emb[2])
+                    for index, i in zip(nc_index, nc_emb):
+                        seed_random = random.randint(0, seed)
+                        write = False
+                        samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                            generator=torch.Generator(device=device).manual_seed(seed_random),
+                            prompt_embeds=i[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=i[1].get("pooled_output"),
+                            negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                            prompt_image_emb=(id_embeds_z, clip_image_embeds_z, clip_face_embeds_z),
+                            control_image=empty_img_init,
+                            )[0]  # torch.Size([1, 4, 64, 64])
+                        samples_list.insert(index, samples)
+                if daul_emb:
+                    for j ,(index, i) in enumerate(zip(dual_index, daul_emb)):
+                        seed_random = random.randint(0, seed)
+                        write = False
+                        samples = model(height=height, width=width, num_inference_steps=steps, guidance_scale=cfg,
+                            generator=torch.Generator(device=device).manual_seed(seed_random),
+                            prompt_embeds=i[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=i[1].get("pooled_output"),
+                            negative_pooled_prompt_embeds=negative[1].get("pooled_output"),
+                            prompt_image_emb=prompt_image_emb_dual[j],
+                            control_image=maker_control_image_dual[j],
+                            )[0]  # torch.Size([1, 4, 64, 64])
+                        samples_list.insert(index, samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+
+            elif infer_mode == "consistory":
+                from .consistory.consistory_run import run_batch_generation,run_anchor_generation, run_extra_generation
+                mask_dropout = 0.5
+                same_latent = False
+                n_achors = 2
+                role_input=info.get("role_text").splitlines()[0]
+                main_role = role_input.replace("]", "").replace("[", "")
+                concept_token = [main_role] 
+                if ")" in role_input:
+                   object_role = role_input.split(")")[0].split("(")[-1]
+                   concept_token=[main_role,object_role]
+                style = "A photo of "
+                subject=f"a {main_role} "
+                replace_prompts= [f'{style}{subject} {i}' for i in only_role_list]
+                gpu = 0
+                torch.cuda.reset_max_memory_allocated(gpu)
+                
+                model.scheduler = scheduler_choice.from_config(model.scheduler.config)
+                seed_random = random.randint(0, seed)
+                if not cached:
+                    if not inject:
+                        model.enable_vae_slicing()
+                        model.enable_model_cpu_offload()
+                    else:
+                        model.to(torch.float16)
+                    samples_list = run_batch_generation(model, replace_prompts, concept_token,neg_text, seed,n_steps=steps,mask_dropout=mask_dropout,
+                                                         same_latent=same_latent, perform_injection=inject,n_achors=n_achors,cf_clip=info.get("cf_clip"))
+                    out = {}
+                    out["samples"] = samples_list
+                    return (out,zero_tensor)
+                else:  
+                    samples_list = []
+                    if len(replace_prompts)>2:
+                        spilit_prompt=replace_prompts[:2]
+                    else:
+                        spilit_prompt=replace_prompts
+                        
+                    anchor_out_images, anchor_cache_first_stage, anchor_cache_second_stage = run_anchor_generation(
+                        model, spilit_prompt, concept_token,neg_text,
+                        seed=seed, n_steps=steps, mask_dropout=mask_dropout, same_latent=same_latent,perform_injection=inject,
+                        cache_cpu_offloading=True,cf_clip=info.get("cf_clip"))
+                    samples_list.append(anchor_out_images)
+                    if len(replace_prompts) > 2:
+                        left_prompt=replace_prompts[2:]
+                    else:
+                        left_prompt=replace_prompts[:1]  # use default
+                    
+                    for extra_prompt in left_prompt:
+                        extra_image = run_extra_generation(model, [extra_prompt], concept_token,neg_text,
+                            anchor_cache_first_stage,
+                            anchor_cache_second_stage,
+                            seed=seed, n_steps=steps,
+                            mask_dropout=mask_dropout,
+                            same_latent=same_latent,
+                            perform_injection=inject,
+                            cache_cpu_offloading=True,cf_clip=info.get("cf_clip"))
+                        samples_list.append(extra_image)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+                            
+            elif infer_mode == "kolor_face":
+                samples_list = []
+                for key in role_list:
+                   for emb in only_role_emb[key]: 
+                        samples = model(
+                            prompt=None,
+                            prompt_embeds=emb[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=emb[1],
+                            negative_pooled_prompt_embeds=negative[1],
+                            height=height,
+                            width=width,
+                            num_inference_steps=steps,
+                            guidance_scale=cfg,
+                            num_images_per_prompt=1,
+                            generator=torch.Generator(device=device).manual_seed(seed),
+                            face_crop_image=input_id_img_s_dict[key][0],
+                            face_insightface_embeds=input_id_emb_s_dict[key][0].to(device, dtype=torch.float16),
+                        ).images
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                if nc_emb:
+                    for emb in nc_emb:
+                        samples = model(
+                            prompt=None,
+                            prompt_embeds=emb[0],
+                            negative_prompt_embeds=negative[0],
+                            pooled_prompt_embeds=emb[1],
+                            negative_pooled_prompt_embeds=negative[1],
+                            height=height,
+                            width=width,
+                            num_inference_steps=steps,
+                            guidance_scale=cfg,
+                            num_images_per_prompt=1,
+                            generator=torch.Generator(device=device).manual_seed(seed),
+                            face_crop_image=Image.new('RGB', (336, 336), (255, 255, 255)),
+                            face_insightface_embeds=torch.zeros_like(input_id_emb_s_dict[role_list[0]][0]).to(device, dtype=torch.float16),
+                        ).images
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+           
+            elif infer_mode == "infiniteyou": 
+                samples_list = []
+
+                for key in role_list:
+                    if isinstance(input_id_img_s_dict[key][0], list) and (len(input_id_img_s_dict[key][0]) < len(only_role_emb[key])):#输入的图片数量小于emb数量
+                        cn_img=input_id_img_s_dict[key][0]+(len(only_role_emb[key])-len(input_id_img_s_dict[key][0]))*[control_image_zero]
+                    else:
+                        cn_img=input_id_img_s_dict[key][0]
+                  
+                    for index,emb in enumerate(only_role_emb[key]):       
+                        
+                        samples = model (id_embed=input_id_emb_s_dict[key][0],
+                            prompt_embeds=emb[0],
+                            pooled_prompt_embeds=emb[1].get("pooled_output"),
+                            control_image=cn_img[index] if isinstance(cn_img , list) else input_id_img_s_dict[key][0],
+                            guidance_scale=cfg,
+                            num_steps=steps,
+                            seed=seed,
+                            infusenet_conditioning_scale=1.0,
+                            infusenet_guidance_start=0,
+                            infusenet_guidance_end=1.0,
+                            height=height,
+                            width=width,
+                            )
+                        samples_list.append(samples)  
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+            elif infer_mode == "flux_pulid":
+                samples_list = []
+                for key in role_list:
+                    for index,emb in enumerate(only_role_emb[key]):
+                        samples = model.generate_image(width=width, 
+                            height=height,
+                            num_steps=steps,
+                            start_step=2,
+                            guidance=cfg,
+                            seed=seed,
+                            inp=emb,
+                            inp_neg=negative[0][key][index],
+                            x=negative[1][key][index], #seed 上一个节点调用
+                            id_embeddings=input_id_emb_s_dict[key][0],
+                            uncond_id_embeddings=input_id_emb_un_dict[key][0],
+                            )  # torch.Size([1, 4, 64, 64])
+                    
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+            else: #none:
+                return
+
+class StoryDiffusion_Lora_Control:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"model": ("MODEL"),
+                             "switch": ("DIFFCONDI"),
+                             "loras": (["none"] + folder_paths.get_filename_list("loras"),),
+                             "trigger_words": ("STRING", {"default": "best quality"}),
+                             "controlnets": (["none"] + folder_paths.get_filename_list("controlnet"),),
+                             "controlnet_scale": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.1, "round": 0.01}),
+                             },    
+                }
+    
+    RETURN_TYPES = ("MODEL","DIFFCONDI",)
+    RETURN_NAMES = ("model","switch",)
+    FUNCTION = "main_apply"
+    CATEGORY = "Storydiffusion"
+    
+    def main_apply(self,model,switch,loras,trigger_words,controlnets,controlnet_scale, **kwargs):
+        use_lora,controlnet =False, None
+        infer_mode=switch.get("infer_mode")
+        lora_path= None
+        if loras != "none":
+            lora_path = folder_paths.get_full_path("loras", loras)
+            active_lora = model.get_active_adapters() 
+            if active_lora:
+                print(f'active_lora is :{active_lora}')
+                model.unload_lora_weights()  # make sure lora is not mix
+            if os.path.basename(lora_path) in lora_lightning_list:
+                model.load_lora_weights(lora_path)
+            else:
+                model.load_lora_weights(lora_path, adapter_name=trigger_words)
+            use_lora=True
+        if infer_mode=="story_maker" or infer_mode=="msdiffusion" or infer_mode=="story_and_maker":
+            if controlnets != "none":
+                controlnet_path = folder_paths.get_full_path("controlnet", controlnets)
+                from diffusers import ControlNetModel
+                from safetensors.torch import load_file
+                controlnet = ControlNetModel.from_unet(model.unet)
+                cn_state_dict = load_file(controlnet_path, device="cpu")
+                controlnet.load_state_dict(cn_state_dict, strict=False)
+                del cn_state_dict
+                gc_cleanup()
+                controlnet.to(torch.float16)
+                if infer_mode=="story_maker" :
+                    model.controlnet = controlnet
+        elif infer_mode=="infiniteyou" :
+            if lora_path is not None:
+                loras = []
+                if "realism" in lora_path:
+                    loras.append([lora_path, 'realism', 1.0])# single only now
+                if  "blur" in lora_path:
+                    loras.append([lora_path, 'anti_blur', 1.0])
+                model.load_loras(loras)
+        switch["controlnet_scale"]=controlnet_scale
+        switch["controlnet"]=controlnet
+        switch["use_lora"]=use_lora
+        switch["trigger_words"]=trigger_words
+
+        return (model,switch)
+
 
 
 NODE_CLASS_MAPPINGS = {
-    "Storydiffusion_Model_Loader": Storydiffusion_Model_Loader,
-    "Storydiffusion_Sampler": Storydiffusion_Sampler,
     "Pre_Translate_prompt": Pre_Translate_prompt,
     "Comic_Type": Comic_Type,
-    "EasyFunction_Lite":EasyFunction_Lite
+    "EasyFunction_Lite":EasyFunction_Lite,
+    "StoryDiffusion_Apply":StoryDiffusion_Apply,
+    "StoryDiffusion_CLIPTextEncode":StoryDiffusion_CLIPTextEncode,
+    "StoryDiffusion_KSampler":StoryDiffusion_KSampler,
+    "StoryDiffusion_Lora_Control":StoryDiffusion_Lora_Control,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Storydiffusion_Model_Loader": "Storydiffusion_Model_Loader",
-    "Storydiffusion_Sampler": "Storydiffusion_Sampler",
     "Pre_Translate_prompt": "Pre_Translate_prompt",
     "Comic_Type": "Comic_Type",
-    "EasyFunction_Lite":"EasyFunction_Lite"
+    "EasyFunction_Lite":"EasyFunction_Lite",
+    "StoryDiffusion_Apply":"StoryDiffusion_Apply",
+    "StoryDiffusion_CLIPTextEncode":"StoryDiffusion_CLIPTextEncode",
+    "StoryDiffusion_KSampler":"StoryDiffusion_KSampler",
+    "StoryDiffusion_Lora_Control":"StoryDiffusion_Lora_Control"
 }

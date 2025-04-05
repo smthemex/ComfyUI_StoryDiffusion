@@ -62,7 +62,7 @@ class MSAdapter(torch.nn.Module):
     
     def set_ms_adapter(self, weight_dtype=torch.float16, cache_attention_maps=True):
         # set attention processor
-        attn_procs_ = {}
+        attn_procs = {}
         for name in self.unet.attn_processors.keys():
             cross_attention_dim = None if name.endswith("attn1.processor") else self.unet.config.cross_attention_dim
             if name.startswith("mid_block"):
@@ -74,15 +74,15 @@ class MSAdapter(torch.nn.Module):
                 block_id = int(name[len("down_blocks.")])
                 hidden_size = self.unet.config.block_out_channels[block_id]
             if cross_attention_dim is None:
-                attn_procs_[name] = AttnProcessor()
+                attn_procs[name] = AttnProcessor()
             else:
-                attn_procs_[name] = IPAttnProcessor(
+                attn_procs[name] = IPAttnProcessor(
                     hidden_size=hidden_size,
                     cross_attention_dim=cross_attention_dim,
                     num_tokens=self.num_tokens,
                     text_tokens=self.text_tokens,
                 ).to(self.device, dtype=weight_dtype)
-        self.unet.set_attn_processor(attn_procs_)
+        self.unet.set_attn_processor(attn_procs)
         self.adapter_modules = torch.nn.ModuleList(self.unet.attn_processors.values())
         if self.controlnet is not None:
             if isinstance(self.controlnet, MultiControlNetModel):
@@ -109,11 +109,11 @@ class MSAdapter(torch.nn.Module):
                                              output_hidden_states=True).hidden_states[
                     -2]  # (bsz*rn, num_tokens, embedding_dim)
             else:
-                
+                print(processed_images.shape,1233333)
                 image_encoder = image_encoder.encode_image
                 processed_images.to("cpu")
                 image_embeds = image_encoder(processed_images)["penultimate_hidden_states"]
-            # print(image_embeds.shape)
+            print(image_embeds.shape,1234567)
         else:
             
             image_embeds = image_encoder(
@@ -174,6 +174,7 @@ class MSAdapter(torch.nn.Module):
         grounding_kwargs = None
         if boxes is not None:
             boxes = torch.tensor(boxes).to(self.device, weight_dtype)
+            print(boxes.shape,123)
             if phrases is not None:
                 drop_grounding_tokens = drop_grounding_tokens if drop_grounding_tokens is not None else [0] * bsz
                 batch_boxes = boxes.view(bsz * boxes.shape[1], -1).to(self.device)
@@ -187,7 +188,7 @@ class MSAdapter(torch.nn.Module):
                 phrase_input_ids = torch.stack(phrase_input_ids)
                 phrase_input_ids = phrase_input_ids.view(-1, phrase_input_ids.shape[-1])
                 phrase_embeds = pipe.text_encoder(phrase_input_ids.to(self.device)).pooler_output
-                # print(phrase_embeds.shape,batch_boxes.shape)#torch.Size([1, 768]) torch.Size([1, 4])
+                print(phrase_embeds.shape,batch_boxes.shape) # torch.Size([2, 768]) torch.Size([2, 4])
                 grounding_kwargs = {"boxes": batch_boxes, "phrase_embeds": phrase_embeds,
                                     "drop_grounding_tokens": drop_grounding_tokens}
             else:
@@ -219,12 +220,13 @@ class MSAdapter(torch.nn.Module):
                                                  use_repo=use_repo)
             del image_encoder
             torch.cuda.empty_cache()
-            # print(image_embeds.shape) #torch.Size([1, 257, 1664])
+            # print(image_embeds.shape) #torch.Size([2, 257, 1664])
             if not use_repo:
                # print(image_embeds.device,self.device,)
                 image_embeds=image_embeds.clone().detach().to(self.device, weight_dtype)
                 #print(image_embeds.device)
             image_prompt_embeds = self.image_proj_model(image_embeds, grounding_kwargs=grounding_kwargs)
+           
             del image_embeds
             torch.cuda.empty_cache()
             image_prompt_embeds = image_prompt_embeds.view(bsz, -1, image_prompt_embeds.shape[-2],
@@ -236,6 +238,7 @@ class MSAdapter(torch.nn.Module):
                                                            image_prompt_embeds.shape[
                                                                -1])  # (bsz, total_num_tokens*rn, cross_attention_dim)
             image_prompt_embeds = torch.cat([self.dummy_image_tokens, image_prompt_embeds], dim=1)
+            
             uncond_image_prompt_embeds = torch.zeros_like(image_prompt_embeds)
             bs_embed, seq_len, _ = image_prompt_embeds.shape
             image_prompt_embeds = image_prompt_embeds.repeat(1, num_samples, 1)
@@ -250,6 +253,7 @@ class MSAdapter(torch.nn.Module):
                 do_classifier_free_guidance=True,
                 negative_prompt=negative_prompt,
             )
+           
             prompt_embeds = torch.cat([prompt_embeds_, image_prompt_embeds], dim=1)
             negative_prompt_embeds = torch.cat([negative_prompt_embeds_, uncond_image_prompt_embeds], dim=1)
         

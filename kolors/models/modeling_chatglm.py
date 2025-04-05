@@ -10,11 +10,11 @@ import torch
 import torch.utils.checkpoint
 import torch.nn.functional as F
 from torch import nn
-from torch.nn import CrossEntropyLoss, LayerNorm
 from torch.nn import CrossEntropyLoss, LayerNorm, MSELoss, BCEWithLogitsLoss
 from torch.nn.utils import skip_init
 from typing import Optional, Tuple, Union, List, Callable, Dict, Any
 from copy import deepcopy
+import transformers
 
 from transformers.modeling_outputs import (
     BaseModelOutputWithPast,
@@ -26,11 +26,7 @@ from transformers.utils import logging
 from transformers.generation.logits_process import LogitsProcessor
 from transformers.generation.utils import LogitsProcessorList, StoppingCriteriaList, GenerationConfig, ModelOutput
 
-try:
-    from .configuration_chatglm import ChatGLMConfig
-except:
-    from configuration_chatglm import ChatGLMConfig
-
+from .configuration_chatglm import ChatGLMConfig
 
 # flags required to enable jit fusion kernels
 
@@ -43,12 +39,15 @@ if sys.platform != 'darwin':
 logger = logging.get_logger(__name__)
 
 _CHECKPOINT_FOR_DOC = "THUDM/ChatGLM"
-_CONFIG_FOR_DOC = "ChatGLM6BConfig"
+_CONFIG_FOR_DOC = "ChatGLMConfig"
 
 CHATGLM_6B_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "THUDM/chatglm3-6b-base",
+    "THUDM/chatglm3-6b",
     # See all ChatGLM models at https://huggingface.co/models?filter=chatglm
 ]
+
+is_transformers_4_42_or_higher = int(transformers.__version__.split(".")[1]) >= 42
+is_transformers_4_44_or_higher = int(transformers.__version__.split(".")[1]) >= 44
 
 
 def default_init(cls, *args, **kwargs):
@@ -186,7 +185,7 @@ def apply_rotary_pos_emb(x: torch.Tensor, rope_cache: torch.Tensor) -> torch.Ten
 class RMSNorm(torch.nn.Module):
     def __init__(self, normalized_shape, eps=1e-5, device=None, dtype=None, **kwargs):
         super().__init__()
-        self.weight = torch.nn.Parameter(torch.empty(normalized_shape, device=device, dtype=dtype))
+        self.weight = torch.nn.Parameter(torch.ones(normalized_shape, device=device, dtype=dtype))
         self.eps = eps
 
     def forward(self, hidden_states: torch.Tensor):
@@ -639,7 +638,8 @@ class GLMTransformer(torch.nn.Module):
                     attention_mask,
                     rotary_pos_emb,
                     kv_caches[index],
-                    use_cache
+                    use_cache,
+                    use_reentrant=False
                 )
             else:
                 layer_ret = layer(
@@ -702,9 +702,9 @@ class ChatGLMPreTrainedModel(PreTrainedModel):
         position_ids = torch.arange(seq_length, dtype=torch.long, device=device).unsqueeze(0).repeat(batch_size, 1)
         return position_ids
 
-    def _set_gradient_checkpointing(self, module, value=False):
-        if isinstance(module, GLMTransformer):
-            module.gradient_checkpointing = value
+    def gradient_checkpointing_enable(self, gradient_checkpointing_kwargs=None):
+        if not self.supports_gradient_checkpointing:
+            raise ValueError(f"{self.__class__.__name__} does not support gradient checkpointing.")
 
 
 class Embedding(torch.nn.Module):
@@ -772,6 +772,9 @@ class ChatGLMModel(ChatGLMPreTrainedModel):
 
     def get_input_embeddings(self):
         return self.embedding.word_embeddings
+
+    def set_input_embeddings(self, value):
+        self.embedding.word_embeddings = value
 
     def get_prompt(self, batch_size, device, dtype=torch.half):
         prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1).to(device)
@@ -873,9 +876,19 @@ class ChatGLMForConditionalGeneration(ChatGLMPreTrainedModel):
             standardize_cache_format: bool = False,
     ) -> Dict[str, Any]:
         # update past_key_values
-        model_kwargs["past_key_values"] = self._extract_past_from_model_output(
-            outputs, standardize_cache_format=standardize_cache_format
-        )
+        if is_transformers_4_44_or_higher:
+            model_kwargs["past_key_values"] = self._extract_past_from_model_output(
+                outputs
+            )[1]
+        elif is_transformers_4_42_or_higher:
+            # update past_key_values
+            model_kwargs["past_key_values"] = self._extract_past_from_model_output(
+                outputs, standardize_cache_format=standardize_cache_format
+            )[1]
+        else:
+            model_kwargs["past_key_values"] = self._extract_past_from_model_output(
+                outputs, standardize_cache_format=standardize_cache_format
+            )
 
         # update attention mask
         if "attention_mask" in model_kwargs:
@@ -1005,7 +1018,10 @@ class ChatGLMForConditionalGeneration(ChatGLMPreTrainedModel):
         content = ""
         history = deepcopy(history)
         for response in output.split("<|assistant|>"):
-            metadata, content = response.split("\n", maxsplit=1)
+            if "\n" in response:
+                metadata, content = response.split("\n", maxsplit=1)
+            else:
+                metadata, content = "", response
             if not metadata.strip():
                 content = content.strip()
                 history.append({"role": "assistant", "metadata": metadata, "content": content})
@@ -1023,7 +1039,7 @@ class ChatGLMForConditionalGeneration(ChatGLMPreTrainedModel):
         return content, history
 
     @torch.inference_mode()
-    def chat(self, tokenizer, query: str, history: List[Tuple[str, str]] = None, role: str = "user",
+    def chat(self, tokenizer, query: str, history: List[Dict] = None, role: str = "user",
              max_length: int = 8192, num_beams=1, do_sample=True, top_p=0.8, temperature=0.8, logits_processor=None,
              **kwargs):
         if history is None:
@@ -1045,7 +1061,7 @@ class ChatGLMForConditionalGeneration(ChatGLMPreTrainedModel):
         return response, history
 
     @torch.inference_mode()
-    def stream_chat(self, tokenizer, query: str, history: List[Tuple[str, str]] = None, role: str = "user",
+    def stream_chat(self, tokenizer, query: str, history: List[Dict] = None, role: str = "user",
                     past_key_values=None,max_length: int = 8192, do_sample=True, top_p=0.8, temperature=0.8,
                     logits_processor=None, return_past_key_values=False, **kwargs):
         if history is None:

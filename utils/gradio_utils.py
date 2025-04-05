@@ -511,12 +511,72 @@ def process_original_prompt(character_dict,prompts,id_length,img_mode):
             raise f"{character_key} not have prompt description, please remove it"
         index_list = character_index_dict[character_key]
         index_list = [index for index in index_list if len(invert_character_index_dict[index]) == 1]
-        if not img_mode:
-            if len(index_list) < id_length:
-                raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
+        # if not img_mode:
+        #     if len(index_list) < id_length:
+        #         raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
         ref_index_dict[character_key] = index_list[:id_length]
         ref_totals = ref_totals + index_list[:id_length]
     return character_index_dict,invert_character_index_dict,replace_prompts,ref_index_dict,ref_totals
+
+#character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
+#invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}
+#ref_indexs_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0]}
+#ref_totals: [0, 3, 1, 2]  if 1 role [0]
+
+
+def process_original_text(role_dict,prompts):
+    '''
+    
+    Args:
+        role_dict: # character_dict:{'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.'},character_list:['[Taylor]'] 1role
+                         #character_dict:{'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.', '[Lecun]': ' a man img,wearing a suit,black hair.'} 2role
+        prompts: #[ list  of scense txt]
+
+    Returns:
+        1 role
+       role_index_dict:{'[Taylor]': [0, 1]},
+       invert_role_index_dict:{0: ['[Taylor]'], 1: ['[Taylor]']},
+       replace_prompts:[' a woman img, wearing a white T-shirt, blue loose hair.  wake up in the bed ;', ' a woman img, wearing a white T-shirt, blue loose hair.  have breakfast by the window;'],
+       ref_role_index_dict:{'[Taylor]': [0]},
+       ref_role_totals:[0]
+       2 role
+       role_index_dict:{'[Taylor]': [0, 1], '[Lecun]': [2, 3]},
+       invert_role_index_dict:{0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Lecun]'], 3: ['[Lecun]']},
+       replace_prompts:[' a woman img, wearing a white T-shirt, blue loose hair.  wake up in the bed ;', ' a woman img, wearing a white T-shirt, blue loose hair.  have breakfast by the window;', ' a man img,wearing a suit,black hair.  driving a car;', ' a man img,wearing a suit,black hair.  is working.'],
+       ref_role_index_dict:{'[Taylor]': [0, 1], '[Lecun]': [2, 3]},
+       ref_role_totals:[0, 1, 2, 3]
+    '''
+    replace_prompts = []
+    role_index_dict = {}
+    invert_role_index_dict = {}
+    for ind,prompt in enumerate(prompts):
+        for key in role_dict.keys(): # [Taylor],[Lecun]
+            if key in prompt: # [Taylor] a woman img
+                if key not in role_index_dict:
+                    role_index_dict[key] = [] #character_index_dict:{'[Taylor]': [], '[Lecun]': []},
+                role_index_dict[key].append(ind)  #character_index_dict:{'[Taylor]': [0, 1], '[Lecun]': [2, 3]},
+                if ind not in invert_role_index_dict:
+                    invert_role_index_dict[ind] = [] #invert_character_index_dict:{0: []},
+                invert_role_index_dict[ind].append(key) # invert_character_index_dict:{0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Lecun]'], 3: ['[Lecun]']},
+        cur_prompt = prompt
+        if ind in invert_role_index_dict:
+            for key in invert_role_index_dict[ind]:
+                cur_prompt = cur_prompt.replace(key,role_dict[key] + " ") #去掉[Taylor]
+        replace_prompts.append(cur_prompt)
+    ref_role_index_dict = {}
+    ref_role_totals = []
+    id_len=len(role_dict)
+    for character_key in role_index_dict.keys():
+        if character_key not in role_index_dict:
+            raise f"{character_key} not have prompt description, please remove it"
+        index_list = role_index_dict[character_key] #[0, 1],[3, 4] 如果2是NC
+        index_list = [index for index in index_list if len(invert_role_index_dict[index]) == 1]
+        # if not img_mode:
+        #     if len(index_list) < id_length:
+        #         raise f"{character_key} not have enough prompt description, need no less than {id_length}, but you give {len(index_list)}"
+        ref_role_index_dict[character_key] = index_list[:id_len]
+        ref_role_totals = ref_role_totals + index_list[:id_len]
+    return role_index_dict,invert_role_index_dict,replace_prompts,ref_role_index_dict,ref_role_totals
 
 #character_index_dict：{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
 #invert_character_index_dict:{0: ['[Taylor]'], 1: ['[sam]'], 2: ['[sam]'], 3: ['[Taylor]']},if 1 role  {0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Taylor]']}

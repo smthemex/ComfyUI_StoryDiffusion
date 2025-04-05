@@ -47,7 +47,7 @@ class QFormerPerceiver(nn.Module):
         self.num_tokens = num_tokens
         self.cross_attention_dim = cross_attention_dim
         self.use_residual = use_residual
-        print(cross_attention_dim*num_tokens)
+        #print(cross_attention_dim*num_tokens)
         self.token_proj = nn.Sequential(
             nn.Linear(id_embeddings_dim, id_embeddings_dim*ratio),
             nn.GELU(),
@@ -82,6 +82,7 @@ class FuseModule(nn.Module):
         self.layer_norm = nn.LayerNorm(embed_dim)
 
     def fuse_fn(self, prompt_embeds, id_embeds):
+ 
         stacked_id_embeds = torch.cat([prompt_embeds, id_embeds], dim=-1)
         stacked_id_embeds = self.mlp1(stacked_id_embeds) + prompt_embeds
         stacked_id_embeds = self.mlp2(stacked_id_embeds)
@@ -95,6 +96,7 @@ class FuseModule(nn.Module):
         class_tokens_mask,
     ) -> torch.Tensor:
         # id_embeds shape: [b, max_num_inputs, 1, 2048]
+      
         id_embeds = id_embeds.to(prompt_embeds.dtype)
         num_inputs = class_tokens_mask.sum().unsqueeze(0) # TODO: check for training case
         batch_size, max_num_inputs = id_embeds.shape[:2]
@@ -112,10 +114,13 @@ class FuseModule(nn.Module):
         valid_id_embeds = flat_id_embeds[valid_id_mask.flatten()]
 
         prompt_embeds = prompt_embeds.view(-1, prompt_embeds.shape[-1])
+   
         class_tokens_mask = class_tokens_mask.view(-1)
         valid_id_embeds = valid_id_embeds.view(-1, valid_id_embeds.shape[-1])
         # slice out the image token embeddings
+    
         image_token_embeds = prompt_embeds[class_tokens_mask]
+     
         stacked_id_embeds = self.fuse_fn(image_token_embeds, valid_id_embeds)
         assert class_tokens_mask.sum() == stacked_id_embeds.shape[0], f"{class_tokens_mask.sum()} != {stacked_id_embeds.shape[0]}"
         prompt_embeds.masked_scatter_(class_tokens_mask[:, None], stacked_id_embeds.to(prompt_embeds.dtype))
@@ -148,6 +153,7 @@ class PhotoMakerIDEncoder_CLIPInsightfaceExtendtoken(CLIPVisionModelWithProjecti
 
         id_embeds = self.qformer_perceiver(id_embeds, last_hidden_state)
         id_embeds = id_embeds.view(b, num_inputs, self.num_tokens, -1)
+    
         updated_prompt_embeds = self.fuse_module(prompt_embeds, id_embeds, class_tokens_mask)
 
         return updated_prompt_embeds

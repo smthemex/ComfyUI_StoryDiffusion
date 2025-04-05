@@ -38,23 +38,18 @@ def get_lora_dict():
 datas = get_lora_dict()
 lora_lightning_list = datas["lightning_xl_lora"]
 
-def load_models(path,model_type,single_files,use_safetensors,photomake_mode,photomaker_path,lora,lora_path,trigger_words,lora_scale):
+def load_models(path,model_type,single_files,use_safetensors,photo_vesion,photomaker_path,lora,lora_path,trigger_words,lora_scale):
     path=get_instance_path(path)
     if model_type == "txt2img":
         if single_files:
-         
             try:
                 pipe = StableDiffusionXLPipeline.from_single_file(
                     path,config=add_config, original_config=original_config_file, torch_dtype=torch.float16)
             except:
-                try:
-                    pipe = StableDiffusionXLPipeline.from_single_file(
+                pipe = StableDiffusionXLPipeline.from_single_file(
                         path,config=add_config, original_config_file=original_config_file,
                         torch_dtype=torch.float16
                     )
-                except:
-                    raise "load pipe error"
-
         else:
             pipe = StableDiffusionXLPipeline.from_pretrained(
                 path, torch_dtype=torch.float16,use_safetensors=use_safetensors
@@ -69,7 +64,7 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
 
     elif model_type == "img2img":
-        if photomake_mode=="v1":
+        if photo_vesion== "v1" :
             if single_files:
                 # print("loading from a single_files")
                 try:
@@ -77,13 +72,10 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                         path,config=add_config, original_config=original_config_file,
                         torch_dtype=torch.float16, use_safetensors=use_safetensors)
                 except:
-                    try:
-                        pipe = PhotoMakerStableDiffusionXLPipeline.from_single_file(
+                    pipe = PhotoMakerStableDiffusionXLPipeline.from_single_file(
                             path, config=add_config,original_config_file=original_config_file,
                             torch_dtype=torch.float16, use_safetensors=use_safetensors
                         )
-                    except:
-                        raise "load pipe error"
             
             else:
                 pipe = PhotoMakerStableDiffusionXLPipeline.from_pretrained(
@@ -104,20 +96,17 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                         path,config=add_config, original_config=original_config_file,
                         torch_dtype=torch.float16, use_safetensors=use_safetensors)
                 except:
-                    try:
-                        pipe = PhotoMakerStableDiffusionXLPipelineV2.from_single_file(
+                    pipe = PhotoMakerStableDiffusionXLPipelineV2.from_single_file(
                             path, config=add_config,original_config_file=original_config_file,
                             torch_dtype=torch.float16, use_safetensors=use_safetensors
                         )
-                    except:
-                        raise "load pipe error"
             else:
                 pipe = PhotoMakerStableDiffusionXLPipelineV2.from_pretrained(
                     path, torch_dtype=torch.float16, use_safetensors=use_safetensors
                 )
             # define the trigger word
             pipe.load_photomaker_adapter(
-                photomaker_path,
+                "F:/test/ComfyUI/models/photomaker/photomaker-v2.bin",
                 subfolder="",
                 weight_name="photomaker-v2.bin",
                 trigger_word="img",
@@ -133,6 +122,7 @@ def load_models(path,model_type,single_files,use_safetensors,photomake_mode,phot
                 pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
 
     else:
-        raise f"using{model_type}node,must choice{model_type}type in model_loader node"
+        print(f"using{model_type}node,must choice{model_type}type in model_loader node")
+        raise "load error"
     return pipe
 

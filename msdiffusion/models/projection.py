@@ -200,8 +200,9 @@ class Resampler(nn.Module):
             boxes = grounding_kwargs["boxes"]
             phrase_embeds = grounding_kwargs["phrase_embeds"]
             fourier_embeds = self.fourier_embedder(boxes)
+            #print(phrase_embeds.shape,fourier_embeds.shape)
             grounding_embeds = torch.cat((phrase_embeds, fourier_embeds), dim=-1)
-
+            
             drop_grounding_tokens = grounding_kwargs["drop_grounding_tokens"]
             num_ref = x.shape[0] // len(drop_grounding_tokens)
             drop_grounding_tokens = [item for item in drop_grounding_tokens for _ in range(num_ref)]

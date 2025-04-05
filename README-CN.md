@@ -1,11 +1,12 @@
 # ComfyUI_StoryDiffusion
-本节点主要方法来源于[StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) ，部分内容也来源于[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou) 感谢他们的开源！   
+本节点主要方法来源于[StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) ，部分内容也来源于[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter)  感谢他们的开源！   
 
 
 ## 更新:
-**2025/03/26** 
-* 加入了gguf和svdquant对InfiniteYou的量化支持，svdquant需要torch>=2.6，且python版本有要求（windows），测试svdquant的量化似乎会导致InfiniteYou失效
-* 加入了InfiniteYou的支持，类IP方法人脸特征迁移，用于flux模型，可用lora，所有模型地址在[此](https://huggingface.co/ByteDance/InfiniteYou)，有两种风格的cn模型
+**2024/11/15** 
+* 加入了consistory的支持，你可以在easyfunction输入consi开启此功能(cache,inject2个附属功能，显存大的可以试试)  
+* consistory模式只支持单主体，当然你也可以使用(cat)或者（boy）或者（hat）,来创造2个主体，比如在角色栏输入 a cure [girl],wearing a (hat).可查看示例图片
+* lora功能已加入 
 
 
 ## 特色功能
@@ -35,10 +36,7 @@
 **Flux and PULID-FLUX**
 * flux支持图生图和文生图，量化fp8和nf4运行，推荐用最快的nf4，但是这两模式都需要本地flux diffuse模型并在ckpt name选模型，在填写 'repo_id'格式"X:/xxx/xxx/black-forest-labs/FLUX.1-dev";开启nf4，需要在easy-function输入nf4，如果你想保存自己的量化fp8模型，可以只用repo跑，然后在easy-function输入save，会保存一个fp8量化模型到你的checkpoints目录；
 * PULID-FLUX 改成散装式的，clip接comfyUI标准的双clip（1个l 1个T5），ckpt_name选类kj大佬的flux Unet模型（模型名字里必须有flux），clip-vision选pulid的'EVA02_CLIP_L_336_psz14_s6B.pt“模型，vae选择flux标准的 'ae.safetensors'模型，然后在easy-function输入 'pulid, fp8, cpu' 就可以跑，当然你是4090可以试试去掉cpu；
-
-**InfiniteYou**
-* 模型加载节点填写本地或者在线flux dev 的repo地址，easyfunction填写infinite,注意不能有大写，前置model连节点easyfunction_lite（插件自带），easyfunction_lite的repo填写InfiniteYou的cn模型地址（见示例及说明）。
-* 因为模型显存要求较大，默认对flux模型使用nf4的量化，新增gguf和svd量化加速，12G目前可用，8G未测试
+  
 
 1.安装
 -----
@@ -267,43 +265,6 @@ RMBG-1.4 下载至  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自
 |         ├── w600k_r50.onnx
 
 ```
-**3.4 使用字节的InfiniteYou**
-* 3.4.1 flux-dev 的diffusers 模型地址 [here](https://huggingface.co/black-forest-labs/FLUX.1-dev)
-* 3.4.2 infinite 的cn和IP模型地址 from [here ](https://huggingface.co/ByteDance/InfiniteYou) ,sim_stage1 ， aes_stage2两个可选，
-```
-├── 任意地址/sim_stage1/
-|         ├── image_proj_model.bin
-|         ├── InfuseNetModel/
-|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
-|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
-|             ├── diffusion_pytorch_model.safetensors.index.json
-|             ├── config.json
-```
-或者
-```
-├── 任意地址/aes_stage2/
-|         ├── image_proj_model.bin
-|         ├── InfuseNetModel/
-|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
-|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
-|             ├── diffusion_pytorch_model.safetensors.index.json
-|             ├── config.json
-```
-* 3.4.3 lora 可选 from [here](https://huggingface.co/ByteDance/InfiniteYou)
-* 3.4.4 insightface
-```
-├── ComfyUI/models/antelopev2/   
-|     ├──1k3d68.onnx  
-|     ├──2d106det.onnx
-|     ├──genderage.onnx
-|     ├──glintr100.onnx
-|     ├──scrfd_10g_bnkps.onnx  
-```
-* 3.4.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) 自带下载，如果网络不通，手动下载放在控制台提示的地址，一般是C盘XXX，便携包的地址在便携的python目录下的"Lib\site-packages\facexlib\weights"，秋叶类似
-* 3.4.6 如果使用gguf量化
-  下载 gguf 模型 from [here](https://huggingface.co/city96/FLUX.1-dev-gguf/tree/main),在'easyfunction_lite' 节点的'select_method'栏目里填写你下载的模型的绝对地址，反斜杠
-* 3.4.7 if use svdquant(optional)
-  下载 svdquant 的repo文件夹模型 from [here](https://huggingface.co/mit-han-lab/svdq-fp4-flux.1-dev/tree/main) 在'easyfunction_lite' 节点的'select_method'栏目里填写你下载的模型的绝对地址，反斜杠
 
 4 Example
 ----
@@ -440,6 +401,10 @@ sd1.5
 图生图  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
+**flux-pulid**   
+图生图 flux pulid  12G Vram,cpu  Flux使用PULID功能,不需要diffuser模型，非最新示例(outdated version example) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
+
 **kolor-face**   
 图生图 kolor face，参数输入没变化，非最新示例  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
@@ -449,8 +414,8 @@ sd1.5
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
 **ms-diffusion**   
-* img2img2role in 1 image，双角色同图，下图1为最新示例    
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/msdiffuion.png)
+* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
 * ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
@@ -536,16 +501,5 @@ Consistory
   publisher={ACM New York, NY, USA}
 }
 ```
-```
-@article{jiang2025infiniteyou,
-  title={{InfiniteYou}: Flexible Photo Recrafting While Preserving Your Identity},
-  author={Jiang, Liming and Yan, Qing and Jia, Yumin and Liu, Zichuan and Kang, Hao and Lu, Xin},
-  journal={arXiv preprint},
-  volume={arXiv:2503.16418},
-  year={2025}
-}
-````
-
-
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)

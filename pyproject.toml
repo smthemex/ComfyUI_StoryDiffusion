@@ -1,9 +1,9 @@
 [project]
 name = "comfyui_storydiffusion"
-description = "you can using sotry-diffusion in comfyui"
-version = "1.3.0"
+description = "you can using sotry-diffusion and lot's of ID reservation methods in comfyui"
+version = "2.0.0"
 license = { file = "LICENSE" }
-dependencies = ["diffusers", "spaces", "peft"]
+dependencies = ["diffusers", "peft"]
 
 [project.urls]
 Repository = "https://github.com/smthemex/ComfyUI_StoryDiffusion"
