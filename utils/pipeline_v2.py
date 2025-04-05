@@ -406,9 +406,7 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                 
                 # Expand the class word token and corresponding mask
                 class_token = clean_input_ids[class_token_index]
-                clean_input_ids = clean_input_ids[:class_token_index] + [
-                    class_token] * num_id_images * self.num_tokens + \
-                                  clean_input_ids[class_token_index + 1:]
+                clean_input_ids = clean_input_ids[:class_token_index] + [class_token] * num_id_images * self.num_tokens + clean_input_ids[class_token_index + 1:]
                 
                 # Truncation or padding
                 max_len = tokenizer.model_max_length
@@ -419,9 +417,7 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                             max_len - len(clean_input_ids)
                     )
                 
-                class_tokens_mask = [
-                    True if class_token_index <= i < class_token_index + (num_id_images * self.num_tokens) else False \
-                    for i in range(len(clean_input_ids))]
+                class_tokens_mask = [True if class_token_index <= i < class_token_index + (num_id_images * self.num_tokens) else False for i in range(len(clean_input_ids))]
                 
                 clean_input_ids = torch.tensor(clean_input_ids, dtype=torch.long).unsqueeze(0)
                 class_tokens_mask = torch.tensor(class_tokens_mask, dtype=torch.bool).unsqueeze(0)
@@ -800,6 +796,8 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                 if not nc_flag: #v2必须要有id_embeds
                     if id_embeds is not None:
                         id_embeds = id_embeds.unsqueeze(0).to(device=device, dtype=dtype)
+                        #print(id_pixel_values.shape, id_embeds.shape, prompt_embeds.shape, class_tokens_mask.shape)  #torch.Size([1, 1, 3, 224, 224]) torch.Size([1, 512]) torch.Size([1, 77, 2048]) torch.Size([1, 77])
+                       
                         prompt_embeds = self.id_encoder(id_pixel_values, prompt_embeds, class_tokens_mask, id_embeds)
                     else:
                         prompt_embeds = self.id_encoder(id_pixel_values, prompt_embeds, class_tokens_mask)

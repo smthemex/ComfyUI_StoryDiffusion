@@ -131,7 +131,9 @@ class InfUFluxPipeline:
             infu_flux_version='v1.0',
             model_version='aes_stage2',
             text_encoder_2=None,
+            text_encoder=None,
             transformer=None,
+            vae=None,
         ):
         
 
@@ -140,11 +142,18 @@ class InfUFluxPipeline:
         
         # Load pipeline
         self.infusenet = FluxControlNetModel.from_pretrained(infu_model_path, torch_dtype=torch.bfloat16)
-        pipe = FluxInfuseNetPipeline.from_pretrained(
-                        base_model_path,transformer=transformer,text_encoder_2=text_encoder_2,
-                        controlnet=self.infusenet,
-                        torch_dtype=torch.bfloat16,
-                    )
+        if vae is not None:
+            pipe = FluxInfuseNetPipeline.from_pretrained(
+                            base_model_path,vae=vae,transformer=transformer,text_encoder_2=text_encoder_2,text_encoder=text_encoder,
+                            controlnet=self.infusenet,
+                            torch_dtype=torch.bfloat16,
+                        )
+        else:
+            pipe = FluxInfuseNetPipeline.from_pretrained(
+                            base_model_path,transformer=transformer,text_encoder_2=text_encoder_2,text_encoder=text_encoder,
+                            controlnet=self.infusenet,
+                            torch_dtype=torch.bfloat16,
+                        )
         # try:
         #     infusenet_path = os.path.join(infu_model_path, 'InfuseNetModel')
         #     self.infusenet = FluxControlNetModel.from_pretrained(infusenet_path, torch_dtype=torch.bfloat16)
@@ -243,7 +252,8 @@ class InfUFluxPipeline:
     def __call__(
         self,
         id_embed: Image.Image,  # PIL.Image.Image (RGB)
-        prompt: str,
+        prompt_embeds,
+        pooled_prompt_embeds,
         control_image: Optional[Image.Image] = None,  # PIL.Image.Image (RGB) or None
         width = 864,
         height = 1152,
@@ -292,7 +302,7 @@ class InfUFluxPipeline:
         print('Generating image')
         seed_everything(seed)
         image = self.pipe(
-            prompt=prompt,
+            prompt=None,
             controlnet_prompt_embeds=id_embed,
             control_image=control_image,
             guidance_scale=guidance_scale,
@@ -303,6 +313,9 @@ class InfUFluxPipeline:
             control_guidance_end=infusenet_guidance_end,
             height=height,
             width=width,
-        ).images[0]
+            prompt_embeds = prompt_embeds,
+            pooled_prompt_embeds = pooled_prompt_embeds,
+
+        ).images
 
         return image

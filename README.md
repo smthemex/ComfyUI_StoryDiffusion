@@ -2,13 +2,13 @@
 
 * [中文说明](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/README-CN.md)  
 * StoryDiffusion origin From: [link](https://github.com/HVision-NKU/StoryDiffusion)
-* The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou)
+* The project also uses the following open-source projects:[MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[consistory](https://github.com/NVlabs/consistory),[kolor](https://github.com/Kwai-Kolors/Kolors),[pulid](https://github.com/ToTheBeginning/PuLID),[flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) 
 
 ## Updates:
-**2025/03/27**
-* fix some bug ,you can link condition_image for control infinite now (4 prompt use 4 condition is better)
-* and [gguf](https://github.com/city96/ComfyUI-GGUF)  and [SVDQuant](https://github.com/mit-han-lab/nunchaku?tab=readme-ov-file#Installation)  quantization model support for 'InfiniteYou',svdquant need torch>=2.6,use wheel to install it.
-* add InfiniteYou function from [here](https://github.com/bytedance/InfiniteYou)
+**2024/11/15**
+* Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
+* The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；
+* NOW,you can use lora when using consistory mode; 
   
 ## Function introduction  
 **story-diffusion**    
@@ -38,11 +38,7 @@
 
 **Flux and PULID-FLUX**  
 * Flux supports img2img and txt2img, and supports FP8 and NF4 (recommended) quantization models；To enable it, enter the local path of flux diffuser in 'repo_id' and select the corresponding model in 'ckpt-name';example fill "X:/xxx/xxx/black-forest-labs/FLUX.1-dev"; 
-* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8('Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL") model (with flux in the name),'ae.safetensors' in vae menu, fill in 'pulid, fp8' in 'easy-function' ;The accompanying 'insightface' model will be automatically downloaded;
-
-**InfiniteYou**
-* InfiniteYou only support img2img,download checkpoints from [here](https://huggingface.co/ByteDance/InfiniteYou),need link Easyfunction_lite,and fill in repo
-* only support repo mode now,default quant type is nf4 (if use fp16,need VRAM 40G)
+* PULID-FLUX needs to connect to the dual clip nodes of comfy in clip, and select 'EVA02_CLIP_L_336_psz14_s6B.pt ' in  clip-vision, Select a Flux FP8('Kijai/flux-fp8' and "Shakker-Labs/AWPortrait-FL") model (with flux in the name),'ae.safetensors' in vae menu, fill in 'pulid, fp8' in 'easy-function' ;The accompanying 'insightface' model will be automatically downloaded; 
 
 1.Installation  
 -----
@@ -265,58 +261,8 @@ RMBG-1.4 from  [link](https://huggingface.co/briaai/RMBG-1.4/tree/main)#自动�
 |         ├── genderage.onnx
 |         ├── w600k_r50.onnx
 ```
-**3.6 if using InfiniteYou**
-* 3.6.1 flux-dev repo frome [here](https://huggingface.co/black-forest-labs/FLUX.1-dev)
-* 3.6.2 infinite controlnet from [here ](https://huggingface.co/ByteDance/InfiniteYou) ,you can use  sim_stage1 or aes_stage2
-```
-├── any_path/sim_stage1/
-|         ├── image_proj_model.bin
-|         ├── InfuseNetModel/
-|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
-|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
-|             ├── diffusion_pytorch_model.safetensors.index.json
-|             ├── config.json
-```
-or 
-```
-├── any_path/aes_stage2/
-|         ├── image_proj_model.bin
-|         ├── InfuseNetModel/
-|             ├── diffusion_pytorch_model-00001-of-00002.safetensors
-|             ├── diffusion_pytorch_model-00002-of-00002.safetensors
-|             ├── diffusion_pytorch_model.safetensors.index.json
-|             ├── config.json
-```
-* 3.6.3 lora optional from [here](https://huggingface.co/ByteDance/InfiniteYou)
-* 3.6.4 insightface
-```
-├── ComfyUI/models/antelopev2/   
-|     ├──1k3d68.onnx  
-|     ├──2d106det.onnx
-|     ├──genderage.onnx
-|     ├──glintr100.onnx
-|     ├──scrfd_10g_bnkps.onnx  
-```
-* 3.6.5 recognition_arcface_ir_se50.pth from [here](https://github.com/xinntao/facexlib/releases/download/v0.1.0/recognition_arcface_ir_se50.pth) auto download,which embeded comfyui in "Lib\site-packages\facexlib\weights" dir 
-* 3.6.6 if use gguf quatization (optional)
-  download gguf from [here](https://huggingface.co/city96/FLUX.1-dev-gguf/tree/main),and  fill local path in 'easyfunction_lite' node's 'select_method'
-* 3.6.7 if use svdquant(optional)
-  download svdquant repo from [here](https://huggingface.co/mit-han-lab/svdq-fp4-flux.1-dev/tree/main) and  fill local path in 'easyfunction_lite' node's 'select_method'
- 
-   
-
 4 Example
 ----
-**InfiniteYou**
-* 2 role 4 prompt 2 control_image(need fit prompt) 
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite_control.png)
-* normal use nf4 default,fast,quality best
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/infinite.png)
-* use gguf quant,slowly(Q6,VRAM12G) quality best
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/gguf.png)
-* use svd quant,fast,quality normal(look like not useful)
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/svd.png) 
-
 **consistory**
 * whtn fill 'consi' in easyfunction is enable.. (Latest version)
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/consitstory.png)
@@ -352,6 +298,10 @@ img2img using controlnet and 2roles in 1 img  纯storymaker生成，最新示例
 img2img  纯storymaker生成，非最新示例 (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/maker2role.png)
 
+**flux-pulid**   
+img2img mode use flux pulid  12G Vram,cpu  Flux使用PULID功能,非最新示例(outdated version examples) 
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/flux.png)
+
 **kolor-face**   
 img2img kolor face，参数输入没变化，非最新示例  (outdated version examples)   
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/kolor.png)
@@ -361,8 +311,8 @@ img2img kolor face，参数输入没变化，非最新示例  (outdated version 
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/nf4.png)
 
 **ms-diffusion**   
-* img2img2role in 1 image，双角色同图，最新示例 (new version examples)   
-![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/msdiffuion.png)
+* img2img2role in 1 image，双角色同图，非最新示例 (Outdated version examples)   
+![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/2rolein1img.png)
 * ControlNet added dual role co frame (Role 1 and Role 2) (Outdated version examples)  
 ![](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/controlnet.png)
 
@@ -433,9 +383,6 @@ Function Description of Nodes
 
 Previous updates
 ----
-* change some ms-diffusion'codes,if you use "[A] a (man) img " in role prompts,will get better of MS mode.
-* Added support for 'consistory', you can enable this feature by typing 'consi' in easy_function ('cache' and 'inject' are two additional features, you can try with larger VRAM);
-* The 'consistory' mode only supports single subjects, but you can also use (cat), (boy), or (hat) to create two subjects, such as entering:' a curve [girl] and wearing a (hat) 'in the character bar，Example images can be viewed；you can use lora when using consistory mode;  
 * if use comfyUI sd3.5 clip and sd 3.5vae( from sd3.5 repo),can load single checkpoint(fp16,nf4 ) which can infer in nf4 mode.（need newest diffusers）
 * add sd3.5 large support,can infer in normal or nf4 mode,nf4 mode has two chocie: fill in all local sd3.5 repo(need pip install -U diffusers)  or fill  local sd3.5 repo and chocie [nf4](https://huggingface.co/sayakpaul/sd35-large-nf4/tree/main/transformer) checkpoint([example](https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/examples/sd35nf4singlefile.png)). if use nf4 need fill in 'nf4' in easyfunction.   
 * add easy_function_lite node,you can use img2tag instead of scene prompts. The current models used are  [pzc163/MiniCPMv2_6-prompt-generator](https://huggingface.co/pzc163/MiniCPMv2_6-prompt-generator) and [thwri/CogFlorence-2-Large-Freeze](https://huggingface.co/thwri/CogFlorence-2-Large-Freeze) . Using "thwri/CogFlorence-2-Large-Freeze" requires inputting "flor" in the lite node's easy_function,Temporarily run CUDA during the testing phase.
@@ -549,24 +496,6 @@ Consistory
   publisher={ACM New York, NY, USA}
 }
 ```
-```
-@article{jiang2025infiniteyou,
-  title={{InfiniteYou}: Flexible Photo Recrafting While Preserving Your Identity},
-  author={Jiang, Liming and Yan, Qing and Jia, Yumin and Liu, Zichuan and Kang, Hao and Lu, Xin},
-  journal={arXiv preprint},
-  volume={arXiv:2503.16418},
-  year={2025}
-}
-```
-```
-@inproceedings{
-  li2024svdquant,
-  title={SVDQuant: Absorbing Outliers by Low-Rank Components for 4-Bit Diffusion Models},
-  author={Li*, Muyang and Lin*, Yujun and Zhang*, Zhekai and Cai, Tianle and Li, Xiuyu and Guo, Junxian and Xie, Enze and Meng, Chenlin and Zhu, Jun-Yan and Han, Song},
-  booktitle={The Thirteenth International Conference on Learning Representations},
-  year={2025}
-}
-```
-[GGUF](https://github.com/city96/ComfyUI-GGUF) 
+
 FLUX
 ![LICENSE](https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md)

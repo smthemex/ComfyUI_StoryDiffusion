@@ -273,10 +273,13 @@ class MaskedIPAttnProcessor2_0(nn.Module):
             # (batch, heads, source_length, target_length)
             attention_mask = attention_mask.view(batch_size, attn.heads, -1, attention_mask.shape[-1])
         rf_attention_mask = None
+        #print(boxes, phrase_idxes, hidden_states.shape[1],self.text_tokens, batch_size, attn.heads,
+                                                                #hidden_states.dtype, hidden_states.device) #one None 2304 77 2 10 torch.float16 cuda:0
         custom_attention_masks = self.prepare_attention_mask_qk(boxes, phrase_idxes, hidden_states.shape[1],
                                                                 self.text_tokens, batch_size, attn.heads,
                                                                 hidden_states.dtype, hidden_states.device,
                                                                 use_masked_text_attention=False)
+        #print(custom_attention_masks)
         attention_mask_qk_image, attention_mask_qk_text, dummy_attention_mask = custom_attention_masks
         if attention_mask_qk_image is not None:
             attention_mask_qk_image = attention_mask_qk_image.view(batch_size, attn.heads, -1, attention_mask_qk_image.shape[-1])

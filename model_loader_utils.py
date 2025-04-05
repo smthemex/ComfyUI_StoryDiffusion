@@ -1,40 +1,34 @@
 # !/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import datetime
-import gc
+
 import logging
 import os
-import sys
 import re
 import random
 import torch
-from diffusers.image_processor import VaeImageProcessor
+import gc
 from omegaconf import OmegaConf
 from PIL import Image
 import numpy as np
 import cv2
-from safetensors.torch import load_file
-from huggingface_hub import hf_hub_download
-from transformers import CLIPImageProcessor
-from diffusers import (StableDiffusionXLPipeline,  DDIMScheduler, ControlNetModel,
+from diffusers import ( DDIMScheduler, 
                        KDPM2AncestralDiscreteScheduler, LMSDiscreteScheduler,
                         DPMSolverMultistepScheduler, DPMSolverSinglestepScheduler,
                        EulerDiscreteScheduler, HeunDiscreteScheduler,
                        KDPM2DiscreteScheduler,
                        EulerAncestralDiscreteScheduler, UniPCMultistepScheduler,
-                       StableDiffusionXLControlNetPipeline, DDPMScheduler, LCMScheduler)
+                        DDPMScheduler, LCMScheduler)
 
 from .msdiffusion.models.projection import Resampler
-from .msdiffusion.models.model import MSAdapter
-from .msdiffusion.utils import get_phrase_idx, get_eot_idx
+from .msdiffusion.models.modelWrapper import MSAdapter as MSAdapterWarpper
 from .utils.style_template import styles
-from .utils.load_models_utils import  get_lora_dict,get_instance_path
+from .utils.load_models_utils import  get_lora_dict
 from .PuLID.pulid.utils import resize_numpy_image_long
 from transformers import AutoModel, AutoTokenizer
 from comfy.utils import common_upscale,ProgressBar
 import folder_paths
-
 from comfy.clip_vision import load as clip_load
+from .utils.gradio_utils import process_original_text,character_to_dict
 
 cur_path = os.path.dirname(os.path.abspath(__file__))
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
@@ -55,6 +49,11 @@ SAMPLER_NAMES = ["euler", "euler_cfg_pp", "euler_ancestral", "euler_ancestral_cf
                   "ipndm", "ipndm_v", "deis","ddim", "uni_pc", "uni_pc_bh2"]
 
 SCHEDULER_NAMES = ["normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform", "beta"]
+
+
+def gc_cleanup():
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 def get_scheduler(name,scheduler_):
@@ -102,170 +101,33 @@ def get_scheduler(name,scheduler_):
     return scheduler
 
 
-def get_easy_function(easy_function, clip_vision, character_weights, ckpt_name, lora, repo_id,photomake_mode):
-    auraface = False
-    NF4 = False
-    save_model = False
-    kolor_face = False
-    flux_pulid_name = "flux-dev"
-    pulid = False
-    quantized_mode = "fp16"
-    story_maker = False
-    make_dual_only = False
-    clip_vision_path = None
-    char_files = ""
-    lora_path = None
-    use_kolor = False
-    use_flux = False
-    ckpt_path = None
-    onnx_provider="gpu"
-    low_vram=False
-    TAG_mode=False
-    SD35_mode=False
-    consistory=False
+
+def get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer_mode):
+    auraface=False
+    use_photov2=False
     cached=False
     inject=False
-    use_quantize=True
-    use_inf=False
-    if easy_function:
-        easy_function = easy_function.strip().lower()
-        if "auraface" in easy_function:
-            auraface = True
-        if "nf4" in easy_function:
-            NF4 = True
-        if "save" in easy_function:
-            save_model = True
-        if "face" in easy_function:
-            kolor_face = True
-        if "schnell" in easy_function:
-            flux_pulid_name = "flux-schnell"
-        if "pulid" in easy_function:
-            pulid = True
-        if "fp8" in easy_function:
-            quantized_mode = "fp8"
-        if "maker" in easy_function:
-            story_maker = True
-        if "dual" in easy_function:
-            make_dual_only = True
-        if "cpu" in easy_function:
-            onnx_provider="cpu"
-        if "low" in easy_function:
-            low_vram=True
-        if "tag" in easy_function:
-            TAG_mode=True
-        if "consi" in easy_function:
-            consistory=True
-        if "cache" in easy_function:
-            cached=True
-        if "inject" in easy_function:
-            inject=True
-        if "noquan" in easy_function:
-            use_quantize=False
-        if "infinite" in easy_function:
-            use_inf=True
+    onnx_provider="gpu"
+    img2img_mode = True if isinstance(image, torch.Tensor) else False
 
+    if extra_funtion:
+        extra_funtion = extra_funtion.strip().lower()
+        if "auraface" in extra_funtion:
+            auraface=True  
     
-    if clip_vision != "none":
-        clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
-    if character_weights != "none":
-        character_weights_path = get_instance_path(os.path.join(base_pt, character_weights))
-        weights_list = os.listdir(character_weights_path)
-        if weights_list:
-            char_files = character_weights_path
-    if ckpt_name != "none":
-        ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
-    if lora != "none":
-        lora_path = folder_paths.get_full_path("loras", lora)
-        lora_path = get_instance_path(lora_path)
-        if "/" in lora:
-            lora = lora.split("/")[-1]
-        if "\\" in lora:
-            lora = lora.split("\\")[-1]
-    else:
-        lora = None
-    if repo_id:
-        if "kolors" in repo_id.lower():
-            use_kolor = True
-            photomake_mode = ""
-        elif "flux" in repo_id.lower():
-            use_flux = True
-            photomake_mode = ""
-        elif "3.5" in repo_id.lower():
-            SD35_mode = True
-        else:
-            pass
-    if pulid:
-        use_flux = True
-        photomake_mode = ""
-    
-    return (auraface, NF4, save_model, kolor_face, flux_pulid_name, pulid, quantized_mode, story_maker, make_dual_only,
-            clip_vision_path, char_files, ckpt_path, lora, lora_path, use_kolor, photomake_mode, use_flux,onnx_provider,low_vram,TAG_mode,SD35_mode,consistory,cached,inject,use_quantize,use_inf)
-def pre_checkpoint(photomaker_path, photomake_mode, kolor_face, pulid, story_maker, clip_vision_path, use_kolor,
-                   model_type,use_flux,SD35_mode,use_inf=False):
-    if not (use_inf or pulid or kolor_face or use_kolor or use_flux or SD35_mode):
-        if photomake_mode == "v1":
-            if not os.path.exists(photomaker_path):
-                photomaker_path = hf_hub_download(
-                    repo_id="TencentARC/PhotoMaker",
-                    filename="photomaker-v1.bin",
-                    local_dir=photomaker_dir,
-                )
-        else:
-            if not os.path.exists(photomaker_path):
-                photomaker_path = hf_hub_download(
-                    repo_id="TencentARC/PhotoMaker-V2",
-                    filename="photomaker-v2.bin",
-                    local_dir=photomaker_dir,
-                )
-    if kolor_face:
-        face_ckpt = os.path.join(photomaker_dir, "ipa-faceid-plus.bin")
-        if not os.path.exists(face_ckpt):
-            hf_hub_download(
-                repo_id="Kwai-Kolors/Kolors-IP-Adapter-FaceID-Plus",
-                filename="ipa-faceid-plus.bin",
-                local_dir=photomaker_dir,
-            )
-        photomake_mode = ""
-    else:
-        face_ckpt = ""
-    if pulid:
-        pulid_ckpt = os.path.join(photomaker_dir, "pulid_flux_v0.9.0.safetensors")
-        if not os.path.exists(pulid_ckpt):
-            hf_hub_download(
-                repo_id="guozinan/PuLID",
-                filename="pulid_flux_v0.9.0.safetensors",
-                local_dir=photomaker_dir,
-            )
-        photomake_mode = ""
-    else:
-        pulid_ckpt = ""
-    if story_maker:
-        photomake_mode = ""
-        if not clip_vision_path:
-            raise ("using story_maker need choice a clip_vision model")
-        # image_encoder_path='laion/CLIP-ViT-H-14-laion2B-s32B-b79K'
-        face_adapter = os.path.join(photomaker_dir, "mask.bin")
-        if not os.path.exists(face_adapter):
-            hf_hub_download(
-                repo_id="RED-AIGC/StoryMaker",
-                filename="mask.bin",
-                local_dir=photomaker_dir,
-            )
-    else:
-        face_adapter = ""
-    
-    kolor_ip_path=""
-    if use_kolor:
-        if model_type == "img2img" and not kolor_face:
-            kolor_ip_path = os.path.join(photomaker_dir, "ip_adapter_plus_general.bin")
-            if not os.path.exists(kolor_ip_path):
-                hf_hub_download(
-                    repo_id="Kwai-Kolors/Kolors-IP-Adapter-Plus",
-                    filename="ip_adapter_plus_general.bin",
-                    local_dir=photomaker_dir,
-                )
-            photomake_mode = ""
-    return photomaker_path, face_ckpt, photomake_mode, pulid_ckpt, face_adapter, kolor_ip_path
+    if extra_param:
+        extra_param = extra_param.strip().lower()
+        if "cache" in extra_param:
+            cached=True
+        if "inject" in extra_param:
+            inject=True
+        if "cpu" in extra_param:
+            onnx_provider="cpu"
+    if isinstance(photomake_ckpt_path, str) and img2img_mode:
+        use_photov2 = True if "v2" in photomake_ckpt_path else False
+
+    return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider
+
 
 
 def phi2narry(img):
@@ -285,6 +147,17 @@ def tensortopil_list(tensor_in):
         tensor_list = torch.chunk(tensor_in, chunks=d1)
         img_list=[tensor_to_image(i) for i in tensor_list]
     return img_list
+
+def tensortopil_list_upscale(tensor_in,width,height):
+    d1, _, _, _ = tensor_in.size()
+    if d1 == 1:
+        img_list = [nomarl_upscale(tensor_in,width,height)]
+    else:
+        tensor_list = torch.chunk(tensor_in, chunks=d1)
+        img_list=[nomarl_upscale(i,width,height) for i in tensor_list]
+    return img_list
+
+
 
 def nomarl_tensor_upscale(tensor, width, height):
     samples = tensor.movedim(-1, 1)
@@ -353,12 +226,6 @@ def narry_list_pil(list_in):
         list_in[i] = modified_value
     return list_in
 
-def get_local_path(file_path, model_path):
-    path = os.path.join(file_path, "models", "diffusers", model_path)
-    model_path = os.path.normpath(path)
-    if sys.platform.startswith('win32'):
-        model_path = model_path.replace('\\', "/")
-    return model_path
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -372,6 +239,7 @@ def apply_style_positive(style_name: str, positive: str):
     p, n = styles.get(style_name, styles[style_name])
     #print(p, "test0", n)
     return p.replace("{prompt}", positive),n
+
 def apply_style(style_name: str, positives: list, negative: str = ""):
     p, n = styles.get(style_name, styles[style_name])
     #print(p,"test1",n)
@@ -379,35 +247,8 @@ def apply_style(style_name: str, positives: list, negative: str = ""):
         p.replace("{prompt}", positive) for positive in positives
     ], n + " " + negative
 
-def array2string(arr):
-    stringtmp = ""
-    for i, part in enumerate(arr):
-        if i != len(arr) - 1:
-            stringtmp += part + "\n"
-        else:
-            stringtmp += part
 
-    return stringtmp
 
-def find_directories(base_path):
-    directories = []
-    for root, dirs, files in os.walk(base_path):
-        for name in dirs:
-            directories.append(name)
-    return directories
-
-def load_character_files(character_files: str):
-    if character_files == "":
-        raise "Please set a character file!"
-    character_files_arr = character_files.splitlines()
-    primarytext = []
-    for character_file_name in character_files_arr:
-        character_file = torch.load(
-            character_file_name, map_location=torch.device("cpu")
-        )
-        character_file.eval()
-        primarytext.append(character_file["character"] + character_file["description"])
-    return array2string(primarytext)
 
 
 def face_bbox_to_square(bbox):
@@ -427,301 +268,10 @@ def face_bbox_to_square(bbox):
 
 
 
-def story_maker_loader(clip_load,clip_vision_path,dir_path,ckpt_path,face_adapter,UniPCMultistepScheduler,controlnet_path,lora_scale,low_vram):
-    logging.info("loader story_maker processing...")
-    from .StoryMaker.pipeline_sdxl_storymaker import StableDiffusionXLStoryMakerPipeline
-    original_config_file = os.path.join(dir_path, 'config', 'sd_xl_base.yaml')
-    add_config = os.path.join(dir_path, "local_repo")
-    try:
-        pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
-            ckpt_path, config=add_config, original_config=original_config_file,
-            torch_dtype=torch.float16)
-    except:
-        try:
-            pipe = StableDiffusionXLStoryMakerPipeline.from_single_file(
-                ckpt_path, config=add_config, original_config_file=original_config_file,
-                torch_dtype=torch.float16)
-        except:
-            raise "load pipe error!,check you diffusers"
-    controlnet=None
-    if controlnet_path:
-        controlnet = ControlNetModel.from_unet(pipe.unet)
-        cn_state_dict = load_file(controlnet_path, device="cpu")
-        controlnet.load_state_dict(cn_state_dict, strict=False)
-        controlnet.to(torch.float16)
-    if device != "mps":
-        if not low_vram:
-            pipe.cuda()
-    image_encoder = clip_load(clip_vision_path)
-    pipe.load_storymaker_adapter(image_encoder, face_adapter, scale=0.8, lora_scale=lora_scale,controlnet=controlnet)
-    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-    #pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-    #pipe.enable_vae_slicing()
-    if device != "mps":
-        if low_vram:
-            pipe.enable_model_cpu_offload()
-    return pipe
-
-
-
-def kolor_loader(repo_id,model_type,set_attention_processor,id_length,kolor_face,clip_vision_path,clip_load,CLIPVisionModelWithProjection,CLIPImageProcessor,
-                 photomaker_dir,face_ckpt,AutoencoderKL,EulerDiscreteScheduler,UNet2DConditionModel):
-    from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256 import \
-        StableDiffusionXLPipeline as StableDiffusionXLPipelineKolors
-    from .kolors.models.modeling_chatglm import ChatGLMModel
-    from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
-    from .kolors.models.unet_2d_condition import UNet2DConditionModel as UNet2DConditionModelkolor
-    logging.info("loader story_maker processing...")
-    text_encoder = ChatGLMModel.from_pretrained(
-        f'{repo_id}/text_encoder', torch_dtype=torch.float16).half()
-    vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
-    tokenizer = ChatGLMTokenizer.from_pretrained(f'{repo_id}/text_encoder')
-    scheduler = EulerDiscreteScheduler.from_pretrained(f"{repo_id}/scheduler")
-    if model_type == "txt2img":
-        unet = UNet2DConditionModel.from_pretrained(f"{repo_id}/unet", revision=None,
-                                                    use_safetensors=True).half()
-        pipe = StableDiffusionXLPipelineKolors(
-            vae=vae,
-            text_encoder=text_encoder,
-            tokenizer=tokenizer,
-            unet=unet,
-            scheduler=scheduler,
-            force_zeros_for_empty_prompt=False, )
-        set_attention_processor(pipe.unet, id_length, is_ipadapter=False)
-    else:
-        if kolor_face is False:
-            from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter import \
-                StableDiffusionXLPipeline as StableDiffusionXLPipelinekoloripadapter
-            if clip_vision_path:
-                image_encoder = clip_load(clip_vision_path).model
-                ip_img_size = 224  # comfyUI defualt is use 224
-                use_singel_clip = True
-            else:
-                image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-                    f'{repo_id}/Kolors-IP-Adapter-Plus/image_encoder', ignore_mismatched_sizes=True).to(
-                    dtype=torch.float16)
-                ip_img_size = 336
-                use_singel_clip = False
-            clip_image_processor = CLIPImageProcessor(size=ip_img_size, crop_size=ip_img_size)
-            unet = UNet2DConditionModelkolor.from_pretrained(f"{repo_id}/unet", revision=None, ).half()
-            pipe = StableDiffusionXLPipelinekoloripadapter(
-                vae=vae,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                unet=unet,
-                scheduler=scheduler,
-                image_encoder=image_encoder,
-                feature_extractor=clip_image_processor,
-                force_zeros_for_empty_prompt=False,
-                use_single_clip=use_singel_clip
-            )
-            if hasattr(pipe.unet, 'encoder_hid_proj'):
-                pipe.unet.text_encoder_hid_proj = pipe.unet.encoder_hid_proj
-            pipe.load_ip_adapter(photomaker_dir, subfolder="", weight_name=["ip_adapter_plus_general.bin"])
-        else:  # kolor ip faceid
-            from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter_FaceID import \
-                StableDiffusionXLPipeline as StableDiffusionXLPipelineFaceID
-            unet = UNet2DConditionModel.from_pretrained(f'{repo_id}/unet', revision=None).half()
-            
-            if clip_vision_path:
-                clip_image_encoder = clip_load(clip_vision_path).model
-                clip_image_processor = CLIPImageProcessor(size=224, crop_size=224)
-                use_singel_clip = True
-            else:
-                clip_image_encoder = CLIPVisionModelWithProjection.from_pretrained(
-                    f'{repo_id}/clip-vit-large-patch14-336', ignore_mismatched_sizes=True)
-                clip_image_encoder.to("cuda")
-                clip_image_processor = CLIPImageProcessor(size=336, crop_size=336)
-                use_singel_clip = False
-            
-            pipe = StableDiffusionXLPipelineFaceID(
-                vae=vae,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                unet=unet,
-                scheduler=scheduler,
-                face_clip_encoder=clip_image_encoder,
-                face_clip_processor=clip_image_processor,
-                force_zeros_for_empty_prompt=False,
-                use_single_clip=use_singel_clip,
-            )
-            pipe = pipe.to("cuda")
-            pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
-            pipe.set_face_fidelity_scale(0.8)
-    return pipe
-    
-    
-def quantized_nf4_extra(ckpt_path,dir_path,mode):
-    if mode=="flux":
-        from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
-        config_file = os.path.join(dir_path, "config.json")
-    else:
-        from diffusers import SD3Transformer2DModel
-        config_file = os.path.join(dir_path, "config/sd35/config.json")
-    from accelerate.utils import set_module_tensor_to_device
-    from accelerate import init_empty_weights
-    from .utils.convert_nf4_flux import _replace_with_bnb_linear, create_quantized_param, \
-        check_quantized_param
-    import gc
-    dtype = torch.bfloat16
-    is_torch_e4m3fn_available = hasattr(torch, "float8_e4m3fn")
-    original_state_dict = load_file(ckpt_path)
-    with init_empty_weights():
-        if mode == "flux":
-            config = FluxTransformer2DModel.load_config(config_file)
-            model = FluxTransformer2DModel.from_config(config).to(dtype)
-            expected_state_dict_keys = list(model.state_dict().keys())
-        else:
-            config = SD3Transformer2DModel.load_config(config_file)
-            model = SD3Transformer2DModel.from_config(config).to(dtype)
-            expected_state_dict_keys = list(model.state_dict().keys())
-    _replace_with_bnb_linear(model, "nf4")
-    
-    for param_name, param in original_state_dict.items():
-        if param_name not in expected_state_dict_keys:
-            continue
-        
-        is_param_float8_e4m3fn = is_torch_e4m3fn_available and param.dtype == torch.float8_e4m3fn
-        if torch.is_floating_point(param) and not is_param_float8_e4m3fn:
-            param = param.to(dtype)
-        
-        if not check_quantized_param(model, param_name):
-            set_module_tensor_to_device(model, param_name, device=0, value=param)
-        else:
-            create_quantized_param(
-                model, param, param_name, target_device=0, state_dict=original_state_dict,
-                pre_quantized=True
-            )
-    
-    del original_state_dict
-    gc.collect()
-    
-    return model
-    
-
-def flux_loader(folder_paths,ckpt_path,repo_id,AutoencoderKL,save_model,model_type,pulid,clip_vision_path,NF4,vae_id,offload,aggressive_offload,pulid_ckpt,quantized_mode,
-                if_repo,dir_path,clip,onnx_provider,use_quantize):
-    # pip install optimum-quanto
-    # https://gist.github.com/AmericanPresidentJimmyCarter/873985638e1f3541ba8b00137e7dacd9
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    weight_transformer = os.path.join(folder_paths.models_dir, "checkpoints", f"transformer_{timestamp}.pt")
-    dtype = torch.bfloat16
-    if not ckpt_path:
-        logging.info("using repo_id ,start flux fp8 quantize processing...")
-        from optimum.quanto import freeze, qfloat8, quantize
-        from diffusers.pipelines.flux.pipeline_flux import FluxPipeline
-        from diffusers import FlowMatchEulerDiscreteScheduler
-        from diffusers.models.transformers.transformer_flux import FluxTransformer2DModel
-        from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-        revision = "refs/pr/1"
-        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(repo_id, subfolder="scheduler",
-                                                                    revision=revision)
-        text_encoder = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-        tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14", torch_dtype=dtype)
-        text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                        torch_dtype=dtype,
-                                                        revision=revision)
-        tokenizer_2 = T5TokenizerFast.from_pretrained(repo_id, subfolder="tokenizer_2",
-                                                      torch_dtype=dtype,
-                                                      revision=revision)
-        vae = AutoencoderKL.from_pretrained(repo_id, subfolder="vae", torch_dtype=dtype,
-                                            revision=revision)
-        transformer = FluxTransformer2DModel.from_pretrained(repo_id, subfolder="transformer",
-                                                             torch_dtype=dtype, revision=revision)
-        quantize(transformer, weights=qfloat8)
-        freeze(transformer)
-        if save_model:
-            print(f"saving fp8 pt on '{weight_transformer}'")
-            torch.save(transformer,
-                       weight_transformer)  # https://pytorch.org/tutorials/beginner/saving_loading_models.html.
-        quantize(text_encoder_2, weights=qfloat8)
-        freeze(text_encoder_2)
-        if model_type == "img2img":
-            # https://github.com/deforum-studio/flux/blob/main/flux_pipeline.py#L536
-            from .utils.flux_pipeline import FluxImg2ImgPipeline
-            pipe = FluxImg2ImgPipeline(
-                scheduler=scheduler,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                text_encoder_2=None,
-                tokenizer_2=tokenizer_2,
-                vae=vae,
-                transformer=None,
-            )
-        else:
-            pipe = FluxPipeline(
-                scheduler=scheduler,
-                text_encoder=text_encoder,
-                tokenizer=tokenizer,
-                text_encoder_2=None,
-                tokenizer_2=tokenizer_2,
-                vae=vae,
-                transformer=None,
-            )
-        pipe.text_encoder_2 = text_encoder_2
-        pipe.transformer = transformer
-        pipe.enable_model_cpu_offload()
-    else:  # flux diff unet ,diff 0.30 ckpt or repo
-        from diffusers import FluxTransformer2DModel, FluxPipeline
-        from transformers import T5EncoderModel, CLIPTextModel
-        from optimum.quanto import freeze, qfloat8, quantize
-        if pulid:
-            logging.info("using repo_id and ckpt ,start flux-pulid processing...")
-            from .PuLID.app_flux import FluxGenerator
-            if not clip_vision_path:
-                raise "need 'EVA02_CLIP_L_336_psz14_s6B.pt' in comfyUI/models/clip_vision"
-            if NF4:
-                quantized_mode = "nf4"
-            if vae_id == "none":
-                raise "Now,using pulid must choice ae from comfyUI vae menu"
-            else:
-                vae_path = folder_paths.get_full_path("vae", vae_id)
-            pipe = FluxGenerator(repo_id, ckpt_path, "cuda", offload=offload,
-                                 aggressive_offload=aggressive_offload, pretrained_model=pulid_ckpt,
-                                 quantized_mode=quantized_mode, clip_vision_path=clip_vision_path, clip_cf=clip,
-                                 vae_cf=vae_path, if_repo=if_repo,onnx_provider=onnx_provider,use_quantize=use_quantize)
-        else:
-            if NF4:
-                logging.info("using repo_id and ckpt ,start flux nf4 quantize processing...")
-                # https://github.com/huggingface/diffusers/issues/9165
-                mode="flux"
-                model=quantized_nf4_extra(ckpt_path, dir_path, mode)
-                if model_type == "img2img":
-                    from .utils.flux_pipeline import FluxImg2ImgPipeline
-                    pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=model,
-                                                               torch_dtype=dtype)
-                else:
-                    pipe = FluxPipeline.from_pretrained(repo_id, transformer=model, torch_dtype=dtype)
-            else:
-                logging.info("using repo_id and ckpt ,start flux fp8 quantize processing...")
-                if os.path.splitext(ckpt_path)[-1] == ".pt":
-                    transformer = torch.load(ckpt_path)
-                    transformer.eval()
-                else:
-                    config_file = os.path.join(dir_path, "utils", "config.json")
-                    transformer = FluxTransformer2DModel.from_single_file(ckpt_path, config=config_file,
-                                                                          torch_dtype=dtype)
-                text_encoder_2 = T5EncoderModel.from_pretrained(repo_id, subfolder="text_encoder_2",
-                                                                torch_dtype=dtype)
-                quantize(text_encoder_2, weights=qfloat8)
-                freeze(text_encoder_2)
-                
-                if model_type == "img2img":
-                    from .utils.flux_pipeline import FluxImg2ImgPipeline
-                    pipe = FluxImg2ImgPipeline.from_pretrained(repo_id, transformer=None,
-                                                               text_encoder_2=clip,
-                                                               torch_dtype=dtype)
-                else:
-                    pipe = FluxPipeline.from_pretrained(repo_id,transformer=None,text_encoder_2=None,
-                                                        torch_dtype=dtype)
-                pipe.transformer = transformer
-                pipe.text_encoder_2 = text_encoder_2
-            pipe.enable_model_cpu_offload()
-    return pipe
-
-def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual_only,use_storydif,use_inf=None):
-    if use_storydif and photomake_mode == "v2" and not story_maker:
-        from .utils.insightface_package import FaceAnalysis2, analyze_faces
+def insight_face_loader(infer_mode,use_photov2,auraface,onnx_provider="cpu",mask_repo="briaai/RMBG-1.4"):
+    insightface_root_path= folder_paths.base_path
+    if infer_mode=="story" and use_photov2:
+        from .utils.insightface_package import FaceAnalysis2
         if auraface:
             from huggingface_hub import snapshot_download
             snapshot_download(
@@ -729,7 +279,7 @@ def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual
                 local_dir="models/auraface",
             )
             app_face = FaceAnalysis2(name="auraface",
-                                     providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=".",
+                                     providers=["CUDAExecutionProvider", "CPUExecutionProvider"], root=insightface_root_path,
                                      allowed_modules=['detection', 'recognition'])
         else:
             app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
@@ -737,67 +287,90 @@ def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual
         app_face.prepare(ctx_id=0, det_size=(640, 640))
         pipeline_mask = None
         app_face_ = None
-    elif kolor_face:
+    elif infer_mode=="kolor_face" :
         from .kolors.models.sample_ipadapter_faceid_plus import FaceInfoGenerator
         from huggingface_hub import snapshot_download
         snapshot_download(
             'DIAMONIK7777/antelopev2',
             local_dir='models/antelopev2',
         )
-        app_face = FaceInfoGenerator(root_dir=".")
+        app_face = FaceInfoGenerator(root_dir=insightface_root_path)
         pipeline_mask = None
         app_face_ = None
-    elif story_maker:
+    elif infer_mode=="story_maker":
         from insightface.app import FaceAnalysis
         from transformers import pipeline
-        pipeline_mask = pipeline("image-segmentation", model="briaai/RMBG-1.4",
+        pipeline_mask = pipeline("image-segmentation", model=mask_repo,
                                  trust_remote_code=True)
-        if make_dual_only:  # 前段用story 双人用maker
-            if photomake_mode == "v2" and use_storydif:
-                from .utils.insightface_package import FaceAnalysis2
-                if auraface:
-                    from huggingface_hub import snapshot_download
-                    snapshot_download(
-                        "fal/AuraFace-v1",
-                        local_dir="models/auraface",
-                    )
-                    app_face = FaceAnalysis2(name="auraface",
-                                             providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
-                                             root=".",
-                                             allowed_modules=['detection', 'recognition'])
-                else:
-                    app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
-                                             allowed_modules=['detection', 'recognition'])
-                app_face.prepare(ctx_id=0, det_size=(640, 640))
-                app_face_ = FaceAnalysis(name='buffalo_l', root='./',
-                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-                app_face_.prepare(ctx_id=0, det_size=(640, 640))
+
+        app_face = FaceAnalysis(name='buffalo_l', root=insightface_root_path,
+                                providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        app_face.prepare(ctx_id=0, det_size=(640, 640))
+        app_face_ = None
+
+    elif infer_mode=="story_and_maker":
+        from insightface.app import FaceAnalysis
+        from transformers import pipeline
+        pipeline_mask = pipeline("image-segmentation", model=mask_repo,
+                                 trust_remote_code=True)
+        if use_photov2:
+            from .utils.insightface_package import FaceAnalysis2
+            if auraface:
+                from huggingface_hub import snapshot_download
+                snapshot_download(
+                    "fal/AuraFace-v1",
+                    local_dir="models/auraface",
+                )
+                app_face = FaceAnalysis2(name="auraface",
+                                            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+                                            root=insightface_root_path,
+                                            allowed_modules=['detection', 'recognition'])
             else:
-                app_face = FaceAnalysis(name='buffalo_l', root='./',
+                app_face = FaceAnalysis2(providers=['CUDAExecutionProvider'],
+                                            allowed_modules=['detection', 'recognition'])
+            app_face.prepare(ctx_id=0, det_size=(640, 640))
+            app_face_ = FaceAnalysis(name='buffalo_l', root=insightface_root_path,
                                         providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-                app_face.prepare(ctx_id=0, det_size=(640, 640))
-                app_face_ = None
+            app_face_.prepare(ctx_id=0, det_size=(640, 640))
         else:
-            app_face = FaceAnalysis(name='buffalo_l', root='./',
+            app_face = FaceAnalysis(name='buffalo_l', root=insightface_root_path,
                                     providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
             app_face.prepare(ctx_id=0, det_size=(640, 640))
             app_face_ = None
-    elif use_inf:
+    elif infer_mode=="flux_pulid":
+        import insightface
+        from facexlib.parsing import init_parsing_model
+        from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+        from insightface.app import FaceAnalysis
+        from huggingface_hub import snapshot_download
+        # antelopev2
+        snapshot_download('DIAMONIK7777/antelopev2', local_dir='models/antelopev2')
+        
+        providers = ['CPUExecutionProvider'] if onnx_provider == 'cpu' else ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        app_face = FaceAnalysis(name='antelopev2', root=insightface_root_path, providers=providers)
+        app_face.prepare(ctx_id=0, det_size=(640, 640))
+        # face_helper
+        face_helper = FaceRestoreHelper(
+                            upscale_factor=1,
+                            face_size=512,
+                            crop_ratio=(1, 1),
+                            det_model='retinaface_resnet50',
+                            save_ext='png',
+                            device=device,)
+        face_helper.face_parse = None
+        face_helper.face_parse = init_parsing_model(model_name='bisenet', device=device)
+        app_face_ = face_helper
+        handler_ante = insightface.model_zoo.get_model('models/antelopev2/glintr100.onnx',providers=providers)
+        handler_ante.prepare(ctx_id=0)
+        pipeline_mask = handler_ante
+    elif infer_mode=="infiniteyou":   
         from facexlib.recognition import init_recognition_model
         from insightface.app import FaceAnalysis
          # Load face encoder
-        insightface_root_path= folder_paths.base_path
+        
         app_face = FaceAnalysis(name='antelopev2', 
                                 root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
         app_face.prepare(ctx_id=0, det_size=(640, 640))
-
-        # app_320 = FaceAnalysis(name='antelopev2', 
-        #                         root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-        # app_320.prepare(ctx_id=0, det_size=(320, 320))
-
-        # app_160 = FaceAnalysis(name='antelopev2', 
-        #                         root=insightface_root_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
-
         app_face_ = init_recognition_model('arcface', device='cuda')
         pipeline_mask = None
     else:
@@ -806,289 +379,49 @@ def insight_face_loader(photomake_mode,auraface,kolor_face,story_maker,make_dual
         app_face_ = None
     return app_face,pipeline_mask,app_face_
 
-def main_normal(prompt,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,image_processor,
-                boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,height,width,phrase_idxes, eot_idxes,in_img,use_repo):
-    if use_repo:
-        in_img = None
-    images = ms_model.generate(pipe=pipe, pil_images=[input_images],processed_images=in_img, num_samples=num_samples,
-                               num_inference_steps=steps,
-                               seed=seed,
-                               prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
-                               image_encoder=image_encoder, guidance_scale=cfg,
-                               image_processor=image_processor, boxes=boxes,
-                               mask_threshold=mask_threshold,
-                               start_step=start_step,
-                               image_proj_type=image_proj_type,
-                               image_encoder_type=image_encoder_type,
-                               phrases=phrases,
-                               drop_grounding_tokens=drop_grounding_tokens,
-                               phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height,
-                               width=width)
-    return images
-def main_control(prompt,width,height,pipe,phrases,ms_model,input_images,num_samples,steps,seed,negative_prompt,scale,image_encoder,cfg,
-                 image_processor,boxes,mask_threshold,start_step,image_proj_type,image_encoder_type,drop_grounding_tokens,controlnet_scale,control_image,phrase_idxes, eot_idxes,in_img,use_repo):
-    if use_repo:
-        in_img=None
-    images = ms_model.generate(pipe=pipe, pil_images=[input_images],processed_images=in_img, num_samples=num_samples,
-                               num_inference_steps=steps,
-                               seed=seed,
-                               prompt=[prompt], negative_prompt=negative_prompt, scale=scale,
-                               image_encoder=image_encoder, guidance_scale=cfg,
-                               image_processor=image_processor, boxes=boxes,
-                               mask_threshold=mask_threshold,
-                               start_step=start_step,
-                               image_proj_type=image_proj_type,
-                               image_encoder_type=image_encoder_type,
-                               phrases=phrases,
-                               drop_grounding_tokens=drop_grounding_tokens,
-                               phrase_idxes=phrase_idxes, eot_idxes=eot_idxes, height=height,
-                               width=width,
-                               image=control_image, controlnet_conditioning_scale=controlnet_scale)
-
-    return images
 
 def get_float(str_in):
     list_str=str_in.split(",")
     float_box=[float(x) for x in list_str]
     return float_box
-def get_phrases_idx(tokenizer, phrases, prompt):
-    res = []
-    phrase_cnt = {}
-    for phrase in phrases:
-        if phrase in phrase_cnt:
-            cur_cnt = phrase_cnt[phrase]
-            phrase_cnt[phrase] += 1
+
+
+def adjust_indices(original_indices, deleted_indices):
+    """根据删除的索引列表调整原索引"""
+    # 处理删除列表为空的特殊情况
+    if not deleted_indices:
+        return original_indices.copy()  # 直接返回原索引，无需调整
+    
+    deleted_sorted = sorted(deleted_indices)
+    adjusted = []
+    for idx in original_indices:
+        # 计算偏移量：有多少个删除索引 < 当前索引
+        offset = sum(1 for d in deleted_sorted if d < idx)
+        new_idx = idx - offset
+        # 如果原索引未被删除，则保留
+        if idx not in deleted_sorted:
+            adjusted.append(new_idx)
         else:
-            cur_cnt = 0
-            phrase_cnt[phrase] = 1
-        res.append(get_phrase_idx(tokenizer, phrase, prompt, num=cur_cnt)[0])
-    return res
-
-def msdiffusion_main(image_1, image_2, prompts_dual, width, height, steps, seed, style_name, char_describe, char_origin,
-                     negative_prompt,
-                     clip_vision, _model_type, lora, lora_path, lora_scale, trigger_words, ckpt_path, dif_repo,
-                     guidance, mask_threshold, start_step, controlnet_path, control_image, controlnet_scale, cfg,
-                     guidance_list, scheduler_choice,pipe):
-    tensor_a = phi2narry(image_1.copy())
-    tensor_b = phi2narry(image_2.copy())
-    in_img = torch.cat((tensor_a, tensor_b), dim=0)
-    
-    original_config_file = os.path.join(cur_path, 'config', 'sd_xl_base.yaml')
-    if dif_repo:
-        single_files = False
-    elif not dif_repo and ckpt_path:
-        single_files = True
-    elif dif_repo and ckpt_path:
-        single_files = False
-    else:
-        raise "no model"
-    add_config = os.path.join(cur_path, "local_repo")
-    if _model_type=="img2img":
-        del pipe
-        gc.collect()
-        torch.cuda.empty_cache()
-        if single_files:
-            try:
-                pipe = StableDiffusionXLPipeline.from_single_file(
-                    ckpt_path, config=add_config, original_config=original_config_file,
-                    torch_dtype=torch.float16)
-            except:
-                try:
-                    pipe = StableDiffusionXLPipeline.from_single_file(
-                        ckpt_path, config=add_config, original_config_file=original_config_file,
-                        torch_dtype=torch.float16)
-                except:
-                    raise "load pipe error!,check you diffusers"
-        else:
-            pipe = StableDiffusionXLPipeline.from_pretrained(dif_repo, torch_dtype=torch.float16)
-    
-    
-    if controlnet_path:
-        controlnet = ControlNetModel.from_unet(pipe.unet)
-        cn_state_dict = load_file(controlnet_path, device="cpu")
-        controlnet.load_state_dict(cn_state_dict, strict=False)
-        controlnet.to(torch.float16)
-        pipe = StableDiffusionXLControlNetPipeline.from_pipe(pipe, controlnet=controlnet)
-        del cn_state_dict
-        torch.cuda.empty_cache()
-    
-    if lora:
-        if lora in lora_lightning_list:
-            pipe.load_lora_weights(lora_path)
-            pipe.fuse_lora()
-        else:
-            pipe.load_lora_weights(lora_path, adapter_name=trigger_words)
-            pipe.fuse_lora(adapter_names=[trigger_words, ], lora_scale=lora_scale)
-    pipe.scheduler = scheduler_choice.from_config(pipe.scheduler.config)
-    pipe.enable_xformers_memory_efficient_attention()
-    pipe.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
-    pipe.enable_vae_slicing()
-    
-    if device != "mps":
-        pipe.enable_model_cpu_offload()
-        
-    torch.cuda.empty_cache()
-    # 预加载 ms
-    photomaker_local_path = os.path.join(photomaker_dir, "ms_adapter.bin")
-    if not os.path.exists(photomaker_local_path):
-        ms_path = hf_hub_download(
-            repo_id="doge1516/MS-Diffusion",
-            filename="ms_adapter.bin",
-            repo_type="model",
-            local_dir=photomaker_dir,
-        )
-    else:
-        ms_path = photomaker_local_path
-    ms_ckpt = get_instance_path(ms_path)
-    image_processor = CLIPImageProcessor()
-    image_encoder_type = "clip"
-    image_encoder = clip_load(clip_vision)
-    from comfy.model_management import cleanup_models
-    try:
-        cleanup_models()
-    except:
-        try:
-            cleanup_models(keep_clone_weights_loaded=False)
-        except:
-            gc.collect()
-            torch.cuda.empty_cache()
-    use_repo = False
-    config_path = os.path.join(cur_path, "config", "config.json")
-    image_encoder_config = OmegaConf.load(config_path)
-    image_encoder_projection_dim = image_encoder_config["vision_config"]["projection_dim"]
-    num_tokens = 16
-    image_proj_type = "resampler"
-    latent_init_mode = "grounding"
-    # latent_init_mode = "random"
-    image_proj_model = Resampler(
-        dim=1280,
-        depth=4,
-        dim_head=64,
-        heads=20,
-        num_queries=num_tokens,
-        embedding_dim=image_encoder_config["vision_config"]["hidden_size"],
-        output_dim=pipe.unet.config.cross_attention_dim,
-        ff_mult=4,
-        latent_init_mode=latent_init_mode,
-        phrase_embeddings_dim=pipe.text_encoder.config.projection_dim,
-    ).to(device, dtype=torch.float16)
-    ms_model = MSAdapter(pipe.unet, image_proj_model, ckpt_path=ms_ckpt, device=device, num_tokens=num_tokens)
-    ms_model.to(device, dtype=torch.float16)
-    torch.cuda.empty_cache()
-    input_images = [image_1, image_2]
-    batch_size = 1
-    guidance_list = guidance_list.strip().split(";")
-    box_add = []  # 获取预设box
-    for i in range(len(guidance_list)):
-        box_add.append(get_float(guidance_list[i]))
-    
-    if mask_threshold == 0.:
-        mask_threshold = None
-    
-    image_ouput = []
-    
-    # get n p prompt
-    prompts_dual, negative_prompt = apply_style(
-        style_name, prompts_dual, negative_prompt
-    )
-    
-    # 添加Lora trigger
-    add_trigger_words = " " + trigger_words + " style "
-    if lora:
-        prompts_dual = remove_punctuation_from_strings(prompts_dual)
-        if lora not in lora_lightning_list:  # 加速lora不需要trigger
-            prompts_dual = [item + add_trigger_words for item in prompts_dual]
-    
-    prompts_dual = [item.replace(char_origin[0], char_describe[0]) for item in prompts_dual if char_origin[0] in item]
-    prompts_dual = [item.replace(char_origin[1], char_describe[1]) for item in prompts_dual if char_origin[1] in item]
-    
-    #print(char_origin,char_describe)# ['[Taylor]', '[Lecun]']
-
-    if "(" in char_describe[0] and "(" in char_describe[1] :
-
-        role_a = char_describe[0].split(")")[0].split("(")[-1]
-        role_b = char_describe[1].split(")")[0].split("(")[-1]
-        prompts_dual = [i.replace(char_origin[0], "") for i in prompts_dual if char_origin[0] in i]
-        prompts_dual=[i.replace(char_origin[1], "") for i in prompts_dual if char_origin[1] in i]
-    else:
-
-        # get role name
-        role_a = char_origin[0].replace("]", "").replace("[", "")
-        role_b = char_origin[1].replace("]", "").replace("[", "")
-        prompts_dual = [item.replace("[", " ", ).replace("]", " ", ) for item in prompts_dual]
-   
-    #print(prompts_dual,role_a,role_b)
-    torch.cuda.empty_cache()
-    
-    phrases = [[role_a, role_b]]
-    drop_grounding_tokens = [0]  # set to 1 if you want to drop the grounding tokens
-    
-    if mask_threshold:
-        boxes = [box_add[:2]]
-        # boxes = [[[0., 0.25, 0.4, 0.75], [0.6, 0.25, 1., 0.75]]]  # man+women
-    else:
-        boxes = [[[0., 0., 0., 0.], [0., 0., 0., 0.]]]
-        # print(boxes)
-    print(f"Roles position on {boxes}")
-    
-    role_scale=guidance if guidance<=1 else guidance/10 if 1<guidance<=10 else guidance/100
-    
-    if controlnet_path:
-        d1, _, _, _ = control_image.size()
-        if d1 == 1:
-            control_img_list = [control_image]
-        else:
-            control_img_list = torch.chunk(control_image, chunks=d1)
-        j = 0
-        for i, prompt in enumerate(prompts_dual):
-            control_image = control_img_list[j]
-            control_image = nomarl_upscale(control_image, width, height)
-            j += 1
-            # used to get the attention map, return zero if the phrase is not in the prompt
-            phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
-            eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
-            # print(phrase_idxes, eot_idxes)
-            image_main = main_control(prompt, width, height, pipe, phrases, ms_model, input_images, batch_size,
-                                      steps,
-                                      seed, negative_prompt, role_scale, image_encoder, cfg,
-                                      image_processor, boxes, mask_threshold, start_step, image_proj_type,
-                                      image_encoder_type, drop_grounding_tokens, controlnet_scale, control_image,
-                                      phrase_idxes, eot_idxes, in_img, use_repo)
-            
-            image_ouput.append(image_main)
-            torch.cuda.empty_cache()
-    else:
-        for i, prompt in enumerate(prompts_dual):
-            # used to get the attention map, return zero if the phrase is not in the prompt
-            phrase_idxes = [get_phrases_idx(pipe.tokenizer, phrases[0], prompt)]
-            eot_idxes = [[get_eot_idx(pipe.tokenizer, prompt)] * len(phrases[0])]
-            # print(phrase_idxes, eot_idxes)
-            image_main = main_normal(prompt, pipe, phrases, ms_model, input_images, batch_size, steps, seed,
-                                     negative_prompt, role_scale, image_encoder, cfg, image_processor,
-                                     boxes, mask_threshold, start_step, image_proj_type, image_encoder_type,
-                                     drop_grounding_tokens, height, width, phrase_idxes, eot_idxes, in_img, use_repo)
-            image_ouput.append(image_main)
-            torch.cuda.empty_cache()
-    pipe.to("cpu")
-    torch.cuda.empty_cache()
-    return image_ouput
+            adjusted.append(-1)  # 标记为无效
+    return adjusted
 
 
-def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,kolor_face,story_maker,make_dual_only,
-                     pulid,pipe,character_list_,condition_image,width, height,use_storydif,use_inf=None,image_proj_model=None):
+def get_insight_dict(app_face,app_face_,pipeline_mask,infer_mode,use_photov2,image_list,
+                     character_list_,condition_image,width, height,model=None,image_proj_model=None):
     input_id_emb_s_dict = {}
     input_id_img_s_dict = {}
     input_id_emb_un_dict = {}
-    for ind, img in enumerate(image_load):
-        if photomake_mode == "v2" and use_storydif and not story_maker:
+
+    for ind, img in enumerate(image_list): # 最大只有2个ID
+        if infer_mode == "story" and use_photov2:
             from .utils.insightface_package import analyze_faces
-            img = np.array(img)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            faces = analyze_faces(app_face, img, )
+            img_ = np.array(img)
+            img_ = cv2.cvtColor(img_, cv2.COLOR_RGB2BGR)
+            faces = analyze_faces(app_face, img_, )
             id_embed_list = torch.from_numpy((faces[0]['embedding']))
-            crop_image = img
+            crop_image = img_
             uncond_id_embeddings = None
-        elif kolor_face:
+        elif infer_mode == "kolor_face":
             device = (
                 "cuda"
                 if torch.cuda.is_available()
@@ -1101,51 +434,55 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
             face_embeds = torch.from_numpy(np.array([face_info["embedding"]]))
             id_embed_list = face_embeds.to(device, dtype=torch.float16)
             uncond_id_embeddings = None
-        elif story_maker:
-            if make_dual_only:  # 前段用story 双人用maker
-                if photomake_mode == "v2" and use_storydif:
-                    from .utils.insightface_package import analyze_faces
-                    img = np.array(img)
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                    faces = analyze_faces(app_face, img, )
-                    id_embed_list = torch.from_numpy((faces[0]['embedding']))
-                    crop_image = pipeline_mask(img, return_mask=True).convert(
-                        'RGB')  # outputs a pillow mask
-                    face_info = app_face_.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-                    uncond_id_embeddings = \
-                        sorted(face_info,
-                               key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                            -1]  # only use the maximum face
-                    photomake_mode = "v2"
-                    # make+v2模式下，emb存v2的向量，corp 和 unemb 存make的向量
-                else:  # V1不需要调用emb
-                    crop_image = pipeline_mask(img, return_mask=True).convert(
-                        'RGB')  # outputs a pillow mask
-                    face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-                    id_embed_list = \
-                        sorted(face_info,
-                               key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                            -1]  # only use the maximum face
-                    uncond_id_embeddings = None
-            else:  # 全程用maker
-                crop_image = pipeline_mask(img, return_mask=True).convert('RGB')  # outputs a pillow mask
-                # timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-                # crop_image.copy().save(os.path.join(folder_paths.get_output_directory(),f"{timestamp}_mask.png"))
+        elif infer_mode=="story_maker":
+            crop_image = pipeline_mask(img, return_mask=True).convert('RGB')  # outputs a pillow mask
+            # timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            # crop_image.copy().save(os.path.join(folder_paths.get_output_directory(),f"{timestamp}_mask.png"))
+            face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+            id_embed_list = \
+                sorted(face_info,
+                        key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                    -1]  # only use the maximum face
+            
+            uncond_id_embeddings = img
+        elif infer_mode=="story_and_maker":
+            if use_photov2:
+                from .utils.insightface_package import analyze_faces
+                img = np.array(img)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                faces = analyze_faces(app_face, img, )
+                id_embed_list = torch.from_numpy((faces[0]['embedding']))
+                crop_image = pipeline_mask(img, return_mask=True).convert(
+                    'RGB')  # outputs a pillow mask
+                face_info = app_face_.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
+                uncond_id_embeddings = \
+                    sorted(face_info,
+                            key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                        -1]  # only use the maximum face
+                #photomake_mode = "v2"
+                # make+v2模式下，emb存v2的向量，corp 和 unemb 存make的向量
+            else:  # V1不需要调用emb
+                crop_image = pipeline_mask(img, return_mask=True).convert(
+                    'RGB')  # outputs a pillow mask
                 face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
                 id_embed_list = \
                     sorted(face_info,
-                           key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
+                            key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
                         -1]  # only use the maximum face
-                
-                uncond_id_embeddings = None
-        elif pulid:
+                uncond_id_embeddings = img
+
+        elif infer_mode=="flux_pulid":
             id_image = resize_numpy_image_long(img, 1024)
             use_true_cfg = abs(1.0 - 1.0) > 1e-2
-            id_embed_list, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,
-                                                                                    cal_uncond=use_true_cfg)
+           
+            id_embed_list, uncond_id_embeddings=model.pulid_model.get_id_embedding_( id_image,app_face_,app_face,pipeline_mask,cal_uncond=use_true_cfg)
+
+
+            #id_embed_list, uncond_id_embeddings = pipe.pulid_model.get_id_embedding(id_image,cal_uncond=use_true_cfg)
             crop_image = img
 
-        elif use_inf:
+        elif infer_mode=="infiniteyou":
+    
             def _detect_face(app_face, id_image_cv2):
                 face_info = app_face.get(id_image_cv2)
                 if face_info:
@@ -1153,12 +490,6 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
                 else:
                     print("No face detected in the input ID image")
                     return []
-                # face_info = app_320.get(id_image_cv2)
-                # if len(face_info) > 0:
-                #     return face_info
-
-                # face_info = app_160.get(id_image_cv2)
-                # return face_info
             from .pipelines.pipeline_infu_flux import extract_arcface_bgr_embedding,resize_and_pad_image,draw_kps
              # Extract ID embeddings
             print('Preparing ID embeddings')
@@ -1215,17 +546,13 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
         input_id_emb_s_dict[character_list_[ind]] = [id_embed_list]
         input_id_emb_un_dict[character_list_[ind]] = [uncond_id_embeddings]
     
-    if story_maker or kolor_face or (photomake_mode == "v2" and use_storydif):
-        del app_face
-        torch.cuda.empty_cache()
-    if story_maker:
-        del pipeline_mask
-        torch.cuda.empty_cache()
-    if use_inf:
-        del app_face,app_face_
-        torch.cuda.empty_cache()
-
-    if isinstance(condition_image, torch.Tensor) and story_maker:
+    
+    app_face = None
+    app_face_= None
+    pipeline_mask =None
+    gc_cleanup()
+    
+    if isinstance(condition_image, torch.Tensor) and infer_mode=="story_maker":
         e1, _, _, _ = condition_image.size()
         if e1 == 1:
             cn_image_load = [nomarl_upscale(condition_image, width, height)]
@@ -1239,7 +566,7 @@ def get_insight_dict(app_face,pipeline_mask,app_face_,image_load,photomake_mode,
             cn_image_load_role=cn_image_load
         for ind, img in enumerate(cn_image_load_role):
             input_id_cloth_dict[character_list_[ind]] = [img]
-        if len(cn_image_load)>2:
+        if len(cn_image_load)>2: #处理多张control img
             my_list=cn_image_load[2:]
             for ind,img in enumerate(my_list):
                 input_id_cloth_dict[f"dual{ind}"] = [img]
@@ -1297,242 +624,6 @@ class StoryLiteTag:
         res.strip("'")
         logging.info(f"{res}")
         return res
-
-def sd35_loader(model_id,ckpt_path,dir_path,mode,model_type,lora, lora_path, lora_scale,):#"stabilityai/stable-diffusion-3.5-large"
-    
-    if mode:  # NF4
-        from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
-        if ckpt_path is not None:
-            from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
-            nf4_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16
-            )
-            model_nf4 = SD3Transformer2DModel.from_pretrained(
-                model_id,
-                subfolder="transformer",
-                quantization_config=nf4_config,
-                torch_dtype=torch.bfloat16
-            )
-            if model_type == "img2img":
-                logging.info("loading sd3.5 img2img in nf4 mode....")
-                pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
-                    model_id,
-                    transformer=model_nf4,
-                    torch_dtype=torch.bfloat16
-                )
-            else:
-                logging.info("loading sd3.5 txt2img in nf4 mode....")
-                pipe = StableDiffusion3Pipeline.from_pretrained(
-                    model_id,
-                    transformer=model_nf4,
-                    torch_dtype=torch.bfloat16
-                )
-        else:
-            from transformers import  T5EncoderModel
-            try:
-                from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
-                quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-                model_nf4 = SD3Transformer2DModel.from_single_file(
-                    ckpt_path,
-                    config=os.path.join(model_id, "transformer"),
-                    quantization_config=quantization_config,
-                    torch_dtype=torch.bfloat16
-                )
-            except:
-                mode = "sd35"
-                model_nf4 = quantized_nf4_extra(ckpt_path, dir_path, mode)
-            encoder3_config=os.path.join(dir_path,"config/encoder3/config.json")
-            quantization_config=os.path.join(dir_path,"config/encoder3/config.json")
-            text_encoder_3 = T5EncoderModel.from_pretrained(model_id, subfolder="text_encoder_3",config= encoder3_config,quantization_config=quantization_config,
-                                                            torch_dtype=torch.bfloat16,)
-            if model_type == "img2img":
-                logging.info("loading sd3.5 img2img in nf4 mode....")
-                pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(
-                    model_id,
-                    transformer=model_nf4,
-                    text_encoder_3=text_encoder_3,
-                    torch_dtype=torch.bfloat16
-                )
-            else:
-                logging.info("loading sd3.5 txt2img in nf4 mode....")
-                pipe = StableDiffusion3Pipeline.from_pretrained(
-                    model_id,
-                    transformer=model_nf4,
-                    text_encoder_3=text_encoder_3,
-                    torch_dtype=torch.bfloat16
-                )
-    else:
-        from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
-        
-        if model_type == "img2img":
-            logging.info("loading sd3.5  img2img in normal mode....,if  VRAM<30G will auto using cpu")
-            pipe = StableDiffusion3Img2ImgPipeline.from_pretrained(model_id, torch_dtype=torch.bfloat16)
-        else:
-            logging.info("loading sd3.5 txt2img in normal mode....,if  VRAM<30G will auto using cpu")
-            pipe = StableDiffusion3Pipeline.from_pretrained(model_id, torch_dtype=torch.bfloat16)
-
-    return pipe
-
-class SD35Wrapper():
-    def __init__(self, ckpt_path,clip,vae,cf_vae,sd35repo,dir_path):
-        from diffusers import StableDiffusion3Pipeline
-        
-        self.ckpt_path = ckpt_path
-        self.dir_path=dir_path
-        self.clip = clip
-        self.ae=vae
-        self.cf_vae=cf_vae
-        self.sd35repo=sd35repo
-        if "nf4" in self.ckpt_path:
-            try:
-                from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
-                quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-                self.transformer_4bit = SD3Transformer2DModel.from_single_file(
-                    ckpt_path,
-                    config=os.path.join(self.sd35repo, "transformer"),
-                    quantization_config=quantization_config,
-                    torch_dtype=torch.bfloat16
-                )
-            except:
-                self.transformer_4bit = quantized_nf4_extra(ckpt_path, dir_path, "sd35").to(
-                    dtype=torch.bfloat16)  # bfloat16
-                  
-        else:
-            from diffusers import BitsAndBytesConfig, SD3Transformer2DModel
-            nf4_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16
-            )
-            self.transformer_4bit = SD3Transformer2DModel.from_single_file(
-                ckpt_path,
-                config=os.path.join(self.sd35repo, "transformer"),
-                quantization_config=nf4_config,
-                torch_dtype=torch.bfloat16
-            )
-        self.pipe=StableDiffusion3Pipeline.from_pretrained(
-            self.sd35repo,
-            text_encoder=None,
-            text_encoder_2=None,
-            tokenizer=None,
-            tokenizer_2=None,
-            text_encoder_3=None,
-            tokenizer_3=None,
-            transformer=self.transformer_4bit,
-            vae= None ,
-            torch_dtype=torch.bfloat16,
-        )
-        self.pipe.vae=self.ae if not self.cf_vae else None
-        
-    def encode(self,  clip_l, clip_g, t5xxl):
-        no_padding = True
-
-        tokens = self.clip.tokenize(clip_g)
-        if len(clip_g) == 0 and no_padding:
-            tokens["g"] = []
-
-        if len(clip_l) == 0 and no_padding:
-            tokens["l"] = []
-        else:
-            tokens["l"] = self.clip.tokenize(clip_l)["l"]
-
-        if len(t5xxl) == 0 and no_padding:
-            tokens["t5xxl"] =  []
-        else:
-            tokens["t5xxl"] = self.clip.tokenize(t5xxl)["t5xxl"]
-        if len(tokens["l"]) != len(tokens["g"]):
-            empty = self.clip.tokenize("")
-            while len(tokens["l"]) < len(tokens["g"]):
-                tokens["l"] += empty["l"]
-            while len(tokens["l"]) > len(tokens["g"]):
-                tokens["g"] += empty["g"]
-        cond, pooled = self.clip.encode_from_tokens(tokens, return_pooled=True)
-        return [[cond, {"pooled_output": pooled}]]
-
-    def clip_prompt(self,prompt,negative_prompt):
-        if isinstance(prompt,str):
-            text=[prompt]
-        elif isinstance(prompt,list):
-            text=prompt
-        else:
-            text=[]
-        if isinstance(negative_prompt, str):
-            negative_text = [negative_prompt]
-        elif isinstance(negative_prompt, list):
-            negative_text =negative_prompt
-        else:
-            negative_text=[]
-        
-        
-        with torch.no_grad():
-            print("Encoding prompts.")
-            emb_e=[]
-            emb_e_pool = []
-            for ii in (text):
-                clip_l = ii
-                clip_g = ii
-                t5xxl = ii
-                
-                out = self.encode(clip_l, clip_g, t5xxl)
-                prompt_embeds = out[0][0]
-                pooled_prompt_embeds = out[0][1].get("pooled_output", None)
-                emb_e.append(prompt_embeds.to(device, dtype=torch.bfloat16))
-                emb_e_pool.append(pooled_prompt_embeds.to(device, dtype=torch.bfloat16))
-            emb_e=torch.cat(emb_e,dim=0)
-            emb_e_pool = torch.cat(emb_e_pool, dim=0)
-            emb_n_pool=torch.zeros_like(emb_e_pool)
-            emb_n=torch.zeros_like(emb_e)
-        return emb_e,emb_n, emb_e_pool, emb_n_pool
-    
-    @torch.no_grad()
-    def __call__(self,
-        prompt= None,
-        prompt_2= None,
-        prompt_3= None,
-        height= None,
-        width= None,
-        num_inference_steps= 28,
-        timesteps= None,
-        guidance_scale= 3.5,
-        negative_prompt= None,
-        negative_prompt_2= None,
-        negative_prompt_3= None,
-        num_images_per_prompt= 1,
-        generator= None,
-        latents= None,
-        return_dict= True,
-        joint_attention_kwargs= None,
-        clip_skip=None,
-        output_type ="latent",
-        callback_on_step_end= None,
-        callback_on_step_end_tensor_inputs= ["latents"],
-        max_sequence_length: int = 256,
-        **kwargs
-    ):
-        prompt_embeds, negative_prompt_embeds, pooled_prompt_embeds, negative_pooled_prompt_embeds=self.clip_prompt(prompt,negative_prompt)
-        latents_out = self.pipe(
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            negative_prompt_embeds=negative_prompt_embeds,
-            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-            num_inference_steps=num_inference_steps,
-            guidance_scale=guidance_scale,
-            output_type="latent" if self.cf_vae else "pil",
-            height=height,
-            width=width,
-            **kwargs,
-        ).images
-        if  self.cf_vae:
-            latents_out = (latents_out /1.5305) + 0.0609
-            img_out = self.ae.decode(latents_out)
-            img_pil = tensortopil_list(img_out)  # list
-        else:
-            img_pil = latents_out
-     
-        self.pipe.maybe_free_model_hooks()
-        return img_pil
 
 
 def images_generator(img_list: list, ):
@@ -1595,3 +686,1499 @@ def load_images_list(img_list: list, ):
         raise FileNotFoundError(f"No images could be loaded .")
     return images
     
+
+def fitter_cf_model_type(model):
+    VALUE_=model.model.model_type.value
+    if VALUE_ == 8:
+        cf_model_type = "FLUX"
+    elif VALUE_ == 4:
+        cf_model_type = "CASCADE"
+    elif VALUE_ == 6:
+        cf_model_type = "FLOW"
+    elif VALUE_ == 5:
+        cf_model_type = "EDM"
+    elif VALUE_ == 1:
+        cf_model_type = "EPS"
+    elif VALUE_ == 2:
+        cf_model_type = "V_PREDICTION"
+    elif VALUE_ == 3:
+        cf_model_type = "V_PREDICTION_EDM"
+    elif VALUE_ == 7:
+        cf_model_type = "PREDICTION_CONTINUOUS"
+    else:
+         raise "unsupport checkpoints"
+    return cf_model_type
+
+def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict):
+    '''
+    
+    Args:
+        role_text:
+        scene_text:
+        add_style:
+        lora_trigger_words:
+        use_lora:
+        id_length:
+        tag_dict:
+
+    Returns:
+      character_index_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
+      
+    '''
+    add_trigger_words = " " + lora_trigger_words + " style "
+    # pre role_text
+    role_dict, role_list = character_to_dict(role_text, use_lora, add_trigger_words)
+    
+    id_len=len(role_dict)
+    #pre scene_text
+    scene_text_origin = [i.strip() for i in scene_text.splitlines()]
+    scene_text_origin = [i for i in scene_text_origin if '[' in i]  # 删除空行
+    prompt_sence = [i for i in scene_text_origin if not len(extract_content_from_brackets(i)) >= 2]  # 剔除双角色的场景词
+    
+    positions_index_dual = [index for index, prompt in enumerate(scene_text_origin) if
+                      len(extract_content_from_brackets(prompt)) >= 2]   #获取双角色出现的位置
+    prompts_dual = [prompt for prompt in scene_text_origin if len(extract_content_from_brackets(prompt)) >= 2] # 改成单句中双方括号方法，利于MS组句，[A]... [B]...[C]
+    
+    #print(id_len,role_list)
+    if id_len == 2:
+        index_char_1_list=[index for index, prompt in enumerate(scene_text_origin) if role_list[0] in prompt]
+        positions_index_char_1 = index_char_1_list[0]  # 获取角色出现的索引列表，并获取首次出现的位置
+        index_char_2_list=[index for index, prompt in enumerate(scene_text_origin) if role_list[1] in prompt]
+        positions_index_char_2 = index_char_2_list[0]  # 获取角色出现的索引列表，并获取首次出现的位置
+    
+       # print(positions_index_char_1, positions_index_char_2) #0,2
+    else:
+        index_char_1_list=[index for index, prompt in enumerate(scene_text_origin) if role_list[0] in prompt]
+        index_char_2_list=[]
+        positions_index_char_1=[]
+        positions_index_char_2=[]
+
+    if index_char_1_list and index_char_2_list: #dual 情况下，该列表有误，须排除重复元素
+        common_ = set(index_char_1_list) & set(index_char_2_list)
+        if common_:
+            index_char_1_list=[x for x in index_char_1_list if x not in common_]
+            index_char_2_list = [x for x in index_char_2_list if x not in common_]
+
+
+    clipped_prompts = prompt_sence[:]  # copy
+   
+    nc_indexs = []
+    for ind, prompt in enumerate(clipped_prompts): #获取NC的index
+        if "[NC]" in prompt:
+            nc_indexs.append(ind)
+            if ind < id_len:
+                raise f"The first [role] row need be a id prompts, cannot use [NC]!"
+    prompts = [
+        i if "[NC]" not in i else i.replace("[NC]", "") for i in clipped_prompts]
+    #去除#
+    prompts = [prompt.rpartition("#")[0] if "#" in prompt else prompt for prompt in prompts]
+    
+    # character_dict:{'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.'},character_list:['[Taylor]'] 1role
+    #character_dict:{'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.', '[Lecun]': ' a man img,wearing a suit,black hair.'},character_list:['[Taylor]', '[Lecun]'] 2 role
+    #获取字典，实际用词等
+    role_index_dict, invert_role_index_dict, replace_prompts, ref_role_index_dict, ref_role_totals= process_original_text(role_dict, prompts)
+    
+    if tag_dict is not None: #tag方法
+        if len(tag_dict) < len(replace_prompts):
+            raise "The number of input condition images is less than the number of scene prompts!"
+        replace_prompts = [prompt + " " + tag_dict[i] for i, prompt in enumerate(replace_prompts)]
+    
+    if nc_indexs:
+        for x in nc_indexs:  # 获取NC列表
+            nc_txt_list = [item for i, item in enumerate(replace_prompts) if i == x]
+        
+        for x in nc_indexs:  # 去除NC列表
+            replace_prompts = [item for i, item in enumerate(replace_prompts) if i != x]
+    else:
+        nc_txt_list = []
+        
+   
+    replace_prompts=[i for i in replace_prompts]
+    
+    return replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,nc_txt_list,nc_indexs,positions_index_char_1,positions_index_char_2,positions_index_dual,prompts_dual,index_char_1_list,index_char_2_list
+
+
+def convert_cf2diffuser(model):
+    from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_ldm_unet_checkpoint
+    from diffusers import UNet2DConditionModel
+    config_file = os.path.join(cur_path,"local_repo/unet/config.json")
+    cf_state_dict = model.diffusion_model.state_dict()
+    unet_state_dict = model.model_config.process_unet_state_dict_for_saving(cf_state_dict)
+    unet_config = UNet2DConditionModel.load_config(config_file)
+    Unet = UNet2DConditionModel.from_config(unet_config).to(device, torch.float16)
+    cf_state_dict = convert_ldm_unet_checkpoint(unet_state_dict, Unet.config)
+    Unet.load_state_dict(cf_state_dict, strict=False)
+    del cf_state_dict,unet_state_dict
+    gc.collect()
+    torch.cuda.empty_cache()
+    return Unet
+
+
+def cf_clip(txt_list, clip, infer_mode,role_list,input_split=True):
+   
+    if infer_mode == "classic":
+        input_split= False
+    if len(role_list)==1:
+        input_split= False
+    if input_split:
+        role_emb_dict={}
+        for role,role_text_list in zip(role_list,txt_list):
+            pos_cond_list=[]
+            for j in role_text_list:
+                tokens_p = clip.tokenize(j)
+                output_p = clip.encode_from_tokens(tokens_p, return_dict=True)  # {"pooled_output":tensor}
+                cond_p = output_p.pop("cond")
+                if cond_p.shape[1] / 77 > 1 and infer_mode != "classic":
+                # logging.warning("prompt'tokens length is abvoe 77,split it")
+                    cond_p = torch.chunk(cond_p, cond_p.shape[1] // 77, dim=1)[0]
+                positive = [cond_p, output_p]
+                pos_cond_list.append(positive)
+            role_emb_dict[role]=pos_cond_list
+        return role_emb_dict
+    pos_cond_list = []
+    for i in txt_list:
+        tokens_p = clip.tokenize(i)
+        output_p = clip.encode_from_tokens(tokens_p, return_dict=True)  # {"pooled_output":tensor}
+        cond_p = output_p.pop("cond")
+        if cond_p.shape[1] / 77 > 1 and infer_mode != "classic":
+            # logging.warning("prompt'tokens length is abvoe 77,split it")
+            cond_p = torch.chunk(cond_p, cond_p.shape[1] // 77, dim=1)[0]
+        if infer_mode == "classic":
+            positive = [[cond_p, output_p]]
+        else:
+            positive = [cond_p, output_p]
+        # logging.info(f"sampler text is {i}")
+        pos_cond_list.append(positive)
+    return pos_cond_list
+
+def get_eot_idx_cf(tokenizer, prompt):
+    words = prompt.split()
+    start = 1
+    for w in words:
+        start += len(tokenizer.tokenize(w)) - 2
+    return start
+
+def get_phrase_idx_cf(tokenizer, phrase, prompt, get_last_word=False, num=0):
+    def is_equal_words(pr_words, ph_words):
+        if len(pr_words) != len(ph_words):
+            return False
+        for pr_word, ph_word in zip(pr_words, ph_words):
+            if "-"+ph_word not in pr_word and ph_word != re.sub(r'[.!?,:]$', '', pr_word):
+                return False
+        return True
+
+    phrase_words = phrase.split()
+    if len(phrase_words) == 0:
+        return [0, 0], None
+    if get_last_word:
+        phrase_words = phrase_words[-1:]
+    # prompt_words = re.findall(r'\b[\w\'-]+\b', prompt)
+    prompt_words = prompt.split()
+    start = 1
+    end = 0
+    res_words = phrase_words
+    for i in range(len(prompt_words)):
+        if is_equal_words(prompt_words[i:i+len(phrase_words)], phrase_words):
+            if num != 0:
+                # skip this one
+                num -= 1
+                continue
+            end = start
+            res_words = prompt_words[i:i+len(phrase_words)]
+            res_words = [re.sub(r'[.!?,:]$', '', w) for w in res_words]
+            prompt_words[i+len(phrase_words)-1] = res_words[-1]  # remove the last punctuation
+            for j in range(i, i+len(phrase_words)):
+                end += len(tokenizer.tokenize(prompt_words[j])) - 2
+            break
+        else:
+            start += len(tokenizer.tokenize(prompt_words[i])) - 2
+
+    if end == 0:
+        return [0, 0], None
+
+    return [start, end], res_words
+
+def get_phrases_idx_cf(tokenizer, phrases, prompt):
+    res = []
+    phrase_cnt = {}
+    for phrase in phrases:
+        if phrase in phrase_cnt:
+            cur_cnt = phrase_cnt[phrase]
+            phrase_cnt[phrase] += 1
+        else:
+            cur_cnt = 0
+            phrase_cnt[phrase] = 1
+        res.append(get_phrase_idx_cf(tokenizer, phrase, prompt, num=cur_cnt)[0])
+    return res
+
+def replicate_data_by_indices(data_list, index_list1, index_list2):
+    # 确定新列表的长度
+    max_index = max(max(index_list1), max(index_list2)) if (index_list1 and index_list2) else 0
+    new_list = [None] * (max_index + 1)
+    
+    # 根据索引填充数据
+    for idx in index_list1:
+        new_list[idx] = data_list[0]
+    for idx in index_list2:
+        new_list[idx] = data_list[1]
+    
+    return new_list
+
+
+
+def get_ms_phrase_emb(boxes, device, weight_dtype, drop_grounding_tokens, bsz, phrase_idxes,
+                      num_samples, eot_idxes,phrases,clip):
+    cross_attention_kwargs = None
+    grounding_kwargs = None
+    if boxes is not None:
+        boxes = torch.tensor(boxes).to(device, weight_dtype) #torch.Size([1, 2, 4])
+        if phrases is not None:
+            drop_grounding_tokens = drop_grounding_tokens if drop_grounding_tokens is not None else [0] * bsz
+            batch_boxes = boxes.view(bsz * boxes.shape[1], -1).to(device)
+            phrase_embeds_list=[]
+            for phrase in phrases:
+                phrase_input_id = clip.tokenize(phrase, return_word_ids=False)["l"]
+                output_=clip.cond_stage_model.clip_l.encode_token_weights(phrase_input_id)[1]
+                phrase_embeds_p = output_.to(device,dtype=weight_dtype)
+                phrase_embeds_list.append(phrase_embeds_p)
+            phrase_embeds=torch.cat(phrase_embeds_list,dim=0)
+            #print(phrase_embeds.shape,phrase_embeds.is_cuda,batch_boxes.shape,batch_boxes.is_cuda)#torch.Size([2, 768]) torch.Size([2 4])
+            grounding_kwargs = {"boxes": batch_boxes, "phrase_embeds": phrase_embeds,
+                                "drop_grounding_tokens": drop_grounding_tokens}
+        else:
+            grounding_kwargs = None
+        boxes = torch.repeat_interleave(boxes, repeats=num_samples, dim=0)
+        uncond_boxes = torch.zeros_like(boxes)
+        boxes = torch.cat([uncond_boxes, boxes], dim=0)
+        cross_attention_kwargs = {"boxes": boxes}
+    
+    if phrase_idxes is not None:
+        # phrase_idxes = torch.tensor(phrase_idxes).to(device, torch.int)
+        # eot_idxes = torch.tensor(eot_idxes).to(device, torch.int)
+        phrase_idxes = torch.tensor(phrase_idxes).to(device, weight_dtype)
+        eot_idxes = torch.tensor(eot_idxes).to(device, weight_dtype)
+        
+        phrase_idxes = torch.repeat_interleave(phrase_idxes, repeats=num_samples, dim=0)
+        eot_idxes = torch.repeat_interleave(eot_idxes, repeats=num_samples, dim=0)
+        uncond_phrase_idxes = torch.zeros_like(phrase_idxes)
+        uncond_eot_idxes = torch.zeros_like(eot_idxes)
+        phrase_idxes = torch.cat([uncond_phrase_idxes, phrase_idxes], dim=0)
+        eot_idxes = torch.cat([uncond_eot_idxes, eot_idxes], dim=0)
+        if cross_attention_kwargs is None:
+            cross_attention_kwargs = {"phrase_idxes": phrase_idxes, "eot_idxes": eot_idxes}
+        else:
+            cross_attention_kwargs["phrase_idxes"] = phrase_idxes
+            cross_attention_kwargs["eot_idxes"] = eot_idxes
+    
+    return cross_attention_kwargs,grounding_kwargs
+def Infer_MSdiffusion(model, photomake_or_ipadapter_path,image_embeds,  prompt_embeds_, negative_prompt_embeds_,grounding_kwargs,cross_attention_kwargs, bsz,mask_threshold,height,width,steps,seed,cfg,pooled_prompt_embeds,negative_pooled_prompt_embeds,):
+    image_proj_model = Resampler(
+        dim=1280,
+        depth=4,
+        dim_head=64,
+        heads=20,
+        num_queries=16,
+        embedding_dim=1664,
+        output_dim=model.unet.config.cross_attention_dim,
+        ff_mult=4,
+        latent_init_mode="grounding",
+        phrase_embeddings_dim=768,
+    ).to(device, dtype=torch.float16)
+    PIPE = MSAdapterWarpper(model, image_proj_model, ckpt_path=photomake_or_ipadapter_path, device=device, num_tokens=16)
+    samples=PIPE.generate(model, image_embeds,  prompt_embeds_, negative_prompt_embeds_,grounding_kwargs,cross_attention_kwargs, bsz,height,width,steps,seed,cfg,pooled_prompt_embeds,negative_pooled_prompt_embeds,scale=1.0,
+                 num_samples=bsz,  weight_dtype=torch.float16, subject_scales=None, mask_threshold=mask_threshold, start_step=5)
+    return samples
+
+def convert_clip2diffuser(clip):
+   
+    from transformers import (
+            CLIPTextModel,CLIPTextModelWithProjection,
+            CLIPTextConfig,
+                                            )
+    from contextlib import nullcontext
+
+    try:
+        from accelerate import init_empty_weights
+        from accelerate.utils import set_module_tensor_to_device
+        is_accelerate_available = True
+    except:
+        pass
+    
+    import comfy.model_management as mm
+   
+    offload_device=mm.unet_offload_device()
+   
+    text_encoder_config=CLIPTextConfig.from_pretrained(os.path.join(cur_path, 'local_repo/text_encoder'), local_files_only=True)
+    ctx = init_empty_weights if is_accelerate_available else nullcontext
+    with ctx():
+        text_encoder = CLIPTextModel(text_encoder_config)
+    text_encoder_sd = clip.get_sd()
+    text_encoder_2_sd = clip.get_sd()
+
+    from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_open_clip_checkpoint,convert_ldm_clip_checkpoint
+    text_encoder = convert_ldm_clip_checkpoint(text_encoder_sd, text_encoder=text_encoder)
+    text_encoder=None
+    text_encoder_2 = convert_open_clip_checkpoint(text_encoder_2_sd,config_name=os.path.join(cur_path, 'local_repo/text_encoder_2'))    
+   
+    return text_encoder,text_encoder_2
+    
+
+
+def convert_cfvae2diffuser(VAE,use_flux=False):
+    from diffusers import AutoencoderKL
+    from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_ldm_vae_checkpoint
+    if use_flux:
+        vae_config = os.path.join(cur_path, "config/FLUX.1-dev/vae/config.json")
+    else:
+        vae_config = os.path.join(cur_path, "local_repo/vae/config.json")
+    vae_state_dict=VAE.get_sd()
+    ae_config = AutoencoderKL.load_config(vae_config)
+    
+    if not use_flux:
+        AE = AutoencoderKL.from_config(ae_config).to(device, torch.float16)
+        cf_state_dict = convert_ldm_vae_checkpoint(vae_state_dict, AE.config)
+        AE.load_state_dict(cf_state_dict, strict=False)
+        del cf_state_dict,vae_state_dict
+    else:
+        AE = AutoencoderKL.from_config(ae_config).to(device, torch.bfloat16)
+        AE.load_state_dict(vae_state_dict, strict=False)
+        del vae_state_dict
+    torch.cuda.empty_cache()
+    return AE
+
+
+def Loader_storydiffusion(cf_model,photomake_ckpt_path,VAE,UNET=None):
+    sdxl_repo = os.path.join(cur_path, "local_repo")
+    vae_config=OmegaConf.load(os.path.join(cur_path,"local_repo/vae/config.json"))
+    
+    from .utils.pipeline_wrapper import StableDiffusionXLPipelineWrapper
+    from .utils.pipeline_img import PhotoMakerStableDiffusionXLPipeline as PhotoMakerStableDiffusionXLPipelineWrapper
+    from .utils.pipeline_v2_warrper import  PhotoMakerStableDiffusionXLPipeline as PhotoMakerStableDiffusionXLPipelineV2
+    if cf_model is not None:
+        Unet=convert_cf2diffuser(cf_model.model)
+        if photomake_ckpt_path is not None: # guess img2img
+            if VAE is None:
+                raise "need link a SDXL vae when use img2img!"
+            vae = convert_cfvae2diffuser(VAE)
+            if "v1" in photomake_ckpt_path:
+                model = PhotoMakerStableDiffusionXLPipelineWrapper.from_pretrained(sdxl_repo, unet=Unet, vae=vae,text_encoder=None,text_encoder_2=None,
+                                                                     torch_dtype=torch.float16, use_safetensors=True)
+                model.load_photomaker_adapter(
+                photomake_ckpt_path,
+                subfolder="",
+                weight_name="photomaker-v1.bin",
+                trigger_word="img"  # define the trigger word
+            )
+            
+            else:
+                model = PhotoMakerStableDiffusionXLPipelineV2.from_pretrained(sdxl_repo, unet=Unet, vae=vae,text_encoder=None,text_encoder_2=None,
+                                                                     torch_dtype=torch.float16, use_safetensors=True)
+                model.load_photomaker_adapter(
+                photomake_ckpt_path,
+                subfolder="",
+                weight_name="photomaker-v2.bin",
+                trigger_word="img",
+                pm_version='v2',
+            )
+        else:
+            model = StableDiffusionXLPipelineWrapper.from_pretrained(sdxl_repo, unet=Unet, vae_config=vae_config,
+                                                                     torch_dtype=torch.float16, use_safetensors=True)
+    elif UNET is not None:  
+         model = StableDiffusionXLPipelineWrapper.from_pretrained(sdxl_repo, unet=UNET.unet, vae_config=vae_config,
+                                                                     torch_dtype=torch.float16, use_safetensors=True)     
+    else:
+        raise "need  link a comfyUI checkpoint model!"
+
+    model.to(device)
+    return model
+
+
+
+
+def Loader_story_maker(cf_model,ipadapter_ckpt_path,VAE,low_vram,lora_scale,controlnet=None,UNET=None):
+    sdxl_repo = os.path.join(cur_path, "local_repo")
+    #vae_config = OmegaConf.load(vae_config)
+    if cf_model is not None:
+        Unet = convert_cf2diffuser(cf_model.model)
+        AE=convert_cfvae2diffuser(VAE)
+        from .StoryMaker.pipeline_sdxl_storymaker_wrapper import StableDiffusionXLStoryMakerPipeline as StableDiffusionXLStoryMakerPipeline_wapper
+        model = StableDiffusionXLStoryMakerPipeline_wapper.from_pretrained(sdxl_repo, vae=AE,unet=Unet,text_encoder=None,text_encoder_2=None, 
+                                                                 torch_dtype=torch.float16, use_safetensors=True)
+    elif UNET is not None:
+        AE=convert_cfvae2diffuser(VAE)
+        from .StoryMaker.pipeline_sdxl_storymaker_wrapper import StableDiffusionXLStoryMakerPipeline as StableDiffusionXLStoryMakerPipeline_wapper
+        model = StableDiffusionXLStoryMakerPipeline_wapper.from_pretrained(sdxl_repo, vae=AE,unet=UNET.unet,text_encoder=None,text_encoder_2=None,
+                                                                               torch_dtype=torch.float16, use_safetensors=True)
+    else:
+        raise "need  link a comfyUI checkpoint model!"
+       
+    
+    if device != "mps":
+        if not low_vram:
+            model.cuda()
+    
+    model.load_storymaker_adapter(ipadapter_ckpt_path, scale=0.8, lora_scale=lora_scale, controlnet=controlnet)
+    #model.scheduler = UniPCMultistepScheduler.from_config(model.scheduler.config)
+    return model
+
+
+def Loader_Flux_Pulid(model,cf_model, ipadapter_ckpt_path,quantized_mode,aggressive_offload,offload,if_repo,clip_vision_path):
+    
+    logging.info("start flux-pulid processing...")
+    from .PuLID.app_flux import FluxGenerator
+    
+    pipe = FluxGenerator(model, "cuda:0", offload,aggressive_offload, pretrained_model=ipadapter_ckpt_path,
+                            quantized_mode=quantized_mode, if_repo=if_repo,clip_vision_path=clip_vision_path)
+
+    return pipe
+
+def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
+    logging.info("start InfiniteYou mode processing...")    
+    from .pipelines.pipeline_infu_flux import InfUFluxPipeline
+    from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
+    from transformers import BitsAndBytesConfig as TransformersBitsAndBytesConfig,T5EncoderModel
+    from .pipelines.resampler import Resampler
+    
+    
+    # quantize T5 
+    # quant_config = TransformersBitsAndBytesConfig(
+    #         load_in_4bit=True,
+    #         bnb_4bit_quant_type="nf4",
+    #     )
+
+    # text_encoder_2_4bit = T5EncoderModel.from_pretrained(
+    #         repo_id,
+    #         subfolder="text_encoder_2",
+    #         quantization_config=quant_config,
+    #         torch_dtype=torch.bfloat16,
+    #     ) # init nf4 
+    
+    repo_id=os.path.join(cur_path, "config/FLUX.1-dev")
+    
+    if cf_model.get("use_svdq"):
+        print("use svdq quantization")   
+        from nunchaku import NunchakuFluxTransformer2dModel
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+    elif cf_model.get("use_gguf"):
+        print("use gguf quantization")   
+        if cf_model.get("model_path") is None:
+            raise "need chocie a  gguf model in EasyFunction_Lite!"
+        from diffusers import  GGUFQuantizationConfig
+        transformer = FluxTransformer2DModel.from_single_file(
+            cf_model.get("model_path"),
+            config=os.path.join(repo_id, "transformer"),
+            quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
+            torch_dtype=torch.bfloat16,
+        )
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+    elif cf_model.get("use_unet"):
+
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(repo_id,"transformer/config.json"),
+                                                                            torch_dtype=torch.bfloat16)
+        else:
+            from safetensors.torch import load_file
+            t_state_dict=load_file(cf_model.get("model_path"))
+            unet_config = FluxTransformer2DModel.load_config(os.path.join(repo_id,"transformer/config.json"))
+            transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
+            transformer.load_state_dict(t_state_dict, strict=False)
+            del t_state_dict
+            gc_cleanup()
+    else:
+        vae = None
+        if not cf_model.get("select_method"):
+            raise "need fill flux repo  in EasyFunction_Lite select_method!"
+        print("use nf4 quantization")   
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("select_method"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
+                torch_dtype=torch.bfloat16,
+            )
+                   
+        elif quantize_mode=="nf4": #nf4
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("select_method"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(
+                    load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                ),
+                torch_dtype=torch.bfloat16,)
+        else:
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("select_method"),
+                subfolder="transformer",
+                 torch_dtype=torch.bfloat16,
+                )
+
+        
+        
+    if not cf_model.get("extra_repo"):
+        raise "need fill a extra_repo in EasyFunction_Lite!"
+    infusenet_path = os.path.join(cf_model.get("extra_repo"), 'InfuseNetModel')
+
+     
+    pipe = InfUFluxPipeline(
+            repo_id,infusenet_path,
+            text_encoder_2=None,
+            text_encoder=None,
+            transformer=transformer,
+            vae=vae,
+        )
+    # Load image proj model
+    num_tokens = 8 # image_proj_num_tokens
+    image_emb_dim = 512
+    image_proj_model = Resampler(
+        dim=1280,
+        depth=4,
+        dim_head=64,
+        heads=20,
+        num_queries=num_tokens,
+        embedding_dim=image_emb_dim,
+        output_dim=4096,
+        ff_mult=4,
+    )
+    image_proj_model_path = os.path.join(cf_model.get("extra_repo"), 'image_proj_model.bin')
+    ipm_state_dict = torch.load(image_proj_model_path, map_location="cpu")
+    image_proj_model.load_state_dict(ipm_state_dict['image_proj'])
+    del ipm_state_dict
+    image_proj_model.to('cuda', torch.bfloat16)
+    image_proj_model.eval()
+
+    pipe.pipe.enable_model_cpu_offload()
+    return pipe,image_proj_model
+
+def load_pipeline_consistory(cf_model,VAE):
+    from .consistory.consistory_unet_sdxl import ConsistorySDXLUNet2DConditionModel
+    from .consistory.consistory_pipeline_wapper import ConsistoryExtendAttnSDXLPipeline as ConsistoryExtendAttnSDXLPipeline_wapper
+    float_type = torch.float16
+    
+    device = torch.device(f'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+
+    if cf_model is not None:
+        config_file = os.path.join(cur_path,"local_repo/unet/config.json")
+        sdxl_repo = os.path.join(cur_path, "local_repo")
+
+        from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_ldm_unet_checkpoint
+        cf_state_dict = cf_model.model.diffusion_model.state_dict()
+        unet_state_dict = cf_model.model.model_config.process_unet_state_dict_for_saving(cf_state_dict)
+
+        unet_config = ConsistorySDXLUNet2DConditionModel.load_config(config_file)
+        Unet = ConsistorySDXLUNet2DConditionModel.from_config(unet_config).to(torch.float16)
+        cf_state_dict = convert_ldm_unet_checkpoint(unet_state_dict, Unet.config)
+        Unet.load_state_dict(cf_state_dict, strict=False)
+        del cf_state_dict,unet_state_dict
+        gc_cleanup()
+        
+        AE=convert_cfvae2diffuser(VAE)
+       
+        story_pipeline=ConsistoryExtendAttnSDXLPipeline_wapper.from_pretrained(sdxl_repo,unet=Unet,vae=AE,text_encoder=None,text_encoder_2=None, torch_dtype=float_type, )
+        story_pipeline.to(device)
+    else:
+        raise "need link a sdxl checkpoints"
+    
+    story_pipeline.enable_freeu(s1=0.6, s2=0.4, b1=1.1, b2=1.2)
+    return story_pipeline
+
+def Loader_KOLOR(repo_id,clip_vision_path,face_ckpt,):
+
+    from .kolors.models.modeling_chatglm import ChatGLMModel
+    from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
+    from transformers import CLIPVisionModelWithProjection,CLIPImageProcessor
+    from diffusers import  EulerDiscreteScheduler, UNet2DConditionModel, AutoencoderKL
+
+    logging.info("loader kolor processing...")
+
+    # text_encoder = ChatGLMModel.from_pretrained(
+    #     f'{repo_id}/text_encoder', torch_dtype=torch.float16).half()
+    vae = AutoencoderKL.from_pretrained(f"{repo_id}/vae", revision=None).half()
+    #tokenizer = ChatGLMTokenizer.from_pretrained(f'{repo_id}/text_encoder')
+    scheduler = EulerDiscreteScheduler.from_pretrained(f"{repo_id}/scheduler")
+
+   
+    from .kolors.pipelines.pipeline_stable_diffusion_xl_chatglm_256_ipadapter_FaceID import \
+        StableDiffusionXLPipeline as StableDiffusionXLPipelineFaceID
+    unet = UNet2DConditionModel.from_pretrained(f'{repo_id}/unet', revision=None).half()
+    
+    if clip_vision_path:
+        if isinstance(clip_vision_path, str):
+            clip_image_encoder = clip_load(clip_vision_path).model
+        else:
+            clip_image_encoder = clip_vision_path.model
+        clip_image_processor = CLIPImageProcessor(size=224, crop_size=224)
+        use_singel_clip = True
+    else:
+        clip_image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+            f'{repo_id}/clip-vit-large-patch14-336', ignore_mismatched_sizes=True)
+        clip_image_encoder.to("cuda")
+        clip_image_processor = CLIPImageProcessor(size=336, crop_size=336)
+        use_singel_clip = False
+    
+    pipe = StableDiffusionXLPipelineFaceID(
+        vae=vae,
+        text_encoder=None,
+        tokenizer=None,
+        unet=unet,
+        scheduler=scheduler,
+        face_clip_encoder=clip_image_encoder,
+        face_clip_processor=clip_image_processor,
+        force_zeros_for_empty_prompt=False,
+        use_single_clip=use_singel_clip,
+    )
+    pipe = pipe.to("cuda")
+    pipe.load_ip_adapter_faceid_plus(face_ckpt, device="cuda")
+    pipe.set_face_fidelity_scale(0.8)
+    return pipe
+
+def GLM_clip(cur_path,chatglm3_path): #https://github.com/kijai/ComfyUI-KwaiKolorsWrapper/blob/main/nodes.py @kijai
+    from .kolors.models.modeling_chatglm import ChatGLMModel, ChatGLMConfig
+    from contextlib import nullcontext
+    from comfy.utils import ProgressBar, load_torch_file
+    try:
+        from accelerate import init_empty_weights
+        from accelerate.utils import set_module_tensor_to_device
+        is_accelerate_available = True
+    except:
+        pass
+    
+    import comfy.model_management as mm
+    import json
+    offload_device=mm.unet_offload_device()
+    text_encoder_config = os.path.join(cur_path, 'config/glm/text_encoder_config.json')
+    with open(text_encoder_config, 'r') as file:
+        config = json.load(file)
+
+    text_encoder_config = ChatGLMConfig(**config)
+    with (init_empty_weights() if is_accelerate_available else nullcontext()):
+        text_encoder = ChatGLMModel(text_encoder_config)
+        if '4bit' in chatglm3_path:
+            text_encoder.quantize(4)
+        elif '8bit' in chatglm3_path:
+            text_encoder.quantize(8)
+
+    text_encoder_sd = load_torch_file(chatglm3_path)
+    if is_accelerate_available:
+        for key in text_encoder_sd:
+            set_module_tensor_to_device(text_encoder, key, device=offload_device, value=text_encoder_sd[key])
+    else:
+        text_encoder.load_state_dict()
+    
+
+    return text_encoder
+
+def glm_single_encode(chatglm3_model, prompt_list,role_list, negative_prompt_, num_images_per_prompt,nc_mode=False): #https://github.com/kijai/ComfyUI-KwaiKolorsWrapper/blob/main/nodes.py @kijai
+    import comfy.model_management as mm
+    device = mm.get_torch_device()
+    offload_device = mm.unet_offload_device()
+    mm.unload_all_models()
+    mm.soft_empty_cache()
+        # Function to randomly select an option from the brackets
+    # def choose_random_option(match):
+    #     options = match.group(1).split('|')
+    #     return random.choice(options)
+
+    # # Randomly choose between options in brackets for prompt and negative_prompt
+    # prompt = re.sub(r'\{([^{}]*)\}', choose_random_option, prompt)
+    # negative_prompt = re.sub(r'\{([^{}]*)\}', choose_random_option, negative_prompt)
+
+    # if "|" in prompt:
+    #     prompt = prompt.split("|")
+    #     negative_prompt = [negative_prompt] * len(prompt)  # Replicate negative_prompt to match length of prompt list
+
+    do_classifier_free_guidance = True
+    #print(prompt)
+    if nc_mode:
+        only_role_emb,only_role_emb_ne = [],[]
+        for prompt,negative_prompt in zip(prompt_list,[negative_prompt_]*len(prompt_list)):
+                
+            if prompt is not None and isinstance(prompt, str):
+                batch_size = 1
+            elif prompt is not None and isinstance(prompt, list):
+                batch_size = len(prompt)
+
+            # Define tokenizers and text encoders
+            tokenizer = chatglm3_model['tokenizer']
+            text_encoder = chatglm3_model['text_encoder']
+
+            text_encoder.to(device)
+
+            text_inputs = tokenizer(
+                prompt,
+                padding="max_length",
+                max_length=256,
+                truncation=True,
+                return_tensors="pt",
+            ).to(device)
+
+            output = text_encoder(
+                    input_ids=text_inputs['input_ids'] ,
+                    attention_mask=text_inputs['attention_mask'],
+                    position_ids=text_inputs['position_ids'],
+                    output_hidden_states=True)
+            
+            prompt_embeds = output.hidden_states[-2].permute(1, 0, 2).clone() # [batch_size, 77, 4096]
+            text_proj = output.hidden_states[-1][-1, :, :].clone() # [batch_size, 4096]
+            bs_embed, seq_len, _ = prompt_embeds.shape
+            prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
+            prompt_embeds = prompt_embeds.view(bs_embed * num_images_per_prompt, seq_len, -1)
+
+
+            if do_classifier_free_guidance:
+                uncond_tokens = []
+                if negative_prompt is None:
+                    uncond_tokens = [""] * batch_size
+                elif prompt is not None and type(prompt) is not type(negative_prompt):
+                    raise TypeError(
+                        f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
+                        f" {type(prompt)}."
+                    )
+                elif isinstance(negative_prompt, str):
+                    uncond_tokens = [negative_prompt]
+                elif batch_size != len(negative_prompt):
+                    raise ValueError(
+                        f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
+                        f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
+                        " the batch size of `prompt`."
+                    )
+                else:
+                    uncond_tokens = negative_prompt
+            
+
+                max_length = prompt_embeds.shape[1]
+                uncond_input = tokenizer(
+                    uncond_tokens,
+                    padding="max_length",
+                    max_length=max_length,
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(device)
+                output = text_encoder(
+                        input_ids=uncond_input['input_ids'] ,
+                        attention_mask=uncond_input['attention_mask'],
+                        position_ids=uncond_input['position_ids'],
+                        output_hidden_states=True)
+                negative_prompt_embeds = output.hidden_states[-2].permute(1, 0, 2).clone() # [batch_size, 77, 4096]
+                negative_text_proj = output.hidden_states[-1][-1, :, :].clone() # [batch_size, 4096]
+
+                if do_classifier_free_guidance:
+                    # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
+                    seq_len = negative_prompt_embeds.shape[1]
+
+                    negative_prompt_embeds = negative_prompt_embeds.to(dtype=text_encoder.dtype, device=device)
+
+                    negative_prompt_embeds = negative_prompt_embeds.repeat(1, num_images_per_prompt, 1)
+                    negative_prompt_embeds = negative_prompt_embeds.view(
+                        batch_size * num_images_per_prompt, seq_len, -1
+                    )
+
+            bs_embed = text_proj.shape[0]
+            text_proj = text_proj.repeat(1, num_images_per_prompt).view(
+                bs_embed * num_images_per_prompt, -1
+            )
+            negative_text_proj = negative_text_proj.repeat(1, num_images_per_prompt).view(
+                bs_embed * num_images_per_prompt, -1
+            )
+            math_emb=[prompt_embeds,text_proj]
+            only_role_emb.append(math_emb)
+            math_emb_n=[negative_prompt_embeds,negative_text_proj]
+            only_role_emb_ne.append(math_emb_n)
+        
+        text_encoder.to(offload_device)
+        mm.soft_empty_cache()
+        gc.collect()
+        return only_role_emb,only_role_emb_ne
+    else:
+        role_emb_dict={}
+        for key,prompts in zip(role_list,prompt_list):
+            only_role_emb,only_role_emb_ne = [],[]
+            for prompt,negative_prompt in zip(prompts,[negative_prompt_]*len(prompts)):
+                
+                if prompt is not None and isinstance(prompt, str):
+                    batch_size = 1
+                elif prompt is not None and isinstance(prompt, list):
+                    batch_size = len(prompt)
+
+                # Define tokenizers and text encoders
+                tokenizer = chatglm3_model['tokenizer']
+                text_encoder = chatglm3_model['text_encoder']
+
+                text_encoder.to(device)
+
+                text_inputs = tokenizer(
+                    prompt,
+                    padding="max_length",
+                    max_length=256,
+                    truncation=True,
+                    return_tensors="pt",
+                ).to(device)
+
+                output = text_encoder(
+                        input_ids=text_inputs['input_ids'] ,
+                        attention_mask=text_inputs['attention_mask'],
+                        position_ids=text_inputs['position_ids'],
+                        output_hidden_states=True)
+                
+                prompt_embeds = output.hidden_states[-2].permute(1, 0, 2).clone() # [batch_size, 77, 4096]
+                text_proj = output.hidden_states[-1][-1, :, :].clone() # [batch_size, 4096]
+                bs_embed, seq_len, _ = prompt_embeds.shape
+                prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
+                prompt_embeds = prompt_embeds.view(bs_embed * num_images_per_prompt, seq_len, -1)
+
+
+                if do_classifier_free_guidance:
+                    uncond_tokens = []
+                    if negative_prompt is None:
+                        uncond_tokens = [""] * batch_size
+                    elif prompt is not None and type(prompt) is not type(negative_prompt):
+                        raise TypeError(
+                            f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
+                            f" {type(prompt)}."
+                        )
+                    elif isinstance(negative_prompt, str):
+                        uncond_tokens = [negative_prompt]
+                    elif batch_size != len(negative_prompt):
+                        raise ValueError(
+                            f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
+                            f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
+                            " the batch size of `prompt`."
+                        )
+                    else:
+                        uncond_tokens = negative_prompt
+                
+
+                    max_length = prompt_embeds.shape[1]
+                    uncond_input = tokenizer(
+                        uncond_tokens,
+                        padding="max_length",
+                        max_length=max_length,
+                        truncation=True,
+                        return_tensors="pt",
+                    ).to(device)
+                    output = text_encoder(
+                            input_ids=uncond_input['input_ids'] ,
+                            attention_mask=uncond_input['attention_mask'],
+                            position_ids=uncond_input['position_ids'],
+                            output_hidden_states=True)
+                    negative_prompt_embeds = output.hidden_states[-2].permute(1, 0, 2).clone() # [batch_size, 77, 4096]
+                    negative_text_proj = output.hidden_states[-1][-1, :, :].clone() # [batch_size, 4096]
+
+                    if do_classifier_free_guidance:
+                        # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
+                        seq_len = negative_prompt_embeds.shape[1]
+
+                        negative_prompt_embeds = negative_prompt_embeds.to(dtype=text_encoder.dtype, device=device)
+
+                        negative_prompt_embeds = negative_prompt_embeds.repeat(1, num_images_per_prompt, 1)
+                        negative_prompt_embeds = negative_prompt_embeds.view(
+                            batch_size * num_images_per_prompt, seq_len, -1
+                        )
+
+                bs_embed = text_proj.shape[0]
+                text_proj = text_proj.repeat(1, num_images_per_prompt).view(
+                    bs_embed * num_images_per_prompt, -1
+                )
+                negative_text_proj = negative_text_proj.repeat(1, num_images_per_prompt).view(
+                    bs_embed * num_images_per_prompt, -1
+                )
+                math_emb=[prompt_embeds,text_proj]
+                only_role_emb.append(math_emb)
+                math_emb_n=[negative_prompt_embeds,negative_text_proj]
+                only_role_emb_ne.append(math_emb_n)
+            role_emb_dict[key]=only_role_emb
+    
+        text_encoder.to(offload_device)
+        mm.soft_empty_cache()
+        gc.collect()
+
+        return role_emb_dict,only_role_emb_ne
+
+
+def encode_prompt_with_trigger_word(clip,model_,
+    prompt: str,
+    prompt_2 = None,
+    num_id_images= 1,
+    device = None,
+    prompt_embeds = None,
+    pooled_prompt_embeds= None,
+    class_tokens_mask = None,
+    nc_flag: bool = False,
+    trigger_word="img",
+    unet_dtype=torch.float16
+):
+    device = device 
+    tokenizer_2=model_.tokenizer_2
+    tokenizer=model_.tokenizer
+    #text_encoders=clip.encode_from_tokens
+
+    if prompt is not None and isinstance(prompt, str):
+        batch_size = 1
+    elif prompt is not None and isinstance(prompt, list):
+        batch_size = len(prompt)
+    else:
+        batch_size = prompt_embeds.shape[0]
+
+    # Find the token id of the trigger word
+    image_token_id = tokenizer_2.convert_tokens_to_ids(trigger_word)
+
+    # Define tokenizers and text encoders
+    tokenizers = [tokenizer, tokenizer_2] if tokenizer is not None else [tokenizer_2]
+    # text_encoders = (
+    #     [self.text_encoder, self.text_encoder_2] if self.text_encoder is not None else [self.text_encoder_2]
+    # )
+
+    if prompt_embeds is None:
+        prompt_2 = prompt_2 or prompt
+        prompt_embeds_list = []
+        prompts = [prompt, prompt_2]
+       
+        for prompt, tokenizer,text_en in zip(prompts, tokenizers,[clip.cond_stage_model.clip_l.encode_token_weights,clip.cond_stage_model.clip_g.encode_token_weights]):
+            input_ids = tokenizer.encode(prompt) # TODO: batch encode
+            clean_index = 0
+            clean_input_ids = []
+            class_token_index = []
+            # Find out the corresponding class word token based on the newly added trigger word token
+            for i, token_id in enumerate(input_ids):
+                if token_id == image_token_id:
+                    class_token_index.append(clean_index - 1)
+                else:
+                    clean_input_ids.append(token_id)
+                    clean_index += 1
+            if nc_flag:
+                return None, None, None
+            if len(class_token_index) > 1:
+                raise ValueError(
+                    f"PhotoMaker currently does not support multiple trigger words in a single prompt.\
+                        Trigger word: {trigger_word}, Prompt: {prompt}."
+                )
+            elif len(class_token_index) == 0 and not nc_flag:
+                raise ValueError(
+                    f"PhotoMaker currently does not support multiple trigger words in a single prompt.\
+                        Trigger word: {trigger_word}, Prompt: {prompt}."
+                )
+            class_token_index = class_token_index[0]
+
+            # Expand the class word token and corresponding mask
+            class_token = clean_input_ids[class_token_index]
+            clean_input_ids = clean_input_ids[:class_token_index] + [class_token] * num_id_images + \
+                clean_input_ids[class_token_index+1:]
+
+            # Truncation or padding
+            max_len = tokenizer.model_max_length
+            if len(clean_input_ids) > max_len:
+                clean_input_ids = clean_input_ids[:max_len]
+            else:
+                clean_input_ids = clean_input_ids + [tokenizer.pad_token_id] * (
+                    max_len - len(clean_input_ids)
+                )
+
+            class_tokens_mask = [True if class_token_index <= i < class_token_index+num_id_images else False \
+                    for i in range(len(clean_input_ids))]
+            #print(clean_input_ids)
+            #print(max_len)
+            
+            clean_input_ids=clean_input_ids[:77] if len(clean_input_ids) > 77 else clean_input_ids + [0]*(77 - len(clean_input_ids))
+                
+            clean_input_ids_1=[(i,1.0) for i in clean_input_ids]
+            clean_input_ids_2=[(i,1.0) for i in clean_input_ids if i==clean_input_ids[0] or i==49407 ]
+            clean_input_ids_2=clean_input_ids_2[:77] if len(clean_input_ids_2) > 77 else clean_input_ids_2 + [(0,1.0)]*(77 - len(clean_input_ids_2))
+            clean_input_ids_list=[clean_input_ids_1,clean_input_ids_2]
+            #print(clean_input_ids)
+            #clean_input_ids_ = torch.tensor(clean_input_ids, dtype=torch.long).unsqueeze(0)
+            class_tokens_mask = torch.tensor(class_tokens_mask, dtype=torch.bool).unsqueeze(0)
+
+           
+            prompt_embeds, pooled_prompt_embeds = text_en(clean_input_ids_list) # print(prompt_embeds.shape,pooled_prompt_embeds.shape)torch.Size([1, 154, 768]) torch.Size([1, 768]) torch.Size([1, 154, 1280]) torch.Size([1, 1280])
+
+
+            prompt_embeds_list.append((prompt_embeds,pooled_prompt_embeds))
+
+        #prompt_embeds = torch.concat(prompt_embeds_list, dim=-1)
+        #prompt_embeds=prompt_embeds_list[1]
+    pooled_prompt_embeds=prompt_embeds_list[1][1]
+    # cut_to = min(prompt_embeds_list[0][0].shape[1], prompt_embeds_list[1][0].shape[1])
+    # print(cut_to)
+    cut_to=77 
+    prompt_embeds= torch.cat([prompt_embeds_list[0][0][:,:cut_to], prompt_embeds_list[1][0][:,:cut_to]], dim=-1)
+    prompt_embeds = prompt_embeds.to(device=device,dtype=unet_dtype, )
+    class_tokens_mask = class_tokens_mask.to(device=device) # TODO: ignoring two-prompt case
+
+    return prompt_embeds, pooled_prompt_embeds, class_tokens_mask
+
+def cf_clip_single(clip,prompt,
+            prompt_2,
+            device,
+            num_images_per_prompt,
+            do_classifier_free_guidance,
+            negative_prompt,
+            negative_prompt_2,
+            prompt_embeds,
+            negative_prompt_embeds,
+            pooled_prompt_embeds,
+            negative_pooled_prompt_embeds,):
+    
+    tokens_p = clip.tokenize(prompt)
+    output_p = clip.encode_from_tokens(tokens_p, return_dict=True)  # {"pooled_output":tensor}
+    cond_p = output_p.pop("cond")
+    pool_p=output_p.pop("pooled_output")
+
+    tokens_n = clip.tokenize(negative_prompt)
+    output_n = clip.encode_from_tokens(tokens_n, return_dict=True)  # {"pooled_output":tensor}
+    cond_n = output_n.pop("cond")
+    pool_n = output_n.pop("pooled_output")
+
+    return cond_p,cond_n,pool_p,pool_n # TODO: replace the pooled_prompt_embeds with text only prompt
+
+    
+
+def photomaker_clip(clip,model_,prompt_list,negative_prompt,input_id_images,trigger_word="img",num_images_per_prompt=1,nc_flag=False,prompt_2=None,prompt_embeds=None,pooled_prompt_embeds=None,class_tokens_mask=None,prompt_embeds_text_only=None,negative_pooled_prompt_embeds=None):
+    id_encoder=model_.id_encoder
+    id_image_processor=model_.id_image_processor
+
+    tokenizer=model_.tokenizer_2
+    batch_size=len(prompt_list)
+
+    num_id_images = len(input_id_images) #双角色时，须确保输入的图片是列表，且跟prompt对应上
+    prompt_arr = prompt_list
+    negative_prompt_embeds_arr = []
+    prompt_embeds_text_only_arr = []
+    prompt_embeds_arr = []
+    latents_arr = []
+    add_time_ids_arr = []
+    negative_pooled_prompt_embeds_arr = []
+    pooled_prompt_embeds_text_only_arr = []
+    pooled_prompt_embeds_arr = []
+    for prompt in prompt_arr:
+        (
+            prompt_embeds,
+            pooled_prompt_embeds,
+            class_tokens_mask,
+        ) = encode_prompt_with_trigger_word(clip,model_,
+            prompt=prompt,
+            prompt_2=prompt_2,
+            device=device,
+            num_id_images=num_id_images,
+            prompt_embeds=prompt_embeds,
+            pooled_prompt_embeds=pooled_prompt_embeds,
+            class_tokens_mask=class_tokens_mask,
+            nc_flag = nc_flag,
+        )
+
+        # 4. Encode input prompt without the trigger word for delayed conditioning
+        # encode, remove trigger word token, then decode
+        tokens_text_only = tokenizer.encode(prompt, add_special_tokens=False)
+        trigger_word_token = tokenizer.convert_tokens_to_ids(trigger_word)
+        if not nc_flag:
+            tokens_text_only.remove(trigger_word_token)
+        prompt_text_only = tokenizer.decode(tokens_text_only, add_special_tokens=False)
+        #print(prompt_text_only)
+        (
+            prompt_embeds_text_only,
+            negative_prompt_embeds,
+            pooled_prompt_embeds_text_only, # TODO: replace the pooled_prompt_embeds with text only prompt
+            negative_pooled_prompt_embeds,
+        ) = cf_clip_single(clip,
+            prompt=prompt_text_only,
+            prompt_2=prompt_2,
+            device=device,
+            num_images_per_prompt=num_images_per_prompt,
+            do_classifier_free_guidance=True,
+            negative_prompt=negative_prompt,
+            negative_prompt_2=None,
+            prompt_embeds=prompt_embeds_text_only,
+            negative_prompt_embeds=None,
+            pooled_prompt_embeds=None,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        )
+
+        # 5. Prepare the input ID images
+        dtype = next(id_encoder.parameters()).dtype
+        if not isinstance(input_id_images[0], torch.Tensor):
+            id_pixel_values = id_image_processor(input_id_images, return_tensors="pt").pixel_values
+
+        id_pixel_values = id_pixel_values.unsqueeze(0).to(device=device, dtype=dtype) # TODO: multiple prompts
+
+        # duplicate text embeddings for each generation per prompt, using mps friendly method
+        if not nc_flag:
+            # 6. Get the update text embedding with the stacked ID embedding
+            prompt_embeds = id_encoder(id_pixel_values, prompt_embeds, class_tokens_mask)
+
+            bs_embed, seq_len, _ = prompt_embeds.shape
+            prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
+            prompt_embeds = prompt_embeds.view(bs_embed * num_images_per_prompt, seq_len, -1)
+            pooled_prompt_embeds = pooled_prompt_embeds.repeat(1, num_images_per_prompt).view(
+                bs_embed * num_images_per_prompt, -1
+            )
+            pooled_prompt_embeds_arr.append(pooled_prompt_embeds)
+            pooled_prompt_embeds = None
+
+        negative_prompt_embeds_arr.append(negative_prompt_embeds)
+        negative_prompt_embeds = None
+        negative_pooled_prompt_embeds_arr.append(negative_pooled_prompt_embeds)
+        negative_pooled_prompt_embeds = None
+        prompt_embeds_text_only_arr.append(prompt_embeds_text_only)
+        prompt_embeds_text_only = None
+        prompt_embeds_arr.append(prompt_embeds)
+        prompt_embeds = None
+        pooled_prompt_embeds_text_only_arr.append(pooled_prompt_embeds_text_only)
+        pooled_prompt_embeds_text_only = None
+
+    emb_dict={"negative_prompt_embeds_arr":negative_prompt_embeds_arr,
+              "negative_prompt_embeds":negative_prompt_embeds,
+              "negative_pooled_prompt_embeds_arr":negative_pooled_prompt_embeds_arr,
+              "negative_pooled_prompt_embeds":negative_pooled_prompt_embeds,
+              "prompt_embeds_text_only_arr":prompt_embeds_text_only_arr,
+              "prompt_embeds_text_only":prompt_embeds_text_only,
+              "prompt_embeds_arr":prompt_embeds_arr,
+              "prompt_embeds":prompt_embeds,
+              "pooled_prompt_embeds":pooled_prompt_embeds,
+              "pooled_prompt_embeds_text_only_arr":pooled_prompt_embeds_text_only_arr,
+              "pooled_prompt_embeds_text_only":pooled_prompt_embeds_text_only,
+              "pooled_prompt_embeds_arr":pooled_prompt_embeds_arr,
+                "batch_size":batch_size,
+              }    
+    return emb_dict
+
+
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+def encode_prompt_with_trigger_word_v2(clip,model_,
+    prompt: str,
+    prompt_2 = None,
+    num_id_images= 1,
+    device = None,
+    prompt_embeds = None,
+    negative_prompt = None,
+    negative_prompt_2 = None,
+    negative_prompt_embeds= None,
+    pooled_prompt_embeds= None,
+    negative_pooled_prompt_embeds= None,
+    num_images_per_prompt=1,
+    class_tokens_mask = None,
+    nc_flag: bool = False,
+    trigger_word="img",
+    unet_dtype=torch.float16,
+    clip_skip=None,
+    lora_scale=None,
+    do_classifier_free_guidance=True,
+    force_zeros_for_empty_prompts=False,
+    num_tokens=2,
+
+):
+    
+    device = device 
+    tokenizer_2=model_.tokenizer_2
+    tokenizer=model_.tokenizer
+    #text_encoders=clip.encode_from_tokens
+
+    if prompt is not None and isinstance(prompt, str):
+        batch_size = 1
+    elif prompt is not None and isinstance(prompt, list):
+        batch_size = len(prompt)
+    else:
+        batch_size = prompt_embeds.shape[0]
+
+    # Find the token id of the trigger word
+    image_token_id = tokenizer_2.convert_tokens_to_ids(trigger_word)
+
+    # Define tokenizers and text encoders
+    tokenizers = [tokenizer, tokenizer_2] if tokenizer is not None else [tokenizer_2]
+    # text_encoders = (
+    #     [self.text_encoder, self.text_encoder_2] if self.text_encoder is not None else [self.text_encoder_2]
+    # )
+
+    if prompt_embeds is None:
+        prompt_2 = prompt_2 or prompt
+        prompt_embeds_list = []
+        prompts = [prompt, prompt_2]
+       
+        for prompt, tokenizer,text_en in zip(prompts, tokenizers,[clip.cond_stage_model.clip_l.encode_token_weights,clip.cond_stage_model.clip_g.encode_token_weights]):
+            # if isinstance(self, TextualInversionLoaderMixin):
+            #     prompt = self.maybe_convert_prompt(prompt, tokenizer)
+            
+            input_ids = tokenizer.encode(prompt) # TODO: batch encode
+            clean_index = 0
+            clean_input_ids = []
+            class_token_index = []
+            # Find out the corresponding class word token based on the newly added trigger word token
+            for i, token_id in enumerate(input_ids):
+                if token_id == image_token_id:
+                    class_token_index.append(clean_index - 1)
+                else:
+                    clean_input_ids.append(token_id)
+                    clean_index += 1
+            if nc_flag:
+                return None, None, None,None, None
+            if len(class_token_index) > 1:
+                raise ValueError(
+                    f"PhotoMaker currently does not support multiple trigger words in a single prompt.\
+                        Trigger word: {trigger_word}, Prompt: {prompt}."
+                )
+            elif len(class_token_index) == 0 and not nc_flag:
+                raise ValueError(
+                    f"PhotoMaker currently does not support multiple trigger words in a single prompt.\
+                        Trigger word: {trigger_word}, Prompt: {prompt}."
+                )
+            class_token_index = class_token_index[0]
+
+            # Expand the class word token and corresponding mask
+            class_token = clean_input_ids[class_token_index]
+            clean_input_ids = clean_input_ids[:class_token_index] + [class_token] * num_id_images * num_tokens + clean_input_ids[class_token_index + 1:]
+            # Truncation or padding
+            max_len = tokenizer.model_max_length
+            if len(clean_input_ids) > max_len:
+                clean_input_ids = clean_input_ids[:max_len]
+            else:
+                clean_input_ids = clean_input_ids + [tokenizer.pad_token_id] * (
+                    max_len - len(clean_input_ids)
+                )
+
+            #class_tokens_mask = [True if class_token_index <= i < class_token_index+num_id_images else False for i in range(len(clean_input_ids))]
+            class_tokens_mask = [True if class_token_index <= i < class_token_index + (num_id_images * num_tokens) else False for i in range(len(clean_input_ids))]
+            #print(clean_input_ids)
+            #print(max_len)
+            
+            clean_input_ids=clean_input_ids[:77] if len(clean_input_ids) > 77 else clean_input_ids + [0]*(77 - len(clean_input_ids))
+                
+            clean_input_ids_1=[(i,1.0) for i in clean_input_ids]
+            clean_input_ids_2=[(i,1.0) for i in clean_input_ids if i==clean_input_ids[0] or i==49407 ]
+            clean_input_ids_2=clean_input_ids_2[:77] if len(clean_input_ids_2) > 77 else clean_input_ids_2 + [(0,1.0)]*(77 - len(clean_input_ids_2))
+            clean_input_ids_list=[clean_input_ids_1,clean_input_ids_2]
+            #print(clean_input_ids)
+            #clean_input_ids_ = torch.tensor(clean_input_ids, dtype=torch.long).unsqueeze(0)
+            class_tokens_mask = torch.tensor(class_tokens_mask, dtype=torch.bool).unsqueeze(0)
+
+           
+            prompt_embeds, pooled_prompt_embeds = text_en(clean_input_ids_list) # print(prompt_embeds.shape,pooled_prompt_embeds.shape)torch.Size([1, 154, 768]) torch.Size([1, 768]) torch.Size([1, 154, 1280]) torch.Size([1, 1280])
+
+
+            prompt_embeds_list.append((prompt_embeds,pooled_prompt_embeds))
+
+        #prompt_embeds = torch.concat(prompt_embeds_list, dim=-1)
+        #prompt_embeds=prompt_embeds_list[1]
+    pooled_prompt_embeds=prompt_embeds_list[1][1]
+    # cut_to = min(prompt_embeds_list[0][0].shape[1], prompt_embeds_list[1][0].shape[1])
+    # print(cut_to)
+    cut_to=77 
+    prompt_embeds= torch.cat([prompt_embeds_list[0][0][:,:cut_to], prompt_embeds_list[1][0][:,:cut_to]], dim=-1)
+    prompt_embeds = prompt_embeds.to(device=device,dtype=unet_dtype, )
+    class_tokens_mask = class_tokens_mask.to(device=device) # TODO: ignoring two-prompt case
+    # get unconditional embeddings for classifier free guidance
+    zero_out_negative_prompt = negative_prompt is None and force_zeros_for_empty_prompts
+    if do_classifier_free_guidance and negative_prompt_embeds is None and zero_out_negative_prompt:
+        negative_prompt_embeds = torch.zeros_like(prompt_embeds)
+        negative_pooled_prompt_embeds = torch.zeros_like(pooled_prompt_embeds)
+    elif do_classifier_free_guidance and negative_prompt_embeds is None:
+        negative_prompt = negative_prompt or ""
+        negative_prompt_2 = negative_prompt_2 or negative_prompt
+        
+        # normalize str to list
+        #negative_prompt = batch_size * [negative_prompt] if isinstance(negative_prompt, str) else negative_prompt
+        negative_prompt = str(negative_prompt) if isinstance(negative_prompt, list) else negative_prompt
+        negative_prompt_2 = (
+            batch_size * [negative_prompt_2] if isinstance(negative_prompt_2, str) else negative_prompt_2
+        )
+        
+        uncond_tokens: List[str]
+        if prompt is not None and type(prompt) is not type(negative_prompt):
+            raise TypeError(
+                f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
+                f" {type(prompt)}."
+            )
+        # elif batch_size != len(negative_prompt):
+        #     raise ValueError(
+        #         f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
+        #         f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
+        #         " the batch size of `prompt`."
+        #     )
+        else:
+            uncond_tokens = [negative_prompt, negative_prompt_2]
+        # ng 没用上
+        negative_prompt_embeds_list = []
+        for negative_prompt, tokenizer, text_encoder in zip(uncond_tokens, tokenizers, [clip.cond_stage_model.clip_l.encode_token_weights,clip.cond_stage_model.clip_g.encode_token_weights]):
+            # if isinstance(self, TextualInversionLoaderMixin):
+            #     negative_prompt = self.maybe_convert_prompt(negative_prompt, tokenizer)
+            
+            max_length = prompt_embeds.shape[1]
+            uncond_input=tokenizer.encode(negative_prompt)
+            # uncond_input = tokenizer(
+            #     negative_prompt,
+            #     padding="max_length",
+            #     max_length=max_length,
+            #     truncation=True,
+            #     return_tensors="pt",
+            # )
+            # negative_prompt_embeds = text_encoder(
+            #     uncond_input.input_ids.to(device),
+            #     output_hidden_states=True,
+            # )
+            clean_input_ids_n=uncond_input[:77] if len(uncond_input) > 77 else uncond_input + [0]*(77 - len(uncond_input))
+                
+            clean_input_ids_1_=[(i,1.0) for i in clean_input_ids_n]
+            clean_input_ids_2_=[(i,1.0) for i in clean_input_ids_n if i==clean_input_ids_n[0] or i==49407 ]
+            clean_input_ids_2_=clean_input_ids_2_[:77] if len(clean_input_ids_2_) > 77 else clean_input_ids_2_ + [(0,1.0)]*(77 - len(clean_input_ids_2_))
+            clean_input_ids_list_n=[clean_input_ids_1_,clean_input_ids_2_]
+            prompt_embeds_n, pooled_prompt_embeds_n = text_en(clean_input_ids_list_n)
+            negative_prompt_embeds_list.append((prompt_embeds_n,pooled_prompt_embeds_n))
+
+
+          
+            # We are only ALWAYS interested in the pooled output of the final text encoder
+            # negative_pooled_prompt_embeds = negative_prompt_embeds[0]
+            # negative_prompt_embeds = negative_prompt_embeds.hidden_states[-2]
+            
+            # negative_prompt_embeds_list.append(negative_prompt_embeds)
+
+        negative_pooled_prompt_embeds=negative_prompt_embeds_list[1][1]
+        #negative_prompt_embeds = torch.concat(negative_prompt_embeds_list, dim=-1)
+        cut_to=77 
+        negative_prompt_embeds= torch.cat([negative_prompt_embeds_list[0][0][:,:cut_to], negative_prompt_embeds_list[1][0][:,:cut_to]], dim=-1)
+        negative_prompt_embeds = negative_prompt_embeds.to(device=device,dtype=unet_dtype, )
+    
+    
+    bs_embed, seq_len, _ = prompt_embeds.shape
+    
+    if do_classifier_free_guidance:
+        # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
+        seq_len = negative_prompt_embeds.shape[1]
+        
+        
+        negative_prompt_embeds = negative_prompt_embeds.to(dtype=unet_dtype, device=device)
+        
+        negative_prompt_embeds = negative_prompt_embeds.repeat(1, num_images_per_prompt, 1)
+        negative_prompt_embeds = negative_prompt_embeds.view(batch_size * num_images_per_prompt, seq_len, -1)
+    
+    pooled_prompt_embeds = pooled_prompt_embeds.repeat(1, num_images_per_prompt).view(
+        bs_embed * num_images_per_prompt, -1
+    )
+    if do_classifier_free_guidance:
+        negative_pooled_prompt_embeds = negative_pooled_prompt_embeds.repeat(1, num_images_per_prompt).view(
+            bs_embed * num_images_per_prompt, -1
+        )
+    
+
+    return prompt_embeds, negative_prompt_embeds,pooled_prompt_embeds, negative_pooled_prompt_embeds, class_tokens_mask
+
+
+def photomaker_clip_v2(clip,model_,prompt_list,negative_prompt,input_id_images,id_embeds,trigger_word="img",num_images_per_prompt=1,nc_flag=False,prompt_2=None,prompt_embeds=None,pooled_prompt_embeds=None,class_tokens_mask=None,prompt_embeds_text_only=None,negative_pooled_prompt_embeds=None):
+    id_encoder=model_.id_encoder
+    id_image_processor=model_.id_image_processor
+
+    tokenizer=model_.tokenizer_2
+    batch_size=len(prompt_list)
+
+    num_id_images = len(input_id_images) #双角色时，须确保输入的图片是列表，且跟prompt对应上
+    prompt_arr = prompt_list
+    negative_prompt_embeds_arr = []
+    prompt_embeds_text_only_arr = []
+    prompt_embeds_arr = []
+    latents_arr = []
+    add_time_ids_arr = []
+    negative_pooled_prompt_embeds_arr = []
+    pooled_prompt_embeds_text_only_arr = []
+    pooled_prompt_embeds_arr = []
+    for prompt in prompt_arr:
+        (
+            prompt_embeds,
+            _,
+            pooled_prompt_embeds,
+            _,
+            class_tokens_mask
+        ) = encode_prompt_with_trigger_word_v2(clip,model_,
+            prompt=prompt,
+            prompt_2=prompt_2,
+            device=device,
+            num_id_images=num_id_images,
+            class_tokens_mask=class_tokens_mask,
+            num_images_per_prompt=num_images_per_prompt,
+            do_classifier_free_guidance=True,
+            negative_prompt=negative_prompt,
+            negative_prompt_2=None,
+            prompt_embeds=None,
+            negative_prompt_embeds=None,
+            pooled_prompt_embeds=None,
+            negative_pooled_prompt_embeds=None,
+            nc_flag=nc_flag,
+        )
+
+        # 4. Encode input prompt without the trigger word for delayed conditioning
+        # encode, remove trigger word token, then decode
+        tokens_text_only = tokenizer.encode(prompt, add_special_tokens=False)
+        trigger_word_token = tokenizer.convert_tokens_to_ids(trigger_word)
+        if not nc_flag:
+            tokens_text_only.remove(trigger_word_token)
+        prompt_text_only = tokenizer.decode(tokens_text_only, add_special_tokens=False)
+        #print(prompt_text_only)
+        (
+            prompt_embeds_text_only,
+            negative_prompt_embeds,
+            pooled_prompt_embeds_text_only, # TODO: replace the pooled_prompt_embeds with text only prompt
+            negative_pooled_prompt_embeds,
+        ) = cf_clip_single(clip,
+            prompt=prompt_text_only,
+            prompt_2=prompt_2,
+            device=device,
+            num_images_per_prompt=num_images_per_prompt,
+            do_classifier_free_guidance=True,
+            negative_prompt=negative_prompt,
+            negative_prompt_2=None,
+            prompt_embeds=prompt_embeds_text_only,
+            negative_prompt_embeds=None,
+            pooled_prompt_embeds=None,
+            negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        )
+
+        # 5. Prepare the input ID images
+        dtype = next(id_encoder.parameters()).dtype
+        if not isinstance(input_id_images[0], torch.Tensor):
+            id_pixel_values = id_image_processor(input_id_images, return_tensors="pt").pixel_values
+
+        id_pixel_values = id_pixel_values.unsqueeze(0).to(device=device, dtype=dtype) # TODO: multiple prompts
+
+        # duplicate text embeddings for each generation per prompt, using mps friendly method
+        if not nc_flag:
+            if id_embeds is not None:
+                id_embeds = id_embeds.unsqueeze(0).to(device=device, dtype=dtype)
+               
+                prompt_embeds = id_encoder(id_pixel_values, prompt_embeds, class_tokens_mask, id_embeds) #torch.Size([1, 1, 3, 224, 224]) torch.Size([1, 77, 2048]) torch.Size([1, 77]) torch.Size([1, 512])
+            else:
+                prompt_embeds = id_encoder(id_pixel_values, prompt_embeds, class_tokens_mask)
+            # 6. Get the update text embedding with the stacked ID embedding
+           
+            bs_embed, seq_len, _ = prompt_embeds.shape
+            prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
+            prompt_embeds = prompt_embeds.view(bs_embed * num_images_per_prompt, seq_len, -1)
+            pooled_prompt_embeds = pooled_prompt_embeds.repeat(1, num_images_per_prompt).view(
+                bs_embed * num_images_per_prompt, -1
+            )
+            pooled_prompt_embeds_arr.append(pooled_prompt_embeds)
+            pooled_prompt_embeds = None
+
+        negative_prompt_embeds_arr.append(negative_prompt_embeds)
+        negative_prompt_embeds = None
+        negative_pooled_prompt_embeds_arr.append(negative_pooled_prompt_embeds)
+        negative_pooled_prompt_embeds = None
+        prompt_embeds_text_only_arr.append(prompt_embeds_text_only)
+        prompt_embeds_text_only = None
+        prompt_embeds_arr.append(prompt_embeds)
+        prompt_embeds = None
+        pooled_prompt_embeds_text_only_arr.append(pooled_prompt_embeds_text_only)
+        pooled_prompt_embeds_text_only = None
+
+    emb_dict={"negative_prompt_embeds_arr":negative_prompt_embeds_arr,
+              "negative_prompt_embeds":negative_prompt_embeds,
+              "negative_pooled_prompt_embeds_arr":negative_pooled_prompt_embeds_arr,
+              "negative_pooled_prompt_embeds":negative_pooled_prompt_embeds,
+              "prompt_embeds_text_only_arr":prompt_embeds_text_only_arr,
+              "prompt_embeds_text_only":prompt_embeds_text_only,
+              "prompt_embeds_arr":prompt_embeds_arr,
+              "prompt_embeds":prompt_embeds,
+              "pooled_prompt_embeds":pooled_prompt_embeds,
+              "pooled_prompt_embeds_text_only_arr":pooled_prompt_embeds_text_only_arr,
+              "pooled_prompt_embeds_text_only":pooled_prompt_embeds_text_only,
+              "pooled_prompt_embeds_arr":pooled_prompt_embeds_arr,
+              "batch_size":batch_size,
+              }    
+    return emb_dict
+
+

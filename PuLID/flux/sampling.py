@@ -56,6 +56,8 @@ def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str,if_repo:b
     if vec.shape[0] == 1 and bs > 1:
         vec = repeat(vec, "1 ... -> bs ...", bs=bs)
     
+    #print(txt.shape,vec.shape) #torch.Size([1, 256, 4096]) torch.Size([1, 768])
+   
     if if_repo:
         return {
             "img": img,

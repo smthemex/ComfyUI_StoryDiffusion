@@ -20,6 +20,8 @@ def clear_memory():
     gc.collect()
 
 
+
+
 def load_pipeline(repo_id,unet_path,gpu_id=0):
     float_type = torch.float16
     #sd_id = "stabilityai/stable-diffusion-xl-base-1.0"
@@ -108,7 +110,7 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
                         seed=40, n_steps=50, mask_dropout=0.5,
                         same_latent=False, share_queries=True,
                         perform_sdsa=True, perform_injection=True,
-                        downscale_rate=4, n_achors=2):
+                        downscale_rate=4, n_achors=2,cf_clip=None):
     device = story_pipeline.device
     tokenizer = story_pipeline.tokenizer
     float_type = story_pipeline.dtype
@@ -145,7 +147,7 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
                          extended_attn_kwargs=extended_attn_kwargs,
                          share_queries=share_queries,
                          query_store_kwargs=query_store_kwargs,
-                         num_inference_steps=n_steps)
+                         num_inference_steps=n_steps,cf_clip=cf_clip)
     
     
     # Extended attention with nn_map #
@@ -171,7 +173,7 @@ def run_batch_generation(story_pipeline, prompts, concept_token,negative_prompt,
                              share_queries=share_queries,
                              query_store_kwargs=query_store_kwargs,
                              feature_injector=feature_injector,
-                             num_inference_steps=n_steps)
+                             num_inference_steps=n_steps,cf_clip=cf_clip)
         
         #img_all = view_images([np.array(x) for x in out.images], display_image=False, downscale_rate=downscale_rate)
         # display_attn_maps(story_pipeline.attention_store.last_mask, out.images)
@@ -184,7 +186,7 @@ def run_anchor_generation(story_pipeline, prompts, concept_token,negative_prompt
                         seed=40, n_steps=50, mask_dropout=0.5,
                         same_latent=False, share_queries=True,
                         perform_sdsa=True, perform_injection=True,
-                        downscale_rate=4, cache_cpu_offloading=False):
+                        downscale_rate=4, cache_cpu_offloading=False,cf_clip=None):
     device = story_pipeline.device
     tokenizer = story_pipeline.tokenizer
     float_type = story_pipeline.dtype
@@ -224,7 +226,7 @@ def run_anchor_generation(story_pipeline, prompts, concept_token,negative_prompt
                          share_queries=share_queries,
                          query_store_kwargs=query_store_kwargs,
                          anchors_cache=anchor_cache_first_stage,
-                         num_inference_steps=n_steps)
+                         num_inference_steps=n_steps,cf_clip=cf_clip)
    
     last_masks = story_pipeline.attention_store.last_mask
     
@@ -256,7 +258,7 @@ def run_anchor_generation(story_pipeline, prompts, concept_token,negative_prompt
                             query_store_kwargs=query_store_kwargs,
                             feature_injector=feature_injector,
                             anchors_cache=anchor_cache_second_stage,
-                            num_inference_steps=n_steps)
+                            num_inference_steps=n_steps,cf_clip=cf_clip)
         #img_all = view_images([np.array(x) for x in out.images], display_image=False, downscale_rate=downscale_rate)
         # display_attn_maps(story_pipeline.attention_store.last_mask, out.images)
 
@@ -277,7 +279,7 @@ def run_extra_generation(story_pipeline, prompts, concept_token, negative_prompt
                          seed=40, n_steps=50, mask_dropout=0.5,
                          same_latent=False, share_queries=True,
                          perform_sdsa=True, perform_injection=True,
-                         downscale_rate=4, cache_cpu_offloading=False):
+                         downscale_rate=4, cache_cpu_offloading=False,cf_clip=None):
     device = story_pipeline.device
     tokenizer = story_pipeline.tokenizer
     float_type = story_pipeline.dtype
@@ -323,7 +325,7 @@ def run_extra_generation(story_pipeline, prompts, concept_token, negative_prompt
                         share_queries=share_queries,
                         query_store_kwargs=query_store_kwargs,
                         anchors_cache=anchor_cache_first_stage,
-                        num_inference_steps=n_steps)
+                        num_inference_steps=n_steps,cf_clip=cf_clip)
    
 
     # ------------------ #
@@ -360,7 +362,7 @@ def run_extra_generation(story_pipeline, prompts, concept_token, negative_prompt
                             query_store_kwargs=query_store_kwargs,
                             feature_injector=feature_injector,
                             anchors_cache=anchor_cache_second_stage,
-                            num_inference_steps=n_steps)
+                            num_inference_steps=n_steps,cf_clip=cf_clip)
         
         
         #img_all = view_images([np.array(x) for x in out.images], display_image=False, downscale_rate=downscale_rate)

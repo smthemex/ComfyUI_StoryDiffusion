@@ -131,7 +131,7 @@ class FluxInfuseNetPipeline(FluxControlNetPipeline):
         latents: Optional[torch.FloatTensor] = None,
         prompt_embeds: Optional[torch.FloatTensor] = None,
         pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
-        output_type: Optional[str] = "pil",
+        output_type: Optional[str] = "latent",
         return_dict: bool = True,
         joint_attention_kwargs: Optional[Dict[str, Any]] = None,
         callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
@@ -304,23 +304,27 @@ class FluxInfuseNetPipeline(FluxControlNetPipeline):
         device = self._execution_device
         dtype = self.transformer.dtype
 
+        prompt_embeds = prompt_embeds.to(device=device, dtype=dtype)
+        pooled_prompt_embeds = pooled_prompt_embeds.to(device=device, dtype=dtype)
         lora_scale = (
             self.joint_attention_kwargs.get("scale", None) if self.joint_attention_kwargs is not None else None
         )
-        (
-            prompt_embeds,
-            pooled_prompt_embeds,
-            text_ids,
-        ) = self.encode_prompt(
-            prompt=prompt,
-            prompt_2=prompt_2,
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            device=device,
-            num_images_per_prompt=num_images_per_prompt,
-            max_sequence_length=max_sequence_length,
-            lora_scale=lora_scale,
-        )
+        text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=device, dtype=dtype)
+        if prompt is not None:
+            (
+                prompt_embeds,
+                pooled_prompt_embeds,
+                text_ids,
+            ) = self.encode_prompt(
+                prompt=prompt,
+                prompt_2=prompt_2,
+                prompt_embeds=prompt_embeds,
+                pooled_prompt_embeds=pooled_prompt_embeds,
+                device=device,
+                num_images_per_prompt=num_images_per_prompt,
+                max_sequence_length=max_sequence_length,
+                lora_scale=lora_scale,
+            )
         if negative_prompt is not None or (negative_prompt_embeds is not None and negative_pooled_prompt_embeds is not None):
             (
                 negative_prompt_embeds,
@@ -514,6 +518,11 @@ class FluxInfuseNetPipeline(FluxControlNetPipeline):
                     cond_scale = controlnet_cond_scale * controlnet_keep[i]
 
                 # controlnet
+                # print(pooled_prompt_embeds.dtype)
+                # print(controlnet_prompt_embeds.dtype)
+                # print(controlnet_text_ids.dtype)
+                # print(latent_image_ids.dtype)
+                # print(latents.dtype)
                 controlnet_block_samples, controlnet_single_block_samples = self.controlnet(
                     hidden_states=latents,
                     controlnet_cond=control_image,
@@ -594,7 +603,8 @@ class FluxInfuseNetPipeline(FluxControlNetPipeline):
                     xm.mark_step()
 
         if output_type == "latent":
-            image = latents
+            latents = self._unpack_latents(latents, height, width, 8)
+            image = (latents/0.3611)+0.1159
 
         else:
             latents = self._unpack_latents(latents, height, width, self.vae_scale_factor)
