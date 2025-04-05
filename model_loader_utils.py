@@ -439,10 +439,7 @@ def get_insight_dict(app_face,app_face_,pipeline_mask,infer_mode,use_photov2,ima
             # timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             # crop_image.copy().save(os.path.join(folder_paths.get_output_directory(),f"{timestamp}_mask.png"))
             face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-            id_embed_list = \
-                sorted(face_info,
-                        key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                    -1]  # only use the maximum face
+            id_embed_list = sorted(face_info,key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[-1]  # only use the maximum face
             
             uncond_id_embeddings = img
         elif infer_mode=="story_and_maker":
@@ -455,20 +452,14 @@ def get_insight_dict(app_face,app_face_,pipeline_mask,infer_mode,use_photov2,ima
                 crop_image = pipeline_mask(img, return_mask=True).convert(
                     'RGB')  # outputs a pillow mask
                 face_info = app_face_.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-                uncond_id_embeddings = \
-                    sorted(face_info,
-                            key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                        -1]  # only use the maximum face
+                uncond_id_embeddings = sorted(face_info,key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[-1]  # only use the maximum face
                 #photomake_mode = "v2"
                 # make+v2模式下，emb存v2的向量，corp 和 unemb 存make的向量
             else:  # V1不需要调用emb
                 crop_image = pipeline_mask(img, return_mask=True).convert(
                     'RGB')  # outputs a pillow mask
                 face_info = app_face.get(cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR))
-                id_embed_list = \
-                    sorted(face_info,
-                            key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[
-                        -1]  # only use the maximum face
+                id_embed_list = sorted(face_info,key=lambda x: (x['bbox'][2] - x['bbox'][0]) * (x['bbox'][3] - x['bbox'][1]))[-1]  # only use the maximum face
                 uncond_id_embeddings = img
 
         elif infer_mode=="flux_pulid":
