@@ -680,6 +680,9 @@ class StoryDiffusion_CLIPTextEncode:
         neg_text = neg_text + style_neg
         
         replace_prompts=[i+pos_text for i in replace_prompts]
+           # pre roles txt emb
+        only_role_list=[apply_style_positive(add_style,i)[0] for i in replace_prompts]
+        #print("only_role_list",only_role_list) ##w,m,w
 
         if len(role_list)==1:
             role_key_list=role_list*len(only_role_list)
@@ -771,9 +774,7 @@ class StoryDiffusion_CLIPTextEncode:
                 for index, key in enumerate(role_list):
                     input_id_images_dict[key]=image_list[index]     
               
-        # pre roles txt emb
-        only_role_list=[apply_style_positive(add_style,i)[0] for i in replace_prompts]
-        #print("only_role_list",only_role_list) ##w,m,w
+     
 
         if len(role_list)>1: #重新整理prompt排序，便于后续emb和ID的对应
             nc_dual_list=[]
