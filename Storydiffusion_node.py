@@ -520,10 +520,12 @@ class StoryDiffusion_Apply:
             cf_model_type=model.get("extra_easy")
             clip_vision_path=model.get("clip_vision_path")
             repo=model.get("extra_repo")
+          
         else:
             cf_model_type=fitter_cf_model_type(model)
             clip_vision_path=None
             repo=None
+           
 
         print(f"infer model type is {cf_model_type}")
 
@@ -1633,22 +1635,22 @@ class StoryDiffusion_Lora_Control:
     FUNCTION = "main_apply"
     CATEGORY = "Storydiffusion"
     
-    def main_apply(self,model,switch,loras,trigger_words,controlnets,controlnet_scale, **kwargs):
-        use_lora,controlnet =False, None
+    def main_apply(self,model,switch,loras,trigger_words,controlnets,controlnet_scale):
+        use_lora,controlnet,lora_path =False, None,None
         infer_mode=switch.get("infer_mode")
-        lora_path= None
-        if loras != "none":
-            lora_path = folder_paths.get_full_path("loras", loras)
-            active_lora = model.get_active_adapters() 
-            if active_lora:
-                print(f'active_lora is :{active_lora}')
-                model.unload_lora_weights()  # make sure lora is not mix
-            if os.path.basename(lora_path) in lora_lightning_list:
-                model.load_lora_weights(lora_path)
-            else:
-                model.load_lora_weights(lora_path, adapter_name=trigger_words)
-            use_lora=True
+
         if infer_mode=="story_maker" or infer_mode=="msdiffusion" or infer_mode=="story_and_maker":
+            if loras != "none":
+                lora_path = folder_paths.get_full_path("loras", loras)
+                active_lora = model.get_active_adapters() 
+                if active_lora:
+                    print(f'active_lora is :{active_lora}')
+                    model.unload_lora_weights()  # make sure lora is not mix
+                if os.path.basename(lora_path) in lora_lightning_list:
+                    model.load_lora_weights(lora_path)
+                else:
+                    model.load_lora_weights(lora_path, adapter_name=trigger_words)
+                use_lora=True
             if controlnets != "none":
                 controlnet_path = folder_paths.get_full_path("controlnet", controlnets)
                 from diffusers import ControlNetModel
@@ -1662,7 +1664,10 @@ class StoryDiffusion_Lora_Control:
                 if infer_mode=="story_maker" :
                     model.controlnet = controlnet
         elif infer_mode=="infiniteyou" :
+            if loras != "none":
+                lora_path = folder_paths.get_full_path("loras", loras)
             if lora_path is not None:
+                use_lora=True
                 loras = []
                 if "realism" in lora_path:
                     loras.append([lora_path, 'realism', 1.0])# single only now
