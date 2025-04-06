@@ -6,7 +6,9 @@ Using StoryDiffusion and other methods to make storys in ComfyUI
 * Origin from [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[Consistory](https://github.com/NVlabs/consistory),[Kolor](https://github.com/Kwai-Kolors/Kolors),[Pulid](https://github.com/ToTheBeginning/PuLID),[Flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter) [InfiniteYou](https://github.com/bytedance/InfiniteYou)
 
 ## Updates:
-**2025/04/05**
+* 2025/04/06
+* Add infinite svdq v0.2 support,it'work well when your svdq update v0.2，[download wheel](https://huggingface.co/mit-han-lab/nunchaku/tree/main) 更新 svdq v0.2的支持，infinite工作正常，[轮子](https://huggingface.co/mit-han-lab/nunchaku/tree/main)下载地址。
+* 2025/04/05
 * 1.修改了模型加载的流程，更新到V2版本，如果你喜欢旧的，可以下载V1.0版本的,2.请使用example.json，它集成了主要的工作流;3.剔除掉一些过时的功能;
 * 1.Modified the model loading process.Update to V2 version, If you like the old one, you can download version 1.0，2.Please use 'example.json', which integrates the main workflow，3.Remove some outdated features;
   
@@ -201,8 +203,8 @@ or
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/infiniteyou.png" width="50%">
 * gguf
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/infinite_gguf.png" width="50%">
-* svdq，注意能跑，但是ID无法迁移
- <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/infinite_svdq.png" width="50%">
+* svdq，升级到v.2工作正常
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/infinite_svdqv2.png" width="50%">
 
 **4.8 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
