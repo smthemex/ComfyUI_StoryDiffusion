@@ -1149,7 +1149,12 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
     if cf_model.get("use_svdq"):
         print("use svdq quantization")   
         from nunchaku import NunchakuFluxTransformer2dModel
+        
         transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        try:
+            transformer.set_attention_impl("nunchaku-fp16")
+        except:
+            pass
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
     elif cf_model.get("use_gguf"):
         print("use gguf quantization")   
