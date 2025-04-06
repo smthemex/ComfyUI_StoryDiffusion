@@ -134,12 +134,13 @@ class InfUFluxPipeline:
             text_encoder=None,
             transformer=None,
             vae=None,
+            use_svdq=False,
         ):
         
 
         self.infu_flux_version = infu_flux_version
         self.model_version = model_version
-        
+        self.use_svdq = use_svdq
         # Load pipeline
         self.infusenet = FluxControlNetModel.from_pretrained(infu_model_path, torch_dtype=torch.bfloat16)
         if vae is not None:
@@ -226,16 +227,23 @@ class InfUFluxPipeline:
         # self.arcface_model = init_recognition_model('arcface', device='cuda')
 
     def load_loras(self, loras):
-        names, scales = [],[]
-        for lora_path, lora_name, lora_scale in loras:
-            if lora_path != "":
-                print(f"loading lora {lora_path}")
-                self.pipe.load_lora_weights(lora_path, adapter_name = lora_name)
-                names.append(lora_name)
-                scales.append(lora_scale)
+        if self.use_svdq:
+             for lora_path, lora_name, lora_scale in loras:
+                self.pipe.transformer.update_lora_params(lora_path)  # Path to your LoRA safetensors, can also be a remote HuggingFace path
+                self.pipe.transformer.set_lora_strength(lora_scale)  # Your
+        else:
+            names, scales = [],[]
+            for lora_path, lora_name, lora_scale in loras:
+                if lora_path != "":
+                    print(f"loading lora {lora_path}")
+                    self.pipe.load_lora_weights(lora_path, adapter_name = lora_name)
+                    names.append(lora_name)
+                    scales.append(lora_scale)
 
-        if len(names) > 0:
-            self.pipe.set_adapters(names, adapter_weights=scales)
+            if len(names) > 0:
+                self.pipe.set_adapters(names, adapter_weights=scales)
+        
+
 
     def _detect_face(self, id_image_cv2):
         face_info = self.app_640.get(id_image_cv2)
