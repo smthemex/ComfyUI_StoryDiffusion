@@ -1145,11 +1145,11 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
     #     ) # init nf4 
     
     repo_id=os.path.join(cur_path, "config/FLUX.1-dev")
-    
+    use_svdq=False
     if cf_model.get("use_svdq"):
         print("use svdq quantization")   
         from nunchaku import NunchakuFluxTransformer2dModel
-        
+        use_svdq=True
         transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
         try:
             transformer.set_attention_impl("nunchaku-fp16")
@@ -1222,6 +1222,7 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
             text_encoder=None,
             transformer=transformer,
             vae=vae,
+            use_svdq=use_svdq,
         )
     # Load image proj model
     num_tokens = 8 # image_proj_num_tokens
