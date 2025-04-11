@@ -1,0 +1,5252 @@
+[
+    {
+        "prompt": "a backpack and a stuffed animal in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a backpack and a stuffed animal on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red backpack and a red stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple backpack and a purple stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny backpack and a shiny stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet backpack and a wet stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped backpack and a cube shaped stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/backpack_dog/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a bowl and a can on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red bowl and a red can",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple bowl and a purple can",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny bowl and a shiny can",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet bowl and a wet can",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped bowl and a cube shaped can",
+        "image_paths": [
+            "./dreambooth/dataset/berry_bowl/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a candle and a clock on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red candle and a red clock",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple candle and a purple clock",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny candle and a shiny clock",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet candle and a wet clock",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped candle and a cube shaped clock",
+        "image_paths": [
+            "./dreambooth/dataset/candle/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a toy on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red sneaker and a red toy",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple sneaker and a purple toy",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny sneaker and a shiny toy",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet sneaker and a wet toy",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped sneaker and a cube shaped toy",
+        "image_paths": [
+            "./dreambooth/dataset/colorful_sneaker/01.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a boot and a stuffed animal on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red boot and a red stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple boot and a purple stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny boot and a shiny stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet boot and a wet stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped boot and a cube shaped stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/fancy_boot/02.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a glasses on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red toy and a red glasses",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple toy and a purple glasses",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny toy and a shiny glasses",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet toy and a wet glasses",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped toy and a cube shaped glasses",
+        "image_paths": [
+            "./dreambooth/dataset/monster_toy/04.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a toy and a toy on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red toy and a red toy",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple toy and a purple toy",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny toy and a shiny toy",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet toy and a wet toy",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped toy and a cube shaped toy",
+        "image_paths": [
+            "./dreambooth/dataset/poop_emoji/00.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cartoon and a toy on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cartoon and a red toy",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cartoon and a purple toy",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cartoon and a shiny toy",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cartoon and a wet toy",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cartoon and a cube shaped toy",
+        "image_paths": [
+            "./dreambooth/dataset/red_cartoon/00.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a sneaker and a teapot on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red sneaker and a red teapot",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple sneaker and a purple teapot",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny sneaker and a shiny teapot",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet sneaker and a wet teapot",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped sneaker and a cube shaped teapot",
+        "image_paths": [
+            "./dreambooth/dataset/shiny_sneaker/01.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with a wheat field in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with a tree and autumn leaves in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal with the Eiffel Tower in the background",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal floating on top of water",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal floating in an ocean of milk",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of green grass with sunflowers around it",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of a mirror",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of the sidewalk in a crowded street",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of a dirt road",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a vase and a stuffed animal on top of a white rug",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red vase and a red stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple vase and a purple stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny vase and a shiny stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet vase and a wet stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped vase and a cube shaped stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/vase/02.jpg",
+            "./dreambooth/dataset/wolf_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog6/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a cat on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a cat",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/cat/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog3/05.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/dog2/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/dog5/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/dog7/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a dog on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a dog",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/dog8/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a backpack on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a backpack",
+        "image_paths": [
+            "./dreambooth/dataset/cat/04.jpg",
+            "./dreambooth/dataset/backpack/02.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat and a stuffed animal on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a red hat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a santa hat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a rainbow scarf, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a black top hat and a monocle, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a chef outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a firefighter outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a police outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing pink glasses, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat wearing a yellow shirt, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cat in a purple wizard outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red cat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple cat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny cat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet cat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped cat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/cat2/02.jpg",
+            "./dreambooth/dataset/bear_plushie/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a can on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a can",
+        "image_paths": [
+            "./dreambooth/dataset/dog/02.jpg",
+            "./dreambooth/dataset/can/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a clock on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a clock",
+        "image_paths": [
+            "./dreambooth/dataset/dog2/02.jpg",
+            "./dreambooth/dataset/clock/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog3/05.jpg",
+            "./dreambooth/dataset/duck_toy/01.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a stuffed animal on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a stuffed animal",
+        "image_paths": [
+            "./dreambooth/dataset/dog5/00.jpg",
+            "./dreambooth/dataset/grey_sloth_plushie/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a glasses on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a glasses",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/pink_sunglasses/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog7/01.jpg",
+            "./dreambooth/dataset/rc_car/03.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a toy on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a toy",
+        "image_paths": [
+            "./dreambooth/dataset/dog8/04.jpg",
+            "./dreambooth/dataset/robot_toy/00.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot in the jungle",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot in the snow",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot on the beach",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot on a cobblestone street",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot on top of pink fabric",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot on top of a wooden floor",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot with a city in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot with a mountain in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot with a blue house in the background",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog and a teapot on top of a purple rug in a forest",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a red hat, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a santa hat, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a rainbow scarf, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a black top hat and a monocle, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a chef outfit, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a firefighter outfit, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a police outfit, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing pink glasses, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog wearing a yellow shirt, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a dog in a purple wizard outfit, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a red dog, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a purple dog, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a shiny dog, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a wet dog, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    },
+    {
+        "prompt": "a cube shaped dog, next to it is a teapot",
+        "image_paths": [
+            "./dreambooth/dataset/dog6/02.jpg",
+            "./dreambooth/dataset/teapot/04.jpg"
+        ]
+    }
+]

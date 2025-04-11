@@ -201,9 +201,9 @@ def load_flow_model_quintized(name: str, ckpt_path,quantized_mode,aggressive_off
         import logging
         sd= load_torch_file(ckpt_path)
         diffusion_model_prefix = model_detection.unet_prefix_from_state_dict(sd)
-        weight_dtype = weight_dtype( sd, diffusion_model_prefix)
-        logging.info("loading weight_dtype is {}".format(weight_dtype))
-        if weight_dtype is None:
+        weight_dtype_ = weight_dtype( sd, diffusion_model_prefix)
+        logging.info("loading weight_dtype is {}".format(weight_dtype_))
+        if weight_dtype_ is None:
             if str(torch.__version__).split(".")[-1]=="4.1" and "xlab" in ckpt_path.lower():#"XLabs-AI/flux-dev-fp8" need high env torch 24.1
                 json_path = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI_StoryDiffusion", "utils","flux_dev_quantization_map.json")
             else: # Kijai/flux-fp8,Shakker-Labs/AWPortrait-FL

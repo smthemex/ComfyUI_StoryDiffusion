@@ -560,9 +560,7 @@ class PhotoMakerStableDiffusionXLPipeline(StableDiffusionXLPipeline):
                     prompt_embeds_text_only=prompt_embeds_text_only.to(latent_model_input.device,dtype=self.unet.dtype)
                     negative_pooled_prompt_embeds=negative_pooled_prompt_embeds.to(latent_model_input.device,dtype=self.unet.dtype)
                     pooled_prompt_embeds_text_only=pooled_prompt_embeds_text_only.to(latent_model_input.device,dtype=self.unet.dtype)
-                    current_prompt_embeds = torch.cat(
-                        [negative_prompt_embeds, prompt_embeds_text_only], dim=0
-                    )
+                    current_prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds_text_only], dim=0)
                     add_text_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds_text_only], dim=0)
                 else:
                     negative_prompt_embeds=negative_prompt_embeds.to(latent_model_input.device,dtype=self.unet.dtype)
