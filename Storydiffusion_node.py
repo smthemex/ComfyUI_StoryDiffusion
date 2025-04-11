@@ -713,7 +713,7 @@ class StoryDiffusion_CLIPTextEncode:
 
             inf_list_split=[a_list,b_list]
         else:
-            inf_list_split=only_role_list
+            inf_list_split=[only_role_list]
         
         
         # if prompts_dual and infer_mode not in ["story_and_maker","story_maker","msdiffusion"]:
@@ -884,7 +884,7 @@ class StoryDiffusion_CLIPTextEncode:
             from .UNO.uno.flux.sampling import prepare_multi_ip_wrapper
             for key ,prompts in zip(role_list,inf_list_split):
                 ip_emb=[]
-   
+
                 for p,x_1 in zip(prompts,x_1_refs_dict[key]):
                     seed_random = random.randint(0, MAX_SEED) #pulid 和uno的emb需要随机数
                     uno_x = get_noise(1, height, width, device=device,dtype=torch.bfloat16, seed=seed_random) 
