@@ -218,7 +218,7 @@ download lora [dit_lora.safetensor](https://huggingface.co/bytedance-research/UN
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/infinite_svdqv2.png" width="50%">
 
 **4.8 UNO**  
- <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/UNO.jpg" width="50%">
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/UNO_N.png" width="50%">
 
 **4.9 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
