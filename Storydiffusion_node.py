@@ -11,9 +11,10 @@ import folder_paths
 from comfy.model_management import total_vram
 import comfy
 import latent_preview
+import torchvision.transforms.functional as TVF
 from .utils.utils import get_comic
 from .model_loader_utils import  (phi2narry,Loader_storydiffusion,Loader_Flux_Pulid,load_pipeline_consistory,Loader_KOLOR,replicate_data_by_indices,glm_single_encode,
-                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,tensortopil_list,tensortopil_list_upscale,
+                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,Loader_UNO,tensortopil_list_upscale,tensortopil_list,
                                   narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,
                                   get_scheduler,apply_style_positive,fitter_cf_model_type,Infer_MSdiffusion,Loader_story_maker,Loader_InfiniteYou,
                                   nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list)
@@ -412,8 +413,7 @@ class Pre_Translate_prompt:
     def translate_prompt(self, scene_prompts, keep_character_name):
         captions = scene_prompts.splitlines()
         if not keep_character_name:
-            captions = [caption.split(")", 1)[-1] if ")" in caption else caption
-                        for caption in captions]  # del character
+            captions = [caption.split(")", 1)[-1] if ")" in caption else caption for caption in captions]  # del character
         else:
             captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
                         for caption in captions]  # del ()
@@ -434,7 +434,7 @@ class EasyFunction_Lite:
     def INPUT_TYPES(s):
         return {"required": {"extra_repo": ("STRING", { "default": ""}),
                             "checkpoints": (["none"] + folder_paths.get_filename_list("diffusion_models")+folder_paths.get_filename_list("gguf")+folder_paths.get_filename_list("clip"),),
-                            "clip_vision": (["none"] + folder_paths.get_filename_list("clip_vision"),),
+                            "clip_vision": (["none"] + folder_paths.get_filename_list("clip_vision")+folder_paths.get_filename_list("loras"),),
                             "function_mode": (["none","tag", "clip","mask","infinite",],),
                             "select_method":("STRING",{ "default":""}),
                             "temperature": (
@@ -448,7 +448,7 @@ class EasyFunction_Lite:
     
     def easy_function_main(self, extra_repo,checkpoints,clip_vision,function_mode,select_method,temperature):
         use_gguf,use_unet=False,False
-        model_path,clip=None,None
+        model_path,clip,lora_path=None,None,None
     
         if checkpoints != "none":
             if checkpoints.endswith(".gguf"):
@@ -461,7 +461,12 @@ class EasyFunction_Lite:
                 use_unet=True
 
         if clip_vision != "none":
-            clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)
+            if  "clip_vision" in clip_vision:
+                clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)     
+            else:
+                lora_path = folder_paths.get_full_path("loras", clip_vision)
+                clip_vision_path = None
+           
         else:
             clip_vision_path=None
         if function_mode=="tag":
@@ -478,24 +483,27 @@ class EasyFunction_Lite:
         
         use_svdq=True if "svdq" in select_method else False
 
-        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
+        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"lora_ckpt_path":lora_path,
+              "use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
         return (pipe,clip)
 
 
 class StoryDiffusion_Apply:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {
-                             "model": ("MODEL",),
-                             "vae": ("VAE",),
-                             "infer_mode": (["story", "classic","flux_pulid","infiniteyou","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
-                             "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
-                             "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
-                             "quantize_mode": ([ "fp8", "nf4","fp16", ],),
-                             "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
-                             "extra_funtion":("STRING", {"default": ""}),
-                             },
-                "optional":{"CLIP_VISION": ("CLIP_VISION",),
+        return {"required":
+                {
+                    "model": ("MODEL",),
+                    "vae": ("VAE",),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
+                    "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
+                    "quantize_mode": ([ "fp8", "nf4","fp16", ],),
+                    "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
+                    "extra_funtion":("STRING", {"default": ""}),
+                            },
+                "optional":{
+                    "CLIP_VISION": ("CLIP_VISION",),
                             }
                 }
     
@@ -512,7 +520,7 @@ class StoryDiffusion_Apply:
     
         CLIP_VISION=kwargs.get("CLIP_VISION")
         
- 
+        
         unet_type=torch.float16 #use for sdxl
         image_proj_model=None
         
@@ -526,6 +534,8 @@ class StoryDiffusion_Apply:
             clip_vision_path=None
             repo=None
            
+        
+        save_quantezed=True if "save" in extra_funtion and quantize_mode=="fp8" else False
 
         print(f"infer model type is {cf_model_type}")
 
@@ -543,27 +553,24 @@ class StoryDiffusion_Apply:
         if infer_mode in ["story_maker" ,"story_and_maker"] and not CLIP_VISION  and ipadapter_ckpt_path is None:
              raise "story_maker need a clipvison H model,mask.bin"
 
-        
+        # check vram only using in flux pulid or UNO
+        if total_vram > 45000.0:
+            aggressive_offload = False
+            offload = False
+        elif 17000.0 < total_vram < 45000.0:
+            aggressive_offload = False
+            offload = True
+        else:
+            aggressive_offload = True
+            offload = True
+
+        logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
 
         if infer_mode in["story", "story_and_maker","msdiffusion"]:# mix mode,use maker or ms to make 2 roles in on image
             model = Loader_storydiffusion(model,photomake_ckpt_path,vae)
         elif infer_mode =="story_maker":
             model = Loader_story_maker(model,ipadapter_ckpt_path,vae,False,lora_scale)
         elif infer_mode == "flux_pulid":
-            
-             # check vram only using in flux pulid
-            if total_vram > 45000.0:
-                aggressive_offload = False
-                offload = False
-            elif 17000.0 < total_vram < 45000.0:
-                aggressive_offload = False
-                offload = True
-            else:
-                aggressive_offload = True
-                offload = True
-    
-            logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
-            
             from .PuLID.app_flux import get_models
             if isinstance(model,dict):
                ckpt_path=model.get("model_path")
@@ -585,9 +592,10 @@ class StoryDiffusion_Apply:
                 if repo is None:
                     raise "EasyFunction_Lite node extra_repo must fill kolor repo"
             model = Loader_KOLOR(repo,clip_vision_path,ipadapter_ckpt_path)
+        elif infer_mode == "uno":
+            model = Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank=512)
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
-        
 
         story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
         model_=model if infer_mode=="flux_pulid" or story_img else None
@@ -692,6 +700,22 @@ class StoryDiffusion_CLIPTextEncode:
             role_key_list=replicate_data_by_indices(role_list, index_char_1_list, index_char_2_list)
             role_key_list=[i for i in role_key_list if i is not None]
 
+        if len(role_list)>1: #重新整理prompt排序，便于后续emb和ID的对应
+            nc_dual_list=[]
+            for i in nc_indexs:
+                nc_dual_list.append(i)
+            for i in positions_index_dual:
+                nc_dual_list.append(i) 
+            adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
+            adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
+            a_list = [only_role_list[i] for i in adjusted_a if 0 <= i < len(only_role_list)]
+            b_list = [only_role_list[i] for i in adjusted_b if 0 <= i < len(only_role_list)]
+
+            inf_list_split=[a_list,b_list]
+        else:
+            inf_list_split=only_role_list
+        
+        
         # if prompts_dual and infer_mode not in ["story_and_maker","story_maker","msdiffusion"]:
         #     raise "only support prompts_dual role in story maker and msdiffusion"
 
@@ -710,10 +734,10 @@ class StoryDiffusion_CLIPTextEncode:
         if infer_mode=="msdiffusion" and photomake_ckpt_path  and  not img2img_mode:
             raise "if use msdiffusion txt2img mode,can not use photomake_ckpt_path"
 
+        uno_pe="d" #Literal['d', 'h', 'w', 'o']
         
-
-        only_role_emb_ne=None
-        image_emb = None
+        only_role_emb_ne,x_1_refs_dict,image_emb=None,None,None
+        
         if img2img_mode:
             if infer_mode == "story_and_maker" or infer_mode == "story_maker":
                 k1, _, _, _ = image.size()
@@ -737,8 +761,53 @@ class StoryDiffusion_CLIPTextEncode:
                 pass
             elif infer_mode == "infiniteyou":
                 pass
+            elif infer_mode == "uno":
+                from .UNO.uno.flux.sampling import get_noise
+                from .UNO.uno.flux.pipeline import preprocess_ref
+
+                ref_pil_list=tensortopil_list(image) #原方法需要图片缩放，先转回pil
+
+                if control_image is not None:
+                    control_pil_list=tensortopil_list(control_image) 
+                else:
+                    control_pil_list=None
+
+                if control_pil_list is None:# 无控制图时,默认时单图模式,x_1_refs用key取值
+                    x_1_refs_dict={}    
+                    for key ,role_pil,prompts in zip(role_list,ref_pil_list,inf_list_split):
+                        role_tensor=phi2narry(preprocess_ref(role_pil, 512))#单图默认512
+                        x_1_refs_dict[key]=[[vae.encode(role_tensor[:,:,:,:3]).to(torch.bfloat16)]*len(prompts)] # {key:[[1],[2],key2:[[3],[4]]}
+                else:
+                    if len(control_pil_list) != len(only_role_list):
+                        raise "control image must same size as prompts,多少句话就多少张图"
+                    else:
+                        if len(role_list)>1:
+                            nc_dual_list=[]
+                            for i in nc_indexs:
+                                nc_dual_list.append(i)
+                            for i in positions_index_dual:
+                                nc_dual_list.append(i) 
+                            adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
+                            adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
+                            a_list = [control_pil_list[i] for i in adjusted_a if 0 <= i < len(control_pil_list)]
+                            b_list = [control_pil_list[i] for i in adjusted_b if 0 <= i < len(control_pil_list)]
+
+                            control_pil_list=[a_list,b_list]
+                        else:
+                            control_pil_list=[control_pil_list]
+                        x_1_refs_dict={}
+                        for key ,role_pil,control_pil in zip(role_list,ref_pil_list,control_pil_list):
+                            mix_list=[]
+                            role_tensor=phi2narry(preprocess_ref(role_pil, 320) )#多图默认320
+                            for c in (control_pil):
+
+                                c_tensor=phi2narry(preprocess_ref(c, 320))#多图默认320
+                                mix_list.append([vae.encode(role_tensor[:,:,:,:3]).to(torch.bfloat16),vae.encode(c_tensor[:,:,:,:3]).to(torch.bfloat16)])
+                            x_1_refs_dict[key]=mix_list #{key:[[1,2],[3,4]]}
             else:
                 pass
+        else:
+            pass
 
         # pre insight face model and emb
         if img2img_mode:
@@ -775,23 +844,6 @@ class StoryDiffusion_CLIPTextEncode:
                 image_list = [nomarl_upscale(img, width, height) for img in img_list]
                 for index, key in enumerate(role_list):
                     input_id_images_dict[key]=image_list[index]     
-              
-     
-
-        if len(role_list)>1: #重新整理prompt排序，便于后续emb和ID的对应
-            nc_dual_list=[]
-            for i in nc_indexs:
-                nc_dual_list.append(i)
-            for i in positions_index_dual:
-                nc_dual_list.append(i) 
-            adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
-            adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
-            a_list = [only_role_list[i] for i in adjusted_a if 0 <= i < len(only_role_list)]
-            b_list = [only_role_list[i] for i in adjusted_b if 0 <= i < len(only_role_list)]
-
-            inf_list_split=[a_list,b_list]
-        else:
-            inf_list_split=only_role_list
 
         #print("inf_list_split",inf_list_split)
         # pre clip txt emb
@@ -817,8 +869,9 @@ class StoryDiffusion_CLIPTextEncode:
             
             for key ,prompts in zip(role_list,inf_list_split):
                 ip_emb,noise_,inp_n=[],[],[]
-                seed_random = random.randint(0, MAX_SEED) #pulid的emb需要随机数
+                
                 for p,n in zip(prompts,[neg_text]*len(prompts)): 
+                    seed_random = random.randint(0, MAX_SEED) #pulid 和uno的emb需要随机数
                     inp,inp_neg,x=get_emb_flux_pulid(t5_,clip_,if_repo,seed_random,p,n,width,height,num_steps=20,guidance=3.5,device=device)
                     ip_emb.append(inp)
                     inp_n.append(inp_neg)
@@ -826,6 +879,20 @@ class StoryDiffusion_CLIPTextEncode:
                 only_role_emb[key]=ip_emb
                 noise_x[key]=noise_
                 inp_neg_list[key]=inp_n
+        elif infer_mode == "uno":
+            only_role_emb={}
+            from .UNO.uno.flux.sampling import prepare_multi_ip_wrapper
+            for key ,prompts in zip(role_list,inf_list_split):
+                ip_emb=[]
+   
+                for p,x_1 in zip(prompts,x_1_refs_dict[key]):
+                    seed_random = random.randint(0, MAX_SEED) #pulid 和uno的emb需要随机数
+                    uno_x = get_noise(1, height, width, device=device,dtype=torch.bfloat16, seed=seed_random) 
+                    inp = prepare_multi_ip_wrapper(clip,img=uno_x,prompt=p, ref_imgs=x_1, pe=uno_pe)
+                    ip_emb.append(inp)
+                only_role_emb[key]=ip_emb
+
+
         elif infer_mode=="kolor_face":
             from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
             tokenizer = ChatGLMTokenizer.from_pretrained(os.path.join(switch.get("repo"),'text_encoder'))
@@ -927,6 +994,9 @@ class StoryDiffusion_CLIPTextEncode:
         elif infer_mode=="flux_pulid":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} #不支持NC
             negative = [inp_neg_list,noise_x]
+        elif infer_mode=="uno":
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} #TODO
+            negative=None
         elif infer_mode=="kolor_face":
             postive_dict = {"role": only_role_emb, "nc": nc_emb, "daul": daul_emb}
             negative = only_role_emb_ne[0]
@@ -1609,6 +1679,21 @@ class StoryDiffusion_KSampler:
                             x=negative[1][key][index], #seed 上一个节点调用
                             id_embeddings=input_id_emb_s_dict[key][0],
                             uncond_id_embeddings=input_id_emb_un_dict[key][0],
+                            )  # torch.Size([1, 4, 64, 64])
+                    
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)
+                return (out,)
+            elif  infer_mode=="uno":
+                samples_list = []
+                for key in role_list:
+                    for index,emb in enumerate(only_role_emb[key]):
+                        #print(emb)
+                        samples = model(width=width, 
+                            height=height,guidance=cfg,
+                            num_steps=steps,
+                            inp_cond=emb,
                             )  # torch.Size([1, 4, 64, 64])
                     
                         samples_list.append(samples)

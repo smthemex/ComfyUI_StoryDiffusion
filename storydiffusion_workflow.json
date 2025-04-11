@@ -1,6 +1,6 @@
 {
-  "last_node_id": 228,
-  "last_link_id": 416,
+  "last_node_id": 239,
+  "last_link_id": 432,
   "nodes": [
     {
       "id": 18,
@@ -14,7 +14,7 @@
         46
       ],
       "flags": {},
-      "order": 108,
+      "order": 128,
       "mode": 2,
       "inputs": [
         {
@@ -55,7 +55,7 @@
         106
       ],
       "flags": {},
-      "order": 82,
+      "order": 100,
       "mode": 2,
       "inputs": [
         {
@@ -106,7 +106,7 @@
         330
       ],
       "flags": {},
-      "order": 95,
+      "order": 114,
       "mode": 2,
       "inputs": [
         {
@@ -172,7 +172,7 @@
         517.3723754882812
       ],
       "flags": {},
-      "order": 121,
+      "order": 142,
       "mode": 2,
       "inputs": [
         {
@@ -199,7 +199,7 @@
         330
       ],
       "flags": {},
-      "order": 99,
+      "order": 106,
       "mode": 2,
       "inputs": [
         {
@@ -265,7 +265,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 125,
+      "order": 134,
       "mode": 2,
       "inputs": [
         {
@@ -292,7 +292,7 @@
         106
       ],
       "flags": {},
-      "order": 86,
+      "order": 92,
       "mode": 2,
       "inputs": [
         {
@@ -331,44 +331,6 @@
       ]
     },
     {
-      "id": 69,
-      "type": "LoadImage",
-      "pos": [
-        -5054.91650390625,
-        212.69483947753906
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            136
-          ],
-          "slot_index": 0
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "4.jpg",
-        "image"
-      ]
-    },
-    {
       "id": 70,
       "type": "LoadImage",
       "pos": [
@@ -380,7 +342,7 @@
         314
       ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -418,7 +380,7 @@
         330
       ],
       "flags": {},
-      "order": 100,
+      "order": 107,
       "mode": 2,
       "inputs": [
         {
@@ -484,7 +446,7 @@
         106
       ],
       "flags": {},
-      "order": 87,
+      "order": 93,
       "mode": 2,
       "inputs": [
         {
@@ -535,7 +497,7 @@
         46
       ],
       "flags": {},
-      "order": 113,
+      "order": 121,
       "mode": 2,
       "inputs": [
         {
@@ -576,7 +538,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 126,
+      "order": 135,
       "mode": 2,
       "inputs": [
         {
@@ -603,7 +565,7 @@
         314
       ],
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -641,7 +603,7 @@
         46
       ],
       "flags": {},
-      "order": 46,
+      "order": 71,
       "mode": 2,
       "inputs": [
         {
@@ -682,7 +644,7 @@
         46
       ],
       "flags": {},
-      "order": 59,
+      "order": 62,
       "mode": 2,
       "inputs": [
         {
@@ -723,7 +685,7 @@
         314
       ],
       "flags": {},
-      "order": 3,
+      "order": 2,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -761,7 +723,7 @@
         314
       ],
       "flags": {},
-      "order": 4,
+      "order": 3,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -799,7 +761,7 @@
         46
       ],
       "flags": {},
-      "order": 47,
+      "order": 51,
       "mode": 2,
       "inputs": [
         {
@@ -840,7 +802,7 @@
         106
       ],
       "flags": {},
-      "order": 89,
+      "order": 95,
       "mode": 2,
       "inputs": [
         {
@@ -891,7 +853,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 127,
+      "order": 136,
       "mode": 2,
       "inputs": [
         {
@@ -918,7 +880,7 @@
         58
       ],
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -949,7 +911,7 @@
         620.0560913085938
       ],
       "flags": {},
-      "order": 76,
+      "order": 81,
       "mode": 2,
       "inputs": [
         {
@@ -1052,7 +1014,7 @@
         330
       ],
       "flags": {},
-      "order": 102,
+      "order": 109,
       "mode": 2,
       "inputs": [
         {
@@ -1118,7 +1080,7 @@
         620.0560913085938
       ],
       "flags": {},
-      "order": 75,
+      "order": 80,
       "mode": 2,
       "inputs": [
         {
@@ -1221,7 +1183,7 @@
         330
       ],
       "flags": {},
-      "order": 101,
+      "order": 108,
       "mode": 2,
       "inputs": [
         {
@@ -1287,7 +1249,7 @@
         106
       ],
       "flags": {},
-      "order": 88,
+      "order": 94,
       "mode": 2,
       "inputs": [
         {
@@ -1338,7 +1300,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 128,
+      "order": 137,
       "mode": 2,
       "inputs": [
         {
@@ -1365,7 +1327,7 @@
         46
       ],
       "flags": {},
-      "order": 115,
+      "order": 123,
       "mode": 2,
       "inputs": [
         {
@@ -1406,7 +1368,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 129,
+      "order": 138,
       "mode": 2,
       "inputs": [
         {
@@ -1433,7 +1395,7 @@
         46
       ],
       "flags": {},
-      "order": 116,
+      "order": 124,
       "mode": 2,
       "inputs": [
         {
@@ -1474,7 +1436,7 @@
         58
       ],
       "flags": {},
-      "order": 6,
+      "order": 5,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -1505,7 +1467,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 77,
+      "order": 82,
       "mode": 2,
       "inputs": [
         {
@@ -1608,7 +1570,7 @@
         106
       ],
       "flags": {},
-      "order": 90,
+      "order": 96,
       "mode": 2,
       "inputs": [
         {
@@ -1658,7 +1620,7 @@
         106
       ],
       "flags": {},
-      "order": 81,
+      "order": 88,
       "mode": 2,
       "inputs": [
         {
@@ -1709,7 +1671,7 @@
         58
       ],
       "flags": {},
-      "order": 7,
+      "order": 6,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -1740,7 +1702,7 @@
         314
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -1778,7 +1740,7 @@
         314
       ],
       "flags": {},
-      "order": 9,
+      "order": 8,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -1816,7 +1778,7 @@
         46
       ],
       "flags": {},
-      "order": 48,
+      "order": 52,
       "mode": 2,
       "inputs": [
         {
@@ -1857,7 +1819,7 @@
         46
       ],
       "flags": {},
-      "order": 10,
+      "order": 9,
       "mode": 2,
       "inputs": [
         {
@@ -1896,7 +1858,7 @@
         46
       ],
       "flags": {},
-      "order": 107,
+      "order": 116,
       "mode": 2,
       "inputs": [
         {
@@ -1937,7 +1899,7 @@
         330
       ],
       "flags": {},
-      "order": 94,
+      "order": 102,
       "mode": 2,
       "inputs": [
         {
@@ -2003,7 +1965,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 68,
+      "order": 74,
       "mode": 2,
       "inputs": [
         {
@@ -2106,7 +2068,7 @@
         106
       ],
       "flags": {},
-      "order": 91,
+      "order": 97,
       "mode": 2,
       "inputs": [
         {
@@ -2157,7 +2119,7 @@
         46
       ],
       "flags": {},
-      "order": 65,
+      "order": 68,
       "mode": 2,
       "inputs": [
         {
@@ -2198,7 +2160,7 @@
         330
       ],
       "flags": {},
-      "order": 104,
+      "order": 111,
       "mode": 2,
       "inputs": [
         {
@@ -2264,7 +2226,7 @@
         404.0027770996094
       ],
       "flags": {},
-      "order": 130,
+      "order": 139,
       "mode": 2,
       "inputs": [
         {
@@ -2291,7 +2253,7 @@
         46
       ],
       "flags": {},
-      "order": 117,
+      "order": 125,
       "mode": 2,
       "inputs": [
         {
@@ -2332,7 +2294,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 78,
+      "order": 83,
       "mode": 2,
       "inputs": [
         {
@@ -2435,7 +2397,7 @@
         314
       ],
       "flags": {},
-      "order": 11,
+      "order": 10,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2473,7 +2435,7 @@
         314
       ],
       "flags": {},
-      "order": 12,
+      "order": 11,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2511,7 +2473,7 @@
         46
       ],
       "flags": {},
-      "order": 111,
+      "order": 119,
       "mode": 2,
       "inputs": [
         {
@@ -2552,7 +2514,7 @@
         494.6758728027344
       ],
       "flags": {},
-      "order": 123,
+      "order": 132,
       "mode": 2,
       "inputs": [
         {
@@ -2579,7 +2541,7 @@
         106
       ],
       "flags": {},
-      "order": 84,
+      "order": 90,
       "mode": 2,
       "inputs": [
         {
@@ -2630,7 +2592,7 @@
         46
       ],
       "flags": {},
-      "order": 110,
+      "order": 118,
       "mode": 2,
       "inputs": [
         {
@@ -2671,7 +2633,7 @@
         330
       ],
       "flags": {},
-      "order": 97,
+      "order": 104,
       "mode": 2,
       "inputs": [
         {
@@ -2737,7 +2699,7 @@
         314
       ],
       "flags": {},
-      "order": 13,
+      "order": 12,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2775,7 +2737,7 @@
         314
       ],
       "flags": {},
-      "order": 14,
+      "order": 13,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2813,7 +2775,7 @@
         314
       ],
       "flags": {},
-      "order": 15,
+      "order": 14,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2851,7 +2813,7 @@
         314
       ],
       "flags": {},
-      "order": 16,
+      "order": 15,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -2889,7 +2851,7 @@
         494.6758728027344
       ],
       "flags": {},
-      "order": 122,
+      "order": 131,
       "mode": 2,
       "inputs": [
         {
@@ -2916,7 +2878,7 @@
         218
       ],
       "flags": {},
-      "order": 51,
+      "order": 72,
       "mode": 2,
       "inputs": [
         {
@@ -2967,116 +2929,6 @@
       ]
     },
     {
-      "id": 68,
-      "type": "EasyFunction_Lite",
-      "pos": [
-        -4822.01708984375,
-        -267.83270263671875
-      ],
-      "size": [
-        315,
-        198
-      ],
-      "flags": {},
-      "order": 17,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            330
-          ],
-          "slot_index": 0
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "links": [],
-          "slot_index": 1
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EasyFunction_Lite"
-      },
-      "widgets_values": [
-        "",
-        "flux1-kj-dev-fp8.safetensors",
-        "EVA02_CLIP_L_336_psz14_s6B.pt",
-        "none",
-        "",
-        0.7
-      ]
-    },
-    {
-      "id": 73,
-      "type": "DualCLIPLoader",
-      "pos": [
-        -4804.595703125,
-        85.2037353515625
-      ],
-      "size": [
-        315,
-        106
-      ],
-      "flags": {},
-      "order": 18,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            140
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "DualCLIPLoader"
-      },
-      "widgets_values": [
-        "clip_l.safetensors",
-        "t5xxl_fp8_e4m3fn.safetensors",
-        "flux"
-      ]
-    },
-    {
-      "id": 74,
-      "type": "VAELoader",
-      "pos": [
-        -4817.68408203125,
-        -16.000967025756836
-      ],
-      "size": [
-        315,
-        58
-      ],
-      "flags": {},
-      "order": 19,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            141,
-            329
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAELoader"
-      },
-      "widgets_values": [
-        "ae.safetensors"
-      ]
-    },
-    {
       "id": 167,
       "type": "DualCLIPLoader",
       "pos": [
@@ -3088,7 +2940,7 @@
         106
       ],
       "flags": {},
-      "order": 20,
+      "order": 16,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3107,7 +2959,8 @@
       "widgets_values": [
         "clip_l.safetensors",
         "t5xxl_fp8_e4m3fn.safetensors",
-        "flux"
+        "flux",
+        "default"
       ]
     },
     {
@@ -3122,7 +2975,7 @@
         46
       ],
       "flags": {},
-      "order": 49,
+      "order": 53,
       "mode": 2,
       "inputs": [
         {
@@ -3163,7 +3016,7 @@
         198
       ],
       "flags": {},
-      "order": 21,
+      "order": 17,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3206,7 +3059,7 @@
         198
       ],
       "flags": {},
-      "order": 22,
+      "order": 18,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3249,7 +3102,7 @@
         106
       ],
       "flags": {},
-      "order": 23,
+      "order": 19,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3268,7 +3121,8 @@
       "widgets_values": [
         "clip_l.safetensors",
         "t5xxl_fp8_e4m3fn.safetensors",
-        "flux"
+        "flux",
+        "default"
       ]
     },
     {
@@ -3283,7 +3137,7 @@
         58
       ],
       "flags": {},
-      "order": 24,
+      "order": 20,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3316,7 +3170,7 @@
         218
       ],
       "flags": {},
-      "order": 54,
+      "order": 57,
       "mode": 2,
       "inputs": [
         {
@@ -3378,7 +3232,7 @@
         330
       ],
       "flags": {},
-      "order": 96,
+      "order": 103,
       "mode": 2,
       "inputs": [
         {
@@ -3444,7 +3298,7 @@
         46
       ],
       "flags": {},
-      "order": 109,
+      "order": 117,
       "mode": 2,
       "inputs": [
         {
@@ -3485,7 +3339,7 @@
         106
       ],
       "flags": {},
-      "order": 83,
+      "order": 89,
       "mode": 2,
       "inputs": [
         {
@@ -3536,7 +3390,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 70,
+      "order": 75,
       "mode": 2,
       "inputs": [
         {
@@ -3638,7 +3492,7 @@
         46
       ],
       "flags": {},
-      "order": 50,
+      "order": 54,
       "mode": 2,
       "inputs": [
         {
@@ -3679,7 +3533,7 @@
         218
       ],
       "flags": {},
-      "order": 52,
+      "order": 55,
       "mode": 2,
       "inputs": [
         {
@@ -3740,7 +3594,7 @@
         106
       ],
       "flags": {},
-      "order": 25,
+      "order": 21,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3759,7 +3613,8 @@
       "widgets_values": [
         "clip_l.safetensors",
         "t5xxl_fp8_e4m3fn.safetensors",
-        "flux"
+        "flux",
+        "default"
       ]
     },
     {
@@ -3774,7 +3629,7 @@
         198
       ],
       "flags": {},
-      "order": 26,
+      "order": 22,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3817,7 +3672,7 @@
         58
       ],
       "flags": {},
-      "order": 27,
+      "order": 23,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3850,7 +3705,7 @@
         58
       ],
       "flags": {},
-      "order": 28,
+      "order": 24,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3883,7 +3738,7 @@
         218
       ],
       "flags": {},
-      "order": 53,
+      "order": 56,
       "mode": 2,
       "inputs": [
         {
@@ -3945,7 +3800,7 @@
         46
       ],
       "flags": {},
-      "order": 55,
+      "order": 58,
       "mode": 2,
       "inputs": [
         {
@@ -3986,7 +3841,7 @@
         314
       ],
       "flags": {},
-      "order": 29,
+      "order": 25,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4024,7 +3879,7 @@
         330
       ],
       "flags": {},
-      "order": 98,
+      "order": 105,
       "mode": 2,
       "inputs": [
         {
@@ -4090,7 +3945,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 72,
+      "order": 77,
       "mode": 2,
       "inputs": [
         {
@@ -4192,7 +4047,7 @@
         106
       ],
       "flags": {},
-      "order": 85,
+      "order": 91,
       "mode": 2,
       "inputs": [
         {
@@ -4243,7 +4098,7 @@
         330
       ],
       "flags": {},
-      "order": 105,
+      "order": 112,
       "mode": 2,
       "inputs": [
         {
@@ -4309,7 +4164,7 @@
         46
       ],
       "flags": {},
-      "order": 56,
+      "order": 59,
       "mode": 2,
       "inputs": [
         {
@@ -4350,7 +4205,7 @@
         314
       ],
       "flags": {},
-      "order": 30,
+      "order": 26,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4388,7 +4243,7 @@
         106
       ],
       "flags": {},
-      "order": 92,
+      "order": 98,
       "mode": 2,
       "inputs": [
         {
@@ -4439,7 +4294,7 @@
         314
       ],
       "flags": {},
-      "order": 31,
+      "order": 27,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4477,7 +4332,7 @@
         585.0397338867188
       ],
       "flags": {},
-      "order": 73,
+      "order": 78,
       "mode": 2,
       "inputs": [
         {
@@ -4578,7 +4433,7 @@
         46
       ],
       "flags": {},
-      "order": 112,
+      "order": 120,
       "mode": 2,
       "inputs": [
         {
@@ -4619,7 +4474,7 @@
         98
       ],
       "flags": {},
-      "order": 32,
+      "order": 28,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4668,7 +4523,7 @@
         98
       ],
       "flags": {},
-      "order": 33,
+      "order": 29,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4717,7 +4572,7 @@
         585.0397338867188
       ],
       "flags": {},
-      "order": 74,
+      "order": 79,
       "mode": 2,
       "inputs": [
         {
@@ -4820,7 +4675,7 @@
         314
       ],
       "flags": {},
-      "order": 34,
+      "order": 30,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4858,7 +4713,7 @@
         218
       ],
       "flags": {},
-      "order": 58,
+      "order": 61,
       "mode": 2,
       "inputs": [
         {
@@ -4920,7 +4775,7 @@
         218
       ],
       "flags": {},
-      "order": 57,
+      "order": 60,
       "mode": 2,
       "inputs": [
         {
@@ -4981,7 +4836,7 @@
         58
       ],
       "flags": {},
-      "order": 35,
+      "order": 31,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5013,7 +4868,7 @@
         98
       ],
       "flags": {},
-      "order": 36,
+      "order": 32,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5062,7 +4917,7 @@
         46
       ],
       "flags": {},
-      "order": 114,
+      "order": 122,
       "mode": 2,
       "inputs": [
         {
@@ -5103,7 +4958,7 @@
         98
       ],
       "flags": {},
-      "order": 37,
+      "order": 33,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5152,7 +5007,7 @@
         218
       ],
       "flags": {},
-      "order": 61,
+      "order": 64,
       "mode": 2,
       "inputs": [
         {
@@ -5214,7 +5069,7 @@
         218
       ],
       "flags": {},
-      "order": 60,
+      "order": 63,
       "mode": 2,
       "inputs": [
         {
@@ -5276,7 +5131,7 @@
         98
       ],
       "flags": {},
-      "order": 38,
+      "order": 34,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5325,7 +5180,7 @@
         330
       ],
       "flags": {},
-      "order": 103,
+      "order": 110,
       "mode": 2,
       "inputs": [
         {
@@ -5391,7 +5246,7 @@
         98
       ],
       "flags": {},
-      "order": 39,
+      "order": 35,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5440,7 +5295,7 @@
         218
       ],
       "flags": {},
-      "order": 63,
+      "order": 66,
       "mode": 2,
       "inputs": [
         {
@@ -5500,7 +5355,7 @@
         218
       ],
       "flags": {},
-      "order": 62,
+      "order": 65,
       "mode": 2,
       "inputs": [
         {
@@ -5562,7 +5417,7 @@
         58
       ],
       "flags": {},
-      "order": 40,
+      "order": 36,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5594,7 +5449,7 @@
         98
       ],
       "flags": {},
-      "order": 41,
+      "order": 37,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5643,7 +5498,7 @@
         314
       ],
       "flags": {},
-      "order": 42,
+      "order": 38,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5681,7 +5536,7 @@
         218
       ],
       "flags": {},
-      "order": 64,
+      "order": 67,
       "mode": 2,
       "inputs": [
         {
@@ -5743,7 +5598,7 @@
         380.6805725097656
       ],
       "flags": {},
-      "order": 124,
+      "order": 133,
       "mode": 2,
       "inputs": [
         {
@@ -5770,7 +5625,7 @@
         270
       ],
       "flags": {},
-      "order": 120,
+      "order": 130,
       "mode": 2,
       "inputs": [
         {
@@ -5797,7 +5652,7 @@
         198
       ],
       "flags": {},
-      "order": 43,
+      "order": 39,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5842,7 +5697,7 @@
         58
       ],
       "flags": {},
-      "order": 44,
+      "order": 40,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5875,7 +5730,7 @@
         46
       ],
       "flags": {},
-      "order": 118,
+      "order": 126,
       "mode": 2,
       "inputs": [
         {
@@ -5916,7 +5771,7 @@
         494.6758728027344
       ],
       "flags": {},
-      "order": 131,
+      "order": 140,
       "mode": 2,
       "inputs": [
         {
@@ -5943,7 +5798,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 79,
+      "order": 84,
       "mode": 2,
       "inputs": [
         {
@@ -6045,7 +5900,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 71,
+      "order": 76,
       "mode": 2,
       "inputs": [
         {
@@ -6136,108 +5991,6 @@
       ]
     },
     {
-      "id": 41,
-      "type": "StoryDiffusion_CLIPTextEncode",
-      "pos": [
-        -4424.91650390625,
-        42.69468307495117
-      ],
-      "size": [
-        439.7124328613281,
-        678.6901245117188
-      ],
-      "flags": {},
-      "order": 69,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 140
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "link": 332
-        },
-        {
-          "name": "tag_txt",
-          "type": "C",
-          "link": null,
-          "shape": 7
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 138,
-          "shape": 7
-        },
-        {
-          "name": "control_image",
-          "type": "IMAGE",
-          "link": null,
-          "shape": 7
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            99
-          ],
-          "slot_index": 0
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "links": [
-            100
-          ]
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "links": [
-            97
-          ],
-          "slot_index": 2
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "links": [
-            86
-          ],
-          "slot_index": 3
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "links": [
-            87
-          ],
-          "slot_index": 4
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
-      },
-      "widgets_values": [
-        768,
-        768,
-        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
-        "[Taylor] wake up in the bed ;\n[Lecun] driving a car;\n[NC] a panda walking\n[Taylor] have breakfast by the window;\n[Lecun] and [Taylor]  driving a car;\n",
-        "best",
-        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
-        "best quality",
-        "No_style",
-        0.5,
-        "",
-        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
-      ]
-    },
-    {
       "id": 211,
       "type": "StoryDiffusion_Apply",
       "pos": [
@@ -6249,7 +6002,7 @@
         218
       ],
       "flags": {},
-      "order": 66,
+      "order": 69,
       "mode": 2,
       "inputs": [
         {
@@ -6310,7 +6063,7 @@
         98
       ],
       "flags": {},
-      "order": 45,
+      "order": 41,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6358,7 +6111,7 @@
         46
       ],
       "flags": {},
-      "order": 119,
+      "order": 127,
       "mode": 2,
       "inputs": [
         {
@@ -6399,7 +6152,7 @@
         500
       ],
       "flags": {},
-      "order": 80,
+      "order": 85,
       "mode": 2,
       "inputs": [
         {
@@ -6502,7 +6255,7 @@
         106
       ],
       "flags": {},
-      "order": 93,
+      "order": 99,
       "mode": 2,
       "inputs": [
         {
@@ -6552,7 +6305,7 @@
         218
       ],
       "flags": {},
-      "order": 67,
+      "order": 70,
       "mode": 2,
       "inputs": [
         {
@@ -6613,7 +6366,7 @@
         330
       ],
       "flags": {},
-      "order": 106,
+      "order": 113,
       "mode": 2,
       "inputs": [
         {
@@ -6679,7 +6432,7 @@
         495.6680603027344
       ],
       "flags": {},
-      "order": 132,
+      "order": 141,
       "mode": 2,
       "inputs": [
         {
@@ -6692,6 +6445,789 @@
       "properties": {},
       "widgets_values": [
         "ComfyUI"
+      ]
+    },
+    {
+      "id": 69,
+      "type": "LoadImage",
+      "pos": [
+        -5054.91650390625,
+        212.69483947753906
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 42,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            136
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "4.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 41,
+      "type": "StoryDiffusion_CLIPTextEncode",
+      "pos": [
+        -4424.91650390625,
+        42.69468307495117
+      ],
+      "size": [
+        439.7124328613281,
+        678.6901245117188
+      ],
+      "flags": {},
+      "order": 86,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 140
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "link": 332
+        },
+        {
+          "name": "tag_txt",
+          "type": "C",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 138,
+          "shape": 7
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            99
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            100
+          ]
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "links": [
+            97
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            86
+          ],
+          "slot_index": 3
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            87
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
+      },
+      "widgets_values": [
+        768,
+        768,
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor] wake up in the bed ;\n[Lecun] driving a car;\n[NC] a panda walking\n[Taylor] have breakfast by the window;\n[Lecun] and [Taylor]  driving a car;\n",
+        "best",
+        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "best quality",
+        "No_style",
+        0.5,
+        "",
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 74,
+      "type": "VAELoader",
+      "pos": [
+        -4817.68408203125,
+        -16.000967025756836
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 43,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            141,
+            329
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 73,
+      "type": "DualCLIPLoader",
+      "pos": [
+        -4804.595703125,
+        85.2037353515625
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 44,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            140
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DualCLIPLoader"
+      },
+      "widgets_values": [
+        "clip_l.safetensors",
+        "t5xxl_fp8_e4m3fn.safetensors",
+        "flux",
+        "default"
+      ]
+    },
+    {
+      "id": 68,
+      "type": "EasyFunction_Lite",
+      "pos": [
+        -4822.01708984375,
+        -267.83270263671875
+      ],
+      "size": [
+        315,
+        198
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            330
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EasyFunction_Lite"
+      },
+      "widgets_values": [
+        "",
+        "flux1-kj-dev-fp8.safetensors",
+        "EVA02_CLIP_L_336_psz14_s6B.pt",
+        "none",
+        "",
+        0.7
+      ]
+    },
+    {
+      "id": 235,
+      "type": "EasyFunction_Lite",
+      "pos": [
+        -6833.5595703125,
+        -246.63555908203125
+      ],
+      "size": [
+        315,
+        198
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            421
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EasyFunction_Lite"
+      },
+      "widgets_values": [
+        "",
+        "flux1-dev.safetensors",
+        "FLUX\\dit_lora.safetensors",
+        "none",
+        "",
+        0.7
+      ]
+    },
+    {
+      "id": 232,
+      "type": "VAELoader",
+      "pos": [
+        -6826.00830078125,
+        2.454427719116211
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            422,
+            431
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 233,
+      "type": "DualCLIPLoader",
+      "pos": [
+        -6826.271484375,
+        116.53376007080078
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            419
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DualCLIPLoader"
+      },
+      "widgets_values": [
+        "clip_l.safetensors",
+        "t5xxl_fp8_e4m3fn.safetensors",
+        "flux",
+        "default"
+      ]
+    },
+    {
+      "id": 237,
+      "type": "EmptyLatentImage",
+      "pos": [
+        -5756.0556640625,
+        428.57220458984375
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 101,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 428,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 429,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            427
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 238,
+      "type": "VAEDecode",
+      "pos": [
+        -5587.6494140625,
+        -220.36819458007812
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 129,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 430
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 431
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            432
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 239,
+      "type": "PreviewImage",
+      "pos": [
+        -5685.8310546875,
+        607.963623046875
+      ],
+      "size": [
+        324.77716064453125,
+        285.9771728515625
+      ],
+      "flags": {},
+      "order": 143,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 432
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 229,
+      "type": "LoadImage",
+      "pos": [
+        -6967.0234375,
+        313.7606506347656
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            417
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "figurine.png",
+        "image"
+      ]
+    },
+    {
+      "id": 231,
+      "type": "StoryDiffusion_CLIPTextEncode",
+      "pos": [
+        -6245.9130859375,
+        133.65866088867188
+      ],
+      "size": [
+        439.7124328613281,
+        678.6901245117188
+      ],
+      "flags": {},
+      "order": 87,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 419
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "link": 420
+        },
+        {
+          "name": "tag_txt",
+          "type": "C",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 417,
+          "shape": 7
+        },
+        {
+          "name": "control_image",
+          "type": "IMAGE",
+          "link": 418,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            425
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            426
+          ]
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "links": [
+            423
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            428
+          ],
+          "slot_index": 3
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            429
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "[Taylor] The figurine ",
+        "[Taylor] is in the crystal ball;",
+        "best",
+        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "best quality",
+        "No_style",
+        0.5,
+        "",
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 234,
+      "type": "StoryDiffusion_Apply",
+      "pos": [
+        -6214.7646484375,
+        -184.86700439453125
+      ],
+      "size": [
+        315,
+        218
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 421
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 422
+        },
+        {
+          "name": "CLIP_VISION",
+          "type": "CLIP_VISION",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            424
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "links": [
+            420
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_Apply"
+      },
+      "widgets_values": [
+        "uno",
+        "none",
+        "none",
+        "fp8",
+        0.8,
+        ""
+      ]
+    },
+    {
+      "id": 230,
+      "type": "LoadImage",
+      "pos": [
+        -6620.962890625,
+        380.22198486328125
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            418
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "crystal_ball.png",
+        "image"
+      ]
+    },
+    {
+      "id": 236,
+      "type": "StoryDiffusion_KSampler",
+      "pos": [
+        -5681.5693359375,
+        25.93014144897461
+      ],
+      "size": [
+        315,
+        330
+      ],
+      "flags": {},
+      "order": 115,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 424
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 425
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 426
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "link": 423
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 427
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            430
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_KSampler"
+      },
+      "widgets_values": [
+        0,
+        "randomize",
+        20,
+        4,
+        "euler",
+        "normal",
+        0.5,
+        0.5,
+        1
       ]
     }
   ],
@@ -8399,6 +8935,134 @@
       228,
       1,
       "INT"
+    ],
+    [
+      417,
+      229,
+      0,
+      231,
+      3,
+      "IMAGE"
+    ],
+    [
+      418,
+      230,
+      0,
+      231,
+      4,
+      "IMAGE"
+    ],
+    [
+      419,
+      233,
+      0,
+      231,
+      0,
+      "CLIP"
+    ],
+    [
+      420,
+      234,
+      1,
+      231,
+      1,
+      "DIFFCONDI"
+    ],
+    [
+      421,
+      235,
+      0,
+      234,
+      0,
+      "MODEL"
+    ],
+    [
+      422,
+      232,
+      0,
+      234,
+      1,
+      "VAE"
+    ],
+    [
+      423,
+      231,
+      2,
+      236,
+      3,
+      "DIFFINFO"
+    ],
+    [
+      424,
+      234,
+      0,
+      236,
+      0,
+      "MODEL"
+    ],
+    [
+      425,
+      231,
+      0,
+      236,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      426,
+      231,
+      1,
+      236,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      427,
+      237,
+      0,
+      236,
+      4,
+      "LATENT"
+    ],
+    [
+      428,
+      231,
+      3,
+      237,
+      0,
+      "INT"
+    ],
+    [
+      429,
+      231,
+      4,
+      237,
+      1,
+      "INT"
+    ],
+    [
+      430,
+      236,
+      0,
+      238,
+      0,
+      "LATENT"
+    ],
+    [
+      431,
+      232,
+      0,
+      238,
+      1,
+      "VAE"
+    ],
+    [
+      432,
+      238,
+      0,
+      239,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [
@@ -8570,15 +9234,28 @@
       "color": "#8AA",
       "font_size": 24,
       "flags": {}
+    },
+    {
+      "id": 14,
+      "title": "Group",
+      "bounding": [
+        -7045.56103515625,
+        -326.9075622558594,
+        1879.3695068359375,
+        1275.51025390625
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
     }
   ],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.1331000000000005,
+      "scale": 0.5976366913417056,
       "offset": [
-        6206.221091761767,
-        3187.2818578436236
+        7503.902213649335,
+        593.5903776037052
       ]
     }
   },

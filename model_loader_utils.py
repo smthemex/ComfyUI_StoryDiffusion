@@ -157,6 +157,15 @@ def tensortopil_list_upscale(tensor_in,width,height):
         img_list=[nomarl_upscale(i,width,height) for i in tensor_list]
     return img_list
 
+def tensortolist(tensor_in,width,height):
+    d1, _, _, _ = tensor_in.size()
+    if d1 == 1:
+        tensor_list = [nomarl_tensor_upscale(tensor_in,width,height)]
+    else:
+        tensor_list_ = torch.chunk(tensor_in, chunks=d1)
+        tensor_list=[nomarl_tensor_upscale(i,width,height) for i in tensor_list_]
+    return tensor_list
+
 
 
 def nomarl_tensor_upscale(tensor, width, height):
@@ -1718,11 +1727,17 @@ def cf_clip_single(clip,prompt,
     tokens_p = clip.tokenize(prompt)
     output_p = clip.encode_from_tokens(tokens_p, return_dict=True)  # {"pooled_output":tensor}
     cond_p = output_p.pop("cond")
+    if cond_p.shape[1] / 77 > 1 :
+        logging.warning("prompt'tokens length is abvoe 77,split it")
+        cond_p = torch.chunk(cond_p, cond_p.shape[1] // 77, dim=1)[0]
     pool_p=output_p.pop("pooled_output")
 
     tokens_n = clip.tokenize(negative_prompt)
     output_n = clip.encode_from_tokens(tokens_n, return_dict=True)  # {"pooled_output":tensor}
     cond_n = output_n.pop("cond")
+    if cond_n.shape[1] / 77 > 1 :
+        logging.warning("prompt'tokens length is abvoe 77,split it")
+        cond_n = torch.chunk(cond_n, cond_n.shape[1] // 77, dim=1)[0]
     pool_n = output_n.pop("pooled_output")
 
     return cond_p,cond_n,pool_p,pool_n # TODO: replace the pooled_prompt_embeds with text only prompt
@@ -2178,4 +2193,47 @@ def photomaker_clip_v2(clip,model_,prompt_list,negative_prompt,input_id_images,i
               }    
     return emb_dict
 
+def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
+    from .UNO.uno.flux.pipeline import UNOPipeline, preprocess_ref
+    from accelerate import Accelerator
+    accelerator = Accelerator()
+    device= accelerator.device
+    if isinstance(model, dict):
+        model_path = model["model_path"]
+        lora_ckpt_path= model["lora_ckpt_path"]
+        only_lora=True if lora_ckpt_path is not None else False
+        if  lora_ckpt_path:
+            if "dit_lora" not in lora_ckpt_path:
+                raise ValueError("lora_ckpt_path must be a dit_lora checkpoint")
+        
+        use_fp8=True if quantize_mode=="fp8"  else False
+
+       
+        if  "schnell" in model_path:
+            model_type="flux-schnell"
+        else:
+            model_type="flux-dev"
+     
+        
+        if "schnell" in model_path:
+            model_type="flux-schnell"
+        else:
+            model_type="flux-dev"
+        
+        if only_lora :
+            from .UNO.uno.flux.util import load_flow_model_only_lora
+            model_ = load_flow_model_only_lora(
+                model_type,model_path,lora_ckpt_path,use_fp8, device="cpu" if offload else device,save_quantezed=save_quantezed, lora_rank=lora_rank)
+        else:
+            from .UNO.uno.flux.util import load_flow_model
+            model_ = load_flow_model(model_type,model_path,use_fp8, device="cpu" if offload else device,save_quantezed=save_quantezed)
+        model =  UNOPipeline(
+            model_,
+            device,
+            offload,
+            use_fp8,
+        )
+    else:
+        raise ValueError("must sue lite model node")
+    return model
 
