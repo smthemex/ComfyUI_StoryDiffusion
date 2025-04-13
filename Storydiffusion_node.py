@@ -976,12 +976,14 @@ class StoryDiffusion_CLIPTextEncode:
                 else:
                     boxes = [[[0, 0, 0, 0], [0, 0, 0, 0]]]  # used if you want no layout guidance
                 print(f"Roles position on {boxes}")
+                from transformers import CLIPTokenizer
+                tokenizer_=CLIPTokenizer.from_pretrained(os.path.join(dir_path, "local_repo/tokenizer"))
                 for i in prompts_dual:
-                    phrase_idxes = [get_phrases_idx_cf(clip, phrases[0], i)]
-                    eot_idxes = [[get_eot_idx_cf(clip, i)] * len(phrases[0])]
+                    phrase_idxes = [get_phrases_idx_cf(tokenizer_, phrases[0], i)]
+                    eot_idxes = [[get_eot_idx_cf(tokenizer_, i)] * len(phrases[0])]
                     cross_attention_kwargs, grounding_kwargs = get_ms_phrase_emb(boxes, device, infer_type_g,
                                                                              [0], 1, phrase_idxes,
-                                                                             1, eot_idxes, phrases, clip)
+                                                                             1, eot_idxes, phrases, clip,tokenizer_)
                 daul_emb = cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False)
             else:
                 daul_emb=cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False) # maker
