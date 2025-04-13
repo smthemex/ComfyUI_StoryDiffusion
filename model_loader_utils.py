@@ -855,7 +855,7 @@ def get_eot_idx_cf(tokenizer, prompt):
     words = prompt.split()
     start = 1
     for w in words:
-        start += len(tokenizer.tokenize(w)) - 2
+        start += len(tokenizer.encode(w)) - 2
     return start
 
 def get_phrase_idx_cf(tokenizer, phrase, prompt, get_last_word=False, num=0):
@@ -888,10 +888,10 @@ def get_phrase_idx_cf(tokenizer, phrase, prompt, get_last_word=False, num=0):
             res_words = [re.sub(r'[.!?,:]$', '', w) for w in res_words]
             prompt_words[i+len(phrase_words)-1] = res_words[-1]  # remove the last punctuation
             for j in range(i, i+len(phrase_words)):
-                end += len(tokenizer.tokenize(prompt_words[j])) - 2
+                end += len(tokenizer.encode(prompt_words[j])) - 2
             break
         else:
-            start += len(tokenizer.tokenize(prompt_words[i])) - 2
+            start += len(tokenizer.encode(prompt_words[i])) - 2
 
     if end == 0:
         return [0, 0], None
@@ -927,7 +927,7 @@ def replicate_data_by_indices(data_list, index_list1, index_list2):
 
 
 def get_ms_phrase_emb(boxes, device, weight_dtype, drop_grounding_tokens, bsz, phrase_idxes,
-                      num_samples, eot_idxes,phrases,clip):
+                      num_samples, eot_idxes,phrases,clip,tokenizer):
     cross_attention_kwargs = None
     grounding_kwargs = None
     if boxes is not None:
@@ -935,16 +935,28 @@ def get_ms_phrase_emb(boxes, device, weight_dtype, drop_grounding_tokens, bsz, p
         if phrases is not None:
             drop_grounding_tokens = drop_grounding_tokens if drop_grounding_tokens is not None else [0] * bsz
             batch_boxes = boxes.view(bsz * boxes.shape[1], -1).to(device)
-            phrase_embeds_list=[]
+            phrase_input_ids=[]
             for phrase in phrases:
-                phrase_input_id = clip.tokenize(phrase, return_word_ids=False)["l"]
-                output_=clip.cond_stage_model.clip_l.encode_token_weights(phrase_input_id)[1]
-                phrase_embeds_p = output_.to(device,dtype=weight_dtype)
-                phrase_embeds_list.append(phrase_embeds_p)
+                phrase_input_id = tokenizer(phrase, max_length=tokenizer.model_max_length,
+                                                     padding="max_length", truncation=True,
+                                                     return_tensors="pt").input_ids
+                int_list = phrase_input_id.tolist()[0]
+                clean_input_ids_1=[(i,1.0) for i in int_list]
+                clean_input_ids_2=[(i,1.0) for i in int_list if i==int_list[0] or i==49407 ]
+                clean_input_ids_2=clean_input_ids_2[:77] if len(clean_input_ids_2) >=77 else clean_input_ids_2 + [(0,1.0)]*(77 - len(clean_input_ids_2))
+                phrase_input_ids.append([clean_input_ids_1,clean_input_ids_2])
+
+            phrase_embeds_list = []
+            for i in phrase_input_ids:
+                _, pooled_prompt_embed_= clip.cond_stage_model.clip_l.encode_token_weights(i)
+                pooled_prompt_embed_= pooled_prompt_embed_.to(device,dtype=weight_dtype)
+                phrase_embeds_list.append(pooled_prompt_embed_)
+                #phrase_input_id = clip.tokenize(phrase, return_word_ids=False)["l"]
+                #output_=clip.cond_stage_model.clip_l.encode_token_weights(phrase_input_id)[1]
+               
             phrase_embeds=torch.cat(phrase_embeds_list,dim=0)
             #print(phrase_embeds.shape,phrase_embeds.is_cuda,batch_boxes.shape,batch_boxes.is_cuda)#torch.Size([2, 768]) torch.Size([2 4])
-            grounding_kwargs = {"boxes": batch_boxes, "phrase_embeds": phrase_embeds,
-                                "drop_grounding_tokens": drop_grounding_tokens}
+            grounding_kwargs = {"boxes": batch_boxes, "phrase_embeds": phrase_embeds,"drop_grounding_tokens": drop_grounding_tokens}
         else:
             grounding_kwargs = None
         boxes = torch.repeat_interleave(boxes, repeats=num_samples, dim=0)
