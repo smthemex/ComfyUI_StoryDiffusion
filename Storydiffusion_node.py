@@ -14,7 +14,7 @@ import latent_preview
 import torchvision.transforms.functional as TVF
 from .utils.utils import get_comic
 from .model_loader_utils import  (phi2narry,Loader_storydiffusion,Loader_Flux_Pulid,load_pipeline_consistory,Loader_KOLOR,replicate_data_by_indices,glm_single_encode,
-                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,Loader_UNO,tensortopil_list_upscale,tensortopil_list,
+                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,Loader_UNO,tensortopil_list_upscale,tensortopil_list,extract_content_from_brackets_,
                                   narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,
                                   get_scheduler,apply_style_positive,fitter_cf_model_type,Infer_MSdiffusion,Loader_story_maker,Loader_InfiniteYou,
                                   nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list)
@@ -618,7 +618,7 @@ class StoryDiffusion_CLIPTextEncode:
                 "role_text": ("STRING", {"multiline": True,"default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n""[Lecun] a man img,wearing a suit,black hair."}),
                 "scene_text":("STRING", {"multiline": True,
                                              "default": "[Taylor] wake up in the bed ;\n[Taylor] have breakfast by the window;\n[Lecun] driving a car;\n[Lecun] is working."}),
-                "pos_text": ("STRING", {"multiline": True,"default": "best"}),
+                "pos_text": ("STRING", {"multiline": True,"default": ",best"}),
                 "neg_text": ("STRING", {"multiline": True,
                                                "default": "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn "
                                                           "face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs"}),
@@ -674,7 +674,7 @@ class StoryDiffusion_CLIPTextEncode:
         # positions_index_dual[]
         # positions_index_char_1 0 2 
         # positions_index_char_2 [] 
-        # prompts_dual[]
+        # prompts_dual[] #['[A] play whith [B] in the garden'] 
         # index_char_1_list [0, 1] 
         # index_char_2_list[2, 3]
 
@@ -736,7 +736,7 @@ class StoryDiffusion_CLIPTextEncode:
 
         uno_pe="d" #Literal['d', 'h', 'w', 'o']
         
-        only_role_emb_ne,x_1_refs_dict,image_emb=None,None,None
+        only_role_emb_ne,x_1_refs_dict,image_emb,x_1_refs_dual=None,None,None,None
         
         if img2img_mode:
             if infer_mode == "story_and_maker" or infer_mode == "story_maker":
@@ -762,11 +762,14 @@ class StoryDiffusion_CLIPTextEncode:
             elif infer_mode == "infiniteyou":
                 pass
             elif infer_mode == "uno":
-                from .UNO.uno.flux.sampling import get_noise
+                
                 from .UNO.uno.flux.pipeline import preprocess_ref
 
                 ref_pil_list=tensortopil_list(image) #原方法需要图片缩放，先转回pil
-
+                if prompts_dual:
+                    x_1_refs_dual_=[phi2narry(preprocess_ref(i, 320)) for i in ref_pil_list ]
+                    x_1_refs_dual=[[vae.encode(i[:,:,:,:3]).to(torch.bfloat16) for i in x_1_refs_dual_]*len(prompts_dual)]#[[1,2],[1,2]] 不考虑cn
+                
                 if control_image is not None:
                     control_pil_list=tensortopil_list(control_image) 
                 else:
@@ -789,6 +792,8 @@ class StoryDiffusion_CLIPTextEncode:
                                 nc_dual_list.append(i) 
                             adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
                             adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
+                            # print("adjusted_a",adjusted_a)
+                            # print("adjusted_b",adjusted_b)
                             a_list = [control_pil_list[i] for i in adjusted_a if 0 <= i < len(control_pil_list)]
                             b_list = [control_pil_list[i] for i in adjusted_b if 0 <= i < len(control_pil_list)]
 
@@ -800,8 +805,7 @@ class StoryDiffusion_CLIPTextEncode:
                             mix_list=[]
                             role_tensor=phi2narry(preprocess_ref(role_pil, 320) )#多图默认320
                             for c in (control_pil):
-
-                                c_tensor=phi2narry(preprocess_ref(c, 320))#多图默认320
+                                c_tensor=phi2narry(preprocess_ref(c, 320))
                                 mix_list.append([vae.encode(role_tensor[:,:,:,:3]).to(torch.bfloat16),vae.encode(c_tensor[:,:,:,:3]).to(torch.bfloat16)])
                             x_1_refs_dict[key]=mix_list #{key:[[1,2],[3,4]]}
             else:
@@ -847,12 +851,8 @@ class StoryDiffusion_CLIPTextEncode:
 
         #print("inf_list_split",inf_list_split)
         # pre clip txt emb
-        if infer_mode=="msdiffusion":
-            if not prompts_dual:
-                prompts_dual=replace_prompts
-            prompts_dual=[i+pos_text for i in prompts_dual]
-            prompts_dual=[i+neg_text for i in prompts_dual]
-
+      
+            
         noise_x=[]
         inp_neg_list=[]
         if  infer_mode=="consistory":
@@ -882,6 +882,7 @@ class StoryDiffusion_CLIPTextEncode:
         elif infer_mode == "uno":
             only_role_emb={}
             from .UNO.uno.flux.sampling import prepare_multi_ip_wrapper
+            from .UNO.uno.flux.sampling import get_noise
             for key ,prompts in zip(role_list,inf_list_split):
                 ip_emb=[]
 
@@ -956,14 +957,31 @@ class StoryDiffusion_CLIPTextEncode:
         cross_attention_kwargs=None
         if prompts_dual and infer_mode in["story_maker","story_and_maker","msdiffusion"] : #忽略不支持的模式
     
-            prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
-            prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
-            if use_lora:
-                prompts_dual=[i+lora_trigger_words for i in prompts_dual]
-            prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual]
-            if infer_mode=="msdiffusion":
-                phrases = [role_list[0].replace("]", "").replace("[", ""),
-                            role_list[1].replace("]", "").replace("[", "")]
+            if infer_mode=="msdiffusion": #[A] a (pig) play whith [B]  a (doll) in the garden
+                prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
+                prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
+                if use_lora:
+                    prompts_dual=[i+lora_trigger_words for i in prompts_dual]
+                prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' T a (pig)  play whith  a (doll) in the garden,best 8k,RAW']
+
+                if '(' in prompts_dual[0] and ')' in prompts_dual[0]:
+                    object_prompt = extract_content_from_brackets_(pos_text)  # 提取prompt的object list
+                    object_prompt=[i.strip() for i in object_prompt]
+                    for i in object_prompt:
+                        if " " in i:
+                            raise "when using [object],object must be a word,any blank in it will cause error."
+                        
+                    object_prompt=[i for i in object_prompt ]
+                    phrases = sorted(list(set(object_prompt)),key=lambda x: list(object_prompt).index(x))  # 清除同名物体,保持原有顺序
+                    assert  len(phrases)>= 2
+                    if len(phrases)>2:
+                        phrases=phrases[:2] #只取前两个物体
+                else:
+                    raise "when using msdiffusion ,(objectA)  and (objectA) must be in the prompt."
+
+
+                prompts_dual=[i.replace("("," ").replace(")"," ") for i in prompts_dual] #clear the bracket
+
                 box_add = []  # 获取预设box
                 guidance_list = guidance_list.strip().split(";")
                 for i in range(len(guidance_list)):
@@ -986,7 +1004,23 @@ class StoryDiffusion_CLIPTextEncode:
                                                                              1, eot_idxes, phrases, clip,tokenizer_)
                 daul_emb = cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False)
             else:
+                prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
+                prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
+                if use_lora:
+                    prompts_dual=[i+lora_trigger_words for i in prompts_dual]
+                prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' The figurine  play whith  The pig in the garden,best 8k,RAW']
                 daul_emb=cf_clip(prompts_dual, clip, infer_mode,role_list,input_split=False) # maker
+        elif prompts_dual and infer_mode == "uno": #UNO双角色图片要单独处理
+            prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
+            prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
+            prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' The figurine  play whith  The pig in the garden,best 8k,RAW']
+           
+            daul_emb=[]
+            for dual_t,x_1 in zip(prompts_dual,x_1_refs_dual): # dual_t:The figurine  play whith  The pig in the garden best 8k,RAW
+                seed_random = random.randint(0, MAX_SEED) 
+                uno_x = get_noise(1, height, width, device=device,dtype=torch.bfloat16, seed=seed_random) 
+                inp = prepare_multi_ip_wrapper(clip,img=uno_x,prompt=dual_t, ref_imgs=x_1, pe=uno_pe)
+                daul_emb.append(inp)
         else:
             daul_emb=None
         # neg
@@ -1699,6 +1733,16 @@ class StoryDiffusion_KSampler:
                             )  # torch.Size([1, 4, 64, 64])
                     
                         samples_list.append(samples)
+
+                if daul_emb:
+                    for index, emb in zip(dual_index, daul_emb):
+                        samples = model(width=width, 
+                            height=height,guidance=cfg,
+                            num_steps=steps,
+                            inp_cond=emb,
+                            )  # torch.Size([1, 4, 64, 64])
+                        samples_list.insert(index, samples)
+
                 out = {}
                 out["samples"] = torch.cat(samples_list, dim=0)
                 return (out,)
