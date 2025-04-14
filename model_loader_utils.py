@@ -128,7 +128,9 @@ def get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer
 
     return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider
 
-
+def extract_content_from_brackets(text):
+    # 正则表达式匹配多对方括号内的内容
+    return re.findall(r'\[(.*?)\]', text)
 
 def phi2narry(img):
     img = torch.from_numpy(np.array(img).astype(np.float32) / 255.0).unsqueeze(0)
@@ -208,9 +210,9 @@ def contains_brackets(s):
 
 def has_parentheses(s):
     return bool(re.search(r'\(.*?\)', s))
-def extract_content_from_brackets(text):
-    # 正则表达式匹配多对方括号内的内容
-    return re.findall(r'\[(.*?)\]', text)
+def extract_content_from_brackets_(text):
+    # 正则表达式匹配多对圆括号内的内容
+    return re.findall(r'\((.*?)\)', text)
 
 def narry_list(list_in):
     for i in range(len(list_in)):
