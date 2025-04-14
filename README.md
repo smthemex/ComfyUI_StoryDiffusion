@@ -7,11 +7,15 @@ Using StoryDiffusion and other methods to make storys in ComfyUI
 
 
 ## Updates:
-* 2025/04/11
-* Add UNO support，Only the single FLUX model (27G) and UNO's Lora are needed. Please enable FP8 quantization and use storydiffusionw_flowjson workflow testing ，fix a bug，  
+* 2025/04/14
+* 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
+* 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
+* Use the function of UNO to realize the dual roles of the FLUX process in the same frame, the prompt example is shown in the figure;
+* Fixed the error of the dual role prompt words of ms-diffusion, the role prompts of ms diffusion should be [A] a (man)... ,[B] a (woman)..., the scene prompts do not need to be changed, or [A] ... [B]... in the same sentence;
+ 
+## previous
+* Add UNO support，Only the single FLUX model (27G) and UNO's Lora are needed. Please enable FP8 quantization and use storydiffusionw_flowjson workflow testing ，fix a bug， 
 * 新增UNO支持，只需要单体FLUX模型(27G)和UNO的lora，请开启fp8量化和使用storydiffusion_workflow.json工作流测试,修复tokens过长的bug;  
-
-* previous  
 * Add infinite svdq v0.2 support,it'work well when your svdq update v0.2，[download wheel](https://huggingface.co/mit-han-lab/nunchaku/tree/main) 更新 svdq v0.2的支持，infinite工作正常，[轮子](https://huggingface.co/mit-han-lab/nunchaku/tree/main)下载地址。
 * 1.修改了模型加载的流程，更新到V2版本，如果你喜欢旧的，可以下载V1.0版本的,2.请使用storydiffusion_workflow.json，它集成了主要的工作流;3.剔除掉一些过时的功能;
 * 1.Modified the model loading process.Update to V2 version, If you like the old one, you can download version 1.0，2.Please use 'storydiffusion_workflow.json', which integrates the main workflow，3.Remove some outdated features;
@@ -219,6 +223,8 @@ download lora [dit_lora.safetensor](https://huggingface.co/bytedance-research/UN
 
 **4.8 UNO**  
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/UNO_N.png" width="50%">
+ * dual 双角色同框示例
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/example_uno_dual.png" width="50%">
 
 **4.9 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
