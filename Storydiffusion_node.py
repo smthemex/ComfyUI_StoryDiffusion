@@ -960,12 +960,9 @@ class StoryDiffusion_CLIPTextEncode:
             if infer_mode=="msdiffusion": #[A] a (pig) play whith [B]  a (doll) in the garden
                 prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
                 prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
-                if use_lora:
-                    prompts_dual=[i+lora_trigger_words for i in prompts_dual]
-                prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' T a (pig)  play whith  a (doll) in the garden,best 8k,RAW']
-
                 if '(' in prompts_dual[0] and ')' in prompts_dual[0]:
-                    object_prompt = extract_content_from_brackets_(pos_text)  # 提取prompt的object list
+                    object_prompt = extract_content_from_brackets_(prompts_dual[0])  # 提取prompt的object list
+                    #print(f"object_prompt:{object_prompt}")
                     object_prompt=[i.strip() for i in object_prompt]
                     for i in object_prompt:
                         if " " in i:
@@ -973,13 +970,18 @@ class StoryDiffusion_CLIPTextEncode:
                         
                     object_prompt=[i for i in object_prompt ]
                     phrases = sorted(list(set(object_prompt)),key=lambda x: list(object_prompt).index(x))  # 清除同名物体,保持原有顺序
-                    assert  len(phrases)>= 2
+                    #print(f"object_prompt:{phrases}",len(phrases))
+                    assert  len(phrases)>=2,"when using msdiffusion ,object must be more than 2."
                     if len(phrases)>2:
                         phrases=phrases[:2] #只取前两个物体
                 else:
                     raise "when using msdiffusion ,(objectA)  and (objectA) must be in the prompt."
+                if use_lora:
+                    prompts_dual=[i+lora_trigger_words for i in prompts_dual]
+                
+                prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' T a (pig)  play whith  a (doll) in the garden,best 8k,RAW']
 
-
+                
                 prompts_dual=[i.replace("("," ").replace(")"," ") for i in prompts_dual] #clear the bracket
 
                 box_add = []  # 获取预设box
