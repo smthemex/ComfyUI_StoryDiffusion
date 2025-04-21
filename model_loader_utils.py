@@ -29,6 +29,7 @@ from comfy.utils import common_upscale,ProgressBar
 import folder_paths
 from comfy.clip_vision import load as clip_load
 from .utils.gradio_utils import process_original_text,character_to_dict
+import json
 
 cur_path = os.path.dirname(os.path.abspath(__file__))
 photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
@@ -38,10 +39,6 @@ device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is
 lora_get = get_lora_dict()
 lora_lightning_list = lora_get["lightning_xl_lora"]
 
-global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
-global sa32, sa64
-global write
-global height_s, width_s
 
 SAMPLER_NAMES = ["euler", "euler_cfg_pp", "euler_ancestral", "euler_ancestral_cfg_pp", "heun", "heunpp2","dpm_2", "dpm_2_ancestral",
                   "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", "dpmpp_2s_ancestral_cfg_pp", "dpmpp_sde", "dpmpp_sde_gpu",
@@ -102,7 +99,7 @@ def get_scheduler(name,scheduler_):
 
 
 
-def get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer_mode):
+def get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infer_mode):
     auraface=False
     use_photov2=False
     cached=False
@@ -110,9 +107,9 @@ def get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer
     onnx_provider="gpu"
     img2img_mode = True if isinstance(image, torch.Tensor) else False
 
-    if extra_funtion:
-        extra_funtion = extra_funtion.strip().lower()
-        if "auraface" in extra_funtion:
+    if extra_function:
+        extra_function = extra_function.strip().lower()
+        if "auraface" in extra_function:
             auraface=True  
     
     if extra_param:
@@ -715,13 +712,20 @@ def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict):
     '''
     
     Args:
-        role_text:
-        scene_text:
-        add_style:
-        lora_trigger_words:
-        use_lora:
-        id_length:
-        tag_dict:
+        role_index_dict: {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
+        invert_role_index_dict{0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Lecun]'], 3: ['[Lecun]']}
+        ref_role_index_dict {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
+        ref_role_totals[0, 1, 2, 3]
+        role_list ['[Taylor]', '[Lecun]']
+        role_dict {'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.', '[Lecun]': ' a man img,wearing a suit,black hair.'} 
+        nc_txt_list [' a panda'] 
+        nc_indexs[4]
+        positions_index_dual[]
+        positions_index_char_1 0 2 
+        positions_index_char_2 [] 
+        prompts_dual[] #['[A] play whith [B] in the garden'] 
+        index_char_1_list [0, 1] 
+        index_char_2_list[2, 3]
 
     Returns:
       character_index_dict:{'[Taylor]': [0, 3], '[sam]': [1, 2]},if 1 role {'[Taylor]': [0, 1, 2]}
@@ -780,7 +784,7 @@ def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict):
     #获取字典，实际用词等
     role_index_dict, invert_role_index_dict, replace_prompts, ref_role_index_dict, ref_role_totals= process_original_text(role_dict, prompts)
     
-    if tag_dict is not None: #tag方法
+    if tag_dict is not None and isinstance(tag_dict, list): #tag方法
         if len(tag_dict) < len(replace_prompts):
             raise "The number of input condition images is less than the number of scene prompts!"
         replace_prompts = [prompt + " " + tag_dict[i] for i, prompt in enumerate(replace_prompts)]
@@ -2208,7 +2212,7 @@ def photomaker_clip_v2(clip,model_,prompt_list,negative_prompt,input_id_images,i
     return emb_dict
 
 def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
-    from .UNO.uno.flux.pipeline import UNOPipeline, preprocess_ref
+    from .UNO.uno.flux.pipeline import UNOPipeline
     from accelerate import Accelerator
     accelerator = Accelerator()
     device= accelerator.device
@@ -2222,7 +2226,6 @@ def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
         
         use_fp8=True if quantize_mode=="fp8"  else False
 
-       
         if  "schnell" in model_path:
             model_type="flux-schnell"
         else:
@@ -2251,3 +2254,513 @@ def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
         raise ValueError("must sue lite model node")
     return model
 
+def load_pipeline_realcustom(cf_model,realcustom_checkpoint):
+    from .RealCustom.models.unet_2d_condition_custom import UNet2DConditionModel as UNet2DConditionModelDiffusers
+    if "shallow" in realcustom_checkpoint.lower():
+        unet_config_path=os.path.join(cur_path, "RealCustom/configs/realcustom_sigdino_highres_shallow.json")
+    else:
+        unet_config_path=os.path.join(cur_path, "RealCustom/configs/realcustom_sigdino_highres.json")
+    with open(unet_config_path, 'r') as f:
+        unet_config = json.load(f)
+    
+    # Settings for image encoder
+    vision_model_config = unet_config.pop("vision_model_config", None)
+    vision_model_config_ar = vision_model_config.pop("vision_model_config", None)
+
+
+
+    unet_type = unet_config.pop("type", None)
+    unet_model = UNet2DConditionModelDiffusers(**unet_config)
+    unet_model.eval()
+
+    #cf_state_dict=torch.load(unet_checkpoint,weights_only=False, map_location="cpu")
+    cf_state_dict = cf_model.model.diffusion_model.state_dict()
+    unet_state_dict = cf_model.model.model_config.process_unet_state_dict_for_saving(cf_state_dict)
+
+    from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_ldm_unet_checkpoint
+    cf_state_dict = convert_ldm_unet_checkpoint(unet_state_dict, unet_model.config)
+    unet_model.load_state_dict(cf_state_dict, strict=False)
+
+    realcustom_DICT=torch.load(realcustom_checkpoint,weights_only=False, map_location="cpu")
+    unet_model.load_state_dict(realcustom_DICT, strict=False)
+    unet_model = torch.compile(unet_model, disable=True)# CHECK THIS
+
+    del cf_state_dict,realcustom_DICT
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("loading unet base model finished.")
+
+    return unet_model,vision_model_config_ar,unet_type
+
+
+
+
+def load_clip_clipvsion(clip_paths,token_paths,dino_path,siglip_path,vision_model_config):
+    from .RealCustom.models.text import TextModel
+    from transformers import CLIPTextModel,CLIPTextConfig
+    from .RealCustom.utils import instantiate_from_config
+    
+    # text_encoder=CLIPTextModel.from_pretrained(clip_paths[0], local_files_only=True)
+    # text_encoder_2=CLIPTextModel.from_pretrained(clip_paths[1], local_files_only=True)
+
+    from safetensors.torch import load_file
+    text_encoder_config=CLIPTextConfig.from_pretrained(token_paths[0], local_files_only=True)
+    text_encoder = CLIPTextModel(text_encoder_config)
+    text_encoder_sd_1 = load_file(clip_paths[0])
+    text_encoder.load_state_dict(text_encoder_sd_1, strict=False)
+    
+    
+    text_encoder_config_2=CLIPTextConfig.from_pretrained(token_paths[1], local_files_only=True)
+    text_encoder_2 = CLIPTextModel(text_encoder_config_2)
+    text_encoder_sd_2 = load_file(clip_paths[1])
+    text_encoder_2.load_state_dict(text_encoder_sd_2, strict=False)
+    del text_encoder_sd_2,text_encoder_sd_1
+    gc.collect()
+
+
+    text_model = TextModel([text_encoder,text_encoder_2],token_paths,["penultimate_nonorm"])
+    text_model.eval()
+
+    siglip_path = os.path.normpath(siglip_path).replace("\\", "/")
+    dino_path = os.path.normpath(dino_path).replace("\\", "/")
+
+    vision_model_config["params"]["siglip_path"] = siglip_path
+    vision_model_config["params"]["dino_path"] = dino_path
+
+    vision_model = instantiate_from_config(vision_model_config)
+    vision_model = vision_model.eval().to(device)
+
+    print("loading image model and text_model finished.")
+    return text_model,vision_model
+
+
+
+
+def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor,seed,positive_prompt,negative_prompt,positive_image,target_phrase,width,height,device,samples_per_prompt,guidance_weight=7.5):
+    from  .RealCustom.inference.inference_utils import find_phrase_positions_in_text
+    import torchvision
+    with torch.no_grad():
+        image_metadata_validate = torch.tensor(
+            data=[
+                    width,     # original_height
+                    height,    # original_width
+                    0,              # coordinate top
+                    0,              # coordinate left
+                    width,     # target_height
+                    height,    # target_width
+                ],
+                device=device,
+                dtype=torch.float32
+            ).view(1, -1).repeat(samples_per_prompt, 1)
+       
+        if guidance_weight != 1:
+            text_negative_output = text_model(negative_prompt)
+        # Compute target phrases
+        target_token = torch.zeros(1, 77).to(device)
+        
+        positions = find_phrase_positions_in_text(positive_prompt, target_phrase)
+        for position in positions:
+            prompt_before = positive_prompt[:position] # NOTE We do not need -1 here because the SDXL text encoder does not encode the trailing space.
+            prompt_include = positive_prompt[:position+len(target_phrase)]
+            #print("prompt before: ", prompt_before, ", prompt_include: ", prompt_include)
+            prompt_before_length = text_model.get_vaild_token_length(prompt_before) + 1
+            prompt_include_length = text_model.get_vaild_token_length(prompt_include) + 1
+           # print("prompt_before_length: ", prompt_before_length, ", prompt_include_length: ", prompt_include_length)
+            target_token[:, prompt_before_length:prompt_include_length] = 1
+
+        # Text used for progress bar
+        pbar_text = positive_prompt[:40]
+
+        # Compute text embeddings
+        text_positive_output = text_model(positive_prompt)
+        text_positive_embeddings = text_positive_output.embeddings.repeat_interleave(samples_per_prompt, dim=0)
+        text_positive_pooled = text_positive_output.pooled[-1].repeat_interleave(samples_per_prompt, dim=0)
+        if guidance_weight != 1:
+            text_negative_embeddings = text_negative_output.embeddings.repeat_interleave(samples_per_prompt, dim=0)
+            text_negative_pooled = text_negative_output.pooled[-1].repeat_interleave(samples_per_prompt, dim=0)
+        
+        # Compute image embeddings
+    # positive_image = Image.open(positive_promt_image_path).convert("RGB")
+        positive_image = torchvision.transforms.ToTensor()(positive_image)
+
+        positive_image = positive_image.unsqueeze(0).repeat_interleave(samples_per_prompt, dim=0)
+        positive_image = torch.nn.functional.interpolate(
+            positive_image, 
+            size=(768, 768), 
+            mode="bilinear", 
+            align_corners=False
+        )
+        negative_image = torch.zeros_like(positive_image)
+        #print("positive_image:",positive_image.size(), negative_image.size()) #torch.Size([1, 3, 768, 768]) torch.Size([1, 3, 768, 768])
+        positive_image = positive_image.to(device)
+        negative_image = negative_image.to(device)
+
+        positive_image_dict = {"image_ref": positive_image}
+        positive_image_output = vision_model(positive_image_dict, device=device)
+        #positive_image_output = daul_encoder(vision_model,positive_image_dict)
+
+        negative_image_dict = {"image_ref": negative_image}
+        negative_image_output = vision_model(negative_image_dict, device=device)
+        #negative_image_output=daul_encoder(vision_model,negative_image_dict)
+        # Initialize latent with input latent + noise (i2i) / pure noise (t2i)
+        latent = torch.randn(
+            size=[
+                samples_per_prompt,
+                vae_config["latent_channels"],
+                height // vae_downsample_factor,
+                width // vae_downsample_factor
+            ],
+            device=device,
+            generator=torch.Generator(device).manual_seed(seed))
+        target_h = (height // vae_downsample_factor) // 2
+        target_w = (width // vae_downsample_factor) // 2
+
+        emb_dict={
+            "text_positive_embeddings":text_positive_embeddings.to(device),
+            "text_positive_pooled":text_positive_pooled.to(device),
+            "image_metadata_validate":image_metadata_validate.to(device),
+            "positive_image_output":positive_image_output,
+            "text_negative_embeddings":text_negative_embeddings.to(device),
+            "text_negative_pooled":text_negative_pooled.to(device),
+            "negative_image_output":negative_image_output,
+        }
+
+        latent_dict={
+            "latent":latent,
+            "target_h":target_h,
+            "target_w":target_w,
+            "pbar_text":pbar_text,
+            "guidance_weight":guidance_weight,
+            "target_token":target_token,
+            
+        }
+
+        return emb_dict,latent_dict
+
+
+def realcustom_infer(unet_model,sample_steps,mask_reused_step,emb_dict,latent_dict,mask_scope,mask_strategy,guidance_weight,
+                     device,schedule_type="squared_linear",schedule_shift_snr=1.0,scheduler_type="ddim",unet_prediction="epsilon"):
+    from .RealCustom.schedulers.ddim import DDIMScheduler
+    from .RealCustom.schedulers.dpm_s import DPMSolverSingleStepScheduler
+    from .RealCustom.schedulers.utils import get_betas
+    from .RealCustom.inference.mask_generation import mask_generation
+    from  .RealCustom.inference.inference_utils import classifier_free_guidance_image_prompt_cascade
+    from torchvision.transforms.functional import to_pil_image
+    from tqdm import tqdm 
+    # Initialize ddim scheduler
+    ddim_train_steps = 1000
+    ddim_betas = get_betas(name=schedule_type, num_steps=ddim_train_steps, shift_snr=schedule_shift_snr, terminal_pure_noise=False)
+    scheduler_class = DPMSolverSingleStepScheduler if scheduler_type == 'dpm' else DDIMScheduler
+    scheduler = scheduler_class(betas=ddim_betas, num_train_timesteps=ddim_train_steps, num_inference_timesteps=sample_steps, device=device)
+    infer_timesteps = scheduler.timesteps
+    #print(infer_timesteps)
+    # Real Reverse diffusion process.
+    text2image_crossmap_2d_all_timesteps_list = []
+    current_step = 0
+    pbar_text = latent_dict.get("pbar_text")
+    #guidance_weight = latent_dict.get("guidance_weight")
+    unet_model.to(device)
+    latent=latent_dict.get("latent")
+    with torch.no_grad():
+        for timestep in tqdm(iterable=infer_timesteps, desc=f"[{pbar_text}]", dynamic_ncols=True):
+            
+            if current_step < mask_reused_step:
+                pred_cond, pred_cond_dict = unet_model(
+                    sample=latent,
+                    timestep=timestep,
+                    encoder_hidden_states=emb_dict.get("text_positive_embeddings"),
+                    encoder_attention_mask=None,
+                    added_cond_kwargs=dict(
+                        text_embeds=emb_dict.get("text_positive_pooled"),
+                        time_ids=emb_dict.get("image_metadata_validate")
+                    ),
+                    vision_input_dict=None,
+                    vision_guided_mask=None,
+                    return_as_origin=False,
+                    return_text2image_mask=True,
+                )
+                
+                crossmap_2d_avg = mask_generation(
+                    crossmap_2d_list=pred_cond_dict.get("text2image_crossmap_2d",[]), selfmap_2d_list=pred_cond_dict.get("self_attention_map", []), 
+                    target_token=latent_dict.get("target_token"), mask_scope=mask_scope,
+                    mask_target_h=latent_dict.get("target_h"), mask_target_w=latent_dict.get("target_w"), mask_mode=mask_strategy,
+                )
+            else:
+                # using previous step's mask
+                crossmap_2d_avg = text2image_crossmap_2d_all_timesteps_list[-1].squeeze(1)
+            if crossmap_2d_avg.dim() == 5: # Means that each layer uses a separate mask weight.
+                text2image_crossmap_2d_all_timesteps_list.append(crossmap_2d_avg.mean(dim=2).unsqueeze(1))
+            else:
+                text2image_crossmap_2d_all_timesteps_list.append(crossmap_2d_avg.unsqueeze(1))
+
+            pred_cond, pred_cond_dict = unet_model(
+                sample=latent,
+                timestep=timestep,
+                encoder_hidden_states=emb_dict.get("text_positive_embeddings"),
+                encoder_attention_mask=None,
+                added_cond_kwargs=dict(
+                    text_embeds=emb_dict.get("text_positive_pooled"),
+                    time_ids=emb_dict.get("image_metadata_validate")
+                ),
+                vision_input_dict=emb_dict.get("positive_image_output"),
+                vision_guided_mask=crossmap_2d_avg,
+                return_as_origin=False,
+                return_text2image_mask=True,
+                multiple_reference_image=False
+            )
+
+            crossmap_2d_avg_neg = crossmap_2d_avg.mean(dim=1, keepdim=True)
+            pred_negative, pred_negative_dict = unet_model(
+                sample=latent,
+                timestep=timestep,
+                encoder_hidden_states=emb_dict.get("text_negative_embeddings"),
+                encoder_attention_mask=None,
+                added_cond_kwargs=dict(
+                    text_embeds=emb_dict.get("text_negative_pooled"),
+                    time_ids=emb_dict.get("image_metadata_validate")
+                ),
+                vision_input_dict=emb_dict.get("negative_image_output"),
+                vision_guided_mask=crossmap_2d_avg,
+                return_as_origin=False,
+                return_text2image_mask=True,
+                multiple_reference_image=False
+            )
+
+            pred = classifier_free_guidance_image_prompt_cascade(
+                pred_t_cond=None, pred_ti_cond=pred_cond, pred_uncond=pred_negative, 
+                guidance_weight_t=guidance_weight, guidance_weight_i=guidance_weight, 
+                guidance_stdev_rescale_factor=0, cfg_rescale_mode="naive_global_direct"
+            )
+            step = scheduler.step(
+                model_output=pred,
+                model_output_type=unet_prediction,
+                timestep=timestep,
+                sample=latent,
+                )
+
+            latent = step.prev_sample
+
+            current_step += 1
+
+        sample=step.pred_original_sample/0.13025
+       
+        return sample
+    
+
+def load_realcustom_vae(vae,device):
+    from .RealCustom.models.vae import AutoencoderKL
+    from diffusers.pipelines.stable_diffusion.convert_from_ckpt import convert_ldm_vae_checkpoint
+
+    vae_config_path = os.path.join(cur_path, "local_repo/vae/config.json")
+    # Initialize vae model
+    with open(vae_config_path, 'r') as vae_config_file:
+        vae_config = json.load(vae_config_file)
+    vae_downsample_factor = 2 ** (len(vae_config["block_out_channels"]) - 1) # 2 ** 3 = 8
+    vae_model = AutoencoderKL(**vae_config)
+    vae_model.eval().to(device)
+
+    vae_state_dict=vae.get_sd()
+    #AE = AutoencoderKL.from_config(ae_config).to(device, torch.float16)
+    cf_state_dict = convert_ldm_vae_checkpoint(vae_state_dict, vae_model.config)
+    vae_model.load_state_dict(cf_state_dict, strict=False)
+    del cf_state_dict,vae_state_dict
+
+   
+    #vae_decoder = torch.compile(lambda x: vae_model.decode(x / vae_model.scaling_factor).sample.clip(-1, 1), disable=True)
+    vae_encoder = torch.compile(lambda x: vae_model.encode(x).latent_dist.mode().mul_(vae_model.scaling_factor), disable=True)
+    print("loading vae finished.")
+    return vae_encoder,vae_downsample_factor,vae_config
+
+
+
+def load_pipeline_instant_character(cf_model,ip_adapter_path,VAE,quantize_mode):
+    from .InstantCharacter.pipeline_wrapper import InstantCharacterFluxPipeline
+    from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
+    if cf_model.get("use_svdq") :
+        print("use svdq")
+        from nunchaku import NunchakuFluxTransformer2dModel    
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        try:
+            transformer.set_attention_impl("nunchaku-fp16")
+        except:
+            pass
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
+    elif cf_model.get("use_gguf"):
+        print("use gguf quantization")   
+        if cf_model.get("model_path") is None:
+            raise "need chocie a  gguf model in EasyFunction_Lite!"
+        from diffusers import  GGUFQuantizationConfig
+        transformer = FluxTransformer2DModel.from_single_file(
+            cf_model.get("model_path"),
+            config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
+            quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
+            torch_dtype=torch.bfloat16,
+        )
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
+    elif cf_model.get("use_unet"):
+
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+                                                                            torch_dtype=torch.bfloat16)
+        else:
+            from safetensors.torch import load_file
+            t_state_dict=load_file(cf_model.get("model_path"))
+            unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
+            transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
+            transformer.load_state_dict(t_state_dict, strict=False)
+            del t_state_dict
+            gc_cleanup()
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),transformer=transformer,vae=vae,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
+    else:
+        print(f"use {quantize_mode} quantization") 
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
+                torch_dtype=torch.bfloat16,
+            )
+                   
+        elif quantize_mode=="nf4": #nf4
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(
+                    load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                ),
+                torch_dtype=torch.bfloat16,)
+        else:
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                 torch_dtype=torch.bfloat16,
+                )
+
+        pipe = InstantCharacterFluxPipeline.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
+    # if not cf_model.get("use_svdq"):
+    #     pipe.enable_model_cpu_offload()
+    pipe.to(device)
+    pipe.init_adapter(
+        subject_ipadapter_cfg=dict(subject_ip_adapter_path=ip_adapter_path, nb_token=1024), 
+    )
+    
+    return pipe
+
+def cf_flux_prompt_clip(cf_clip,prompt):
+    tokens = cf_clip.tokenize(prompt)
+    tokens["t5xxl"] = cf_clip.tokenize(prompt)["t5xxl"]
+    prompt_embeds = cf_clip.encode_from_tokens(tokens, return_pooled=True, return_dict=True).pop("cond")
+    tokens["l"] = cf_clip.tokenize(prompt)["l"]
+    pooled_prompt_embeds = cf_clip.encode_from_tokens(tokens, return_dict=True).pop("pooled_output")
+    prompt_embeds=prompt_embeds.to(device,torch.bfloat16)
+    pooled_prompt_embeds=pooled_prompt_embeds.to(device,torch.bfloat16)
+    text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=device, dtype=torch.bfloat16)
+    return prompt_embeds,pooled_prompt_embeds,text_ids
+
+
+def load_dual_clip(image_encoder_path,image_encoder_2_path,device,dtype):
+    from transformers import SiglipVisionModel, SiglipImageProcessor, AutoModel, AutoImageProcessor
+    # image encoder
+    print(f"=> loading image_encoder_1: {image_encoder_path}")
+    image_encoder = SiglipVisionModel.from_pretrained(image_encoder_path)
+    image_processor = SiglipImageProcessor.from_pretrained(image_encoder_path)
+    image_encoder.eval()
+    image_encoder.to(device, dtype=dtype)
+
+
+    # image encoder 2
+    print(f"=> loading image_encoder_2: {image_encoder_2_path}")
+    image_encoder_2 = AutoModel.from_pretrained(image_encoder_2_path)
+    image_processor_2 = AutoImageProcessor.from_pretrained(image_encoder_2_path)
+    image_encoder_2.eval()
+    image_encoder_2.to(device, dtype=dtype)
+    image_processor_2.crop_size = dict(height=384, width=384)
+    image_processor_2.size = dict(shortest_edge=384)
+
+
+    return image_encoder,image_processor,image_encoder_2,image_processor_2
+
+
+
+@torch.inference_mode()
+def instant_character_id_clip(subject_image,siglip_image_encoder,siglip_image_processor,dino_image_encoder_2,dino_image_processor_2,device,dtype):
+
+   
+    from einops import rearrange
+    
+    def encode_siglip_image_emb(siglip_image, device, dtype):
+        siglip_image = siglip_image.to(device, dtype=dtype)
+        res = siglip_image_encoder(siglip_image, output_hidden_states=True)
+
+        siglip_image_embeds = res.last_hidden_state
+
+        siglip_image_shallow_embeds = torch.cat([res.hidden_states[i] for i in [7, 13, 26]], dim=1)
+        
+        return siglip_image_embeds, siglip_image_shallow_embeds
+
+
+    def encode_dinov2_image_emb(dinov2_image, device, dtype):
+        dinov2_image = dinov2_image.to(device, dtype=dtype)
+        res = dino_image_encoder_2(dinov2_image, output_hidden_states=True)
+
+        dinov2_image_embeds = res.last_hidden_state[:, 1:]
+
+        dinov2_image_shallow_embeds = torch.cat([res.hidden_states[i][:, 1:] for i in [9, 19, 29]], dim=1)
+
+        return dinov2_image_embeds, dinov2_image_shallow_embeds
+    
+
+
+    def encode_image_emb(siglip_image, device, dtype):
+        object_image_pil = siglip_image
+        object_image_pil_low_res = [object_image_pil.resize((384, 384))]
+        object_image_pil_high_res = object_image_pil.resize((768, 768))
+        object_image_pil_high_res = [
+            object_image_pil_high_res.crop((0, 0, 384, 384)),
+            object_image_pil_high_res.crop((384, 0, 768, 384)),
+            object_image_pil_high_res.crop((0, 384, 384, 768)),
+            object_image_pil_high_res.crop((384, 384, 768, 768)),
+        ]
+        nb_split_image = len(object_image_pil_high_res)
+
+        siglip_image_embeds = encode_siglip_image_emb(
+            siglip_image_processor(images=object_image_pil_low_res, return_tensors="pt").pixel_values, 
+            device, 
+            dtype
+        )
+        dinov2_image_embeds = encode_dinov2_image_emb(
+            dino_image_processor_2(images=object_image_pil_low_res, return_tensors="pt").pixel_values, 
+            device, 
+            dtype
+        )
+
+        image_embeds_low_res_deep = torch.cat([siglip_image_embeds[0], dinov2_image_embeds[0]], dim=2)
+        image_embeds_low_res_shallow = torch.cat([siglip_image_embeds[1], dinov2_image_embeds[1]], dim=2)
+
+        siglip_image_high_res = siglip_image_processor(images=object_image_pil_high_res, return_tensors="pt").pixel_values
+        siglip_image_high_res = siglip_image_high_res[None]
+        siglip_image_high_res = rearrange(siglip_image_high_res, 'b n c h w -> (b n) c h w')
+        siglip_image_high_res_embeds = encode_siglip_image_emb(siglip_image_high_res, device, dtype)
+        siglip_image_high_res_deep = rearrange(siglip_image_high_res_embeds[0], '(b n) l c -> b (n l) c', n=nb_split_image)
+        dinov2_image_high_res = dino_image_processor_2(images=object_image_pil_high_res, return_tensors="pt").pixel_values
+        dinov2_image_high_res = dinov2_image_high_res[None]
+        dinov2_image_high_res = rearrange(dinov2_image_high_res, 'b n c h w -> (b n) c h w')
+        dinov2_image_high_res_embeds = encode_dinov2_image_emb(dinov2_image_high_res, device, dtype)
+        dinov2_image_high_res_deep = rearrange(dinov2_image_high_res_embeds[0], '(b n) l c -> b (n l) c', n=nb_split_image)
+        image_embeds_high_res_deep = torch.cat([siglip_image_high_res_deep, dinov2_image_high_res_deep], dim=2)
+
+        image_embeds_dict = dict(
+            image_embeds_low_res_shallow=image_embeds_low_res_shallow.to(device),
+            image_embeds_low_res_deep=image_embeds_low_res_deep.to(device),
+            image_embeds_high_res_deep=image_embeds_high_res_deep.to(device),
+        )
+
+        return image_embeds_dict
+
+    subject_image = subject_image.resize((max(subject_image.size), max(subject_image.size)))
+    subject_image_embeds_dict = encode_image_emb(subject_image, device, dtype)
+
+    return subject_image_embeds_dict
