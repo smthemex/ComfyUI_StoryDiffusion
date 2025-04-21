@@ -1,19 +1,21 @@
 <h1> ComfyUI_StoryDiffusion</h1>
 
-Using StoryDiffusion and other methods to make storys in ComfyUI
+Using different ID migration methods to make storys in ComfyUI
 ----
 
-* Origin from [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[Consistory](https://github.com/NVlabs/consistory),[Kolor](https://github.com/Kwai-Kolors/Kolors),[Pulid](https://github.com/ToTheBeginning/PuLID),[Flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter), [InfiniteYou](https://github.com/bytedance/InfiniteYou), [UNO](https://github.com/bytedance/UNO)
+* Origin methods from [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[Consistory](https://github.com/NVlabs/consistory),[Kolor](https://github.com/Kwai-Kolors/Kolors),[Pulid](https://github.com/ToTheBeginning/PuLID),[Flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter), [InfiniteYou](https://github.com/bytedance/InfiniteYou), [UNO](https://github.com/bytedance/UNO),[RealCustom](https://github.com/bytedance/RealCustom),[InstantCharacter](https://github.com/Tencent/InstantCharacter)
 
 
 ## Updates:
-* 2025/04/14
+* 2025/04/21
+* 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
+
+ 
+## previous
 * 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
 * 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
 * Use the function of UNO to realize the dual roles of the FLUX process in the same frame, the prompt example is shown in the figure;
 * Fixed the error of the dual role prompt words of ms-diffusion, the role prompts of ms diffusion should be [A] a (man)... ,[B] a (woman)..., the scene prompts do not need to be changed, or [A] ... [B]... in the same sentence;
- 
-## previous
 * Add UNO support，Only the single FLUX model (27G) and UNO's Lora are needed. Please enable FP8 quantization and use storydiffusionw_flowjson workflow testing ，fix a bug， 
 * 新增UNO支持，只需要单体FLUX模型(27G)和UNO的lora，请开启fp8量化和使用storydiffusion_workflow.json工作流测试,修复tokens过长的bug;  
 * Add infinite svdq v0.2 support,it'work well when your svdq update v0.2，[download wheel](https://huggingface.co/mit-han-lab/nunchaku/tree/main) 更新 svdq v0.2的支持，infinite工作正常，[轮子](https://huggingface.co/mit-han-lab/nunchaku/tree/main)下载地址。
@@ -180,6 +182,32 @@ download lora [dit_lora.safetensor](https://huggingface.co/bytedance-research/UN
 |             ├── diffusion_models/flux1-dev.safetensors  #
 |             ├── loras/dit_lora.safetensors # 
 ```
+**3.8 RealCustom mode**
+download all [bytedance-research/RealCustom](https://huggingface.co/bytedance-research/RealCustom/tree/main/ckpts) 可能要连外网
+```
+├── ComfyUI/models/
+|             ├── diffusion_models/sdxl-unet.bin  #
+|             ├── photomaker/RealCustom_highres.pth  #
+|             ├── clip/clip_l #normal 常规的不用重复下
+|             ├── clip/clip_g # normal 常规的不用重复下
+|             ├── clipvison/vit_so400m_patch14_siglip_384.bin #vit_so400m_patch14_siglip_384
+|             ├── clipvison/vit_large_patch14_reg4_dinov2.bin #vit_large_patch14_reg4_dinov2.lvd142m 
+```
+**3.9 InstantCharacter mode**
+download [ instantcharacter_ip-adapter.bin](https://huggingface.co/tencent/InstantCharacter/tree/main)    
+repo：[google/siglip-so400m-patch14-384](https://huggingface.co/google/siglip-so400m-patch14-384/tree/main) and repo：[facebook/dinov2-giant](https://huggingface.co/facebook/dinov2-giant/tree/main)
+
+```
+├── ComfyUI/models/instantcharacter_ip-adapter.bin
+├──  anypath/google/siglip-so400m-patch14-384
+├──  anypath/facebook/dinov2-giant
+```
+
+
+
+
+
+
 
 4 Example
 ----
@@ -226,7 +254,15 @@ download lora [dit_lora.safetensor](https://huggingface.co/bytedance-research/UN
  * dual 双角色同框示例
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/example_uno_dual.png" width="50%">
 
-**4.9 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
+
+**4.9 RealCustom**    
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/realcustom.png" width="50%">
+
+ 
+**4.10 InstantCharacter**    
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/InstantCharacter.png" width="50%">
+
+**4.11 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/comfyui_classic.png" width="50%">
 
@@ -332,6 +368,35 @@ svdquant
   title={Less-to-More Generalization: Unlocking More Controllability by In-Context Generation},
   author={Wu, Shaojin and Huang, Mengqi and Wu, Wenxu and Cheng, Yufeng and Ding, Fei and He, Qian},
   journal={arXiv preprint arXiv:2504.02160},
+  year={2025}
+}
+```
+```
+@inproceedings{huang2024realcustom,
+  title={RealCustom: narrowing real text word for real-time open-domain text-to-image customization},
+  author={Huang, Mengqi and Mao, Zhendong and Liu, Mingcong and He, Qian and Zhang, Yongdong},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={7476--7485},
+  year={2024}
+}
+@article{mao2024realcustom++,
+  title={Realcustom++: Representing images as real-word for real-time customization},
+  author={Mao, Zhendong and Huang, Mengqi and Ding, Fei and Liu, Mingcong and He, Qian and Zhang, Yongdong},
+  journal={arXiv preprint arXiv:2408.09744},
+  year={2024}
+}
+@article{wu2025less,
+  title={Less-to-More Generalization: Unlocking More Controllability by In-Context Generation},
+  author={Wu, Shaojin and Huang, Mengqi and Wu, Wenxu and Cheng, Yufeng and Ding, Fei and He, Qian},
+  journal={arXiv preprint arXiv:2504.02160},
+  year={2025}
+}
+```
+```
+@article{tao2025instantcharacter,
+  title={InstantCharacter: Personalize Any Characters with a Scalable Diffusion Transformer Framework},
+  author={Tao, Jiale and Zhang, Yanbing and Wang, Qixun and Cheng, Yiji and Wang, Haofan and Bai, Xu and Zhou, Zhengguang and Li, Ruihuang and Wang, Linqing and Wang, Chunyu and others},
+  journal={arXiv preprint arXiv:2504.12395},
   year={2025}
 }
 ```
