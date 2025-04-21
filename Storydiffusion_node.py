@@ -6,486 +6,120 @@ import numpy as np
 import torch
 import os
 from PIL import ImageFont,Image
-from .StoryMaker.pipeline_sdxl_storymaker_wrapper import encode_prompt_image_emb_
-import folder_paths
-from comfy.model_management import total_vram
-import comfy
-import latent_preview
-import torchvision.transforms.functional as TVF
+import torch.nn.functional as F
+import copy
+
 from .utils.utils import get_comic
-from .model_loader_utils import  (phi2narry,Loader_storydiffusion,Loader_Flux_Pulid,load_pipeline_consistory,Loader_KOLOR,replicate_data_by_indices,glm_single_encode,
-                                  get_float,gc_cleanup,tensor_to_image,photomaker_clip,Loader_UNO,tensortopil_list_upscale,tensortopil_list,extract_content_from_brackets_,
-                                  narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,
-                                  get_scheduler,apply_style_positive,fitter_cf_model_type,Infer_MSdiffusion,Loader_story_maker,Loader_InfiniteYou,
+from .model_loader_utils import  (phi2narry,replicate_data_by_indices,get_float,gc_cleanup,tensor_to_image,photomaker_clip,tensortopil_list_upscale,tensortopil_list,extract_content_from_brackets_,
+                                  narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,load_clip_clipvsion,
+                                  get_scheduler,apply_style_positive,
                                   nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list)
+
 from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available
 from .ip_adapter.attention_processor import IPAttnProcessor2_0
 if is_torch2_available():
     from .utils.gradio_utils import AttnProcessor2_0 as AttnProcessor
 else:
     from .utils.gradio_utils import AttnProcessor
-import torch.nn.functional as F
-import copy
-global total_count, attn_count, cur_step, mask1024, mask4096, attn_procs, unet
-global sa32, sa64
-global write
-global height_s, width_s
+
+import folder_paths
+from comfy.model_management import total_vram
+import comfy
+import latent_preview
 
 
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-
-infer_type_g=torch.float16 if device=="cuda" else torch.float32 #？
-
 MAX_SEED = np.iinfo(np.int32).max
-
 dir_path = os.path.dirname(os.path.abspath(__file__))
-fonts_lists = os.listdir(os.path.join(dir_path, "fonts"))
-photomaker_dir=os.path.join(folder_paths.models_dir, "photomaker")
+
+
 weigths_gguf_current_path = os.path.join(folder_paths.models_dir, "gguf")
 if not os.path.exists(weigths_gguf_current_path):
     os.makedirs(weigths_gguf_current_path)
-
 folder_paths.add_model_folder_path("gguf", weigths_gguf_current_path) # use gguf dir
 
-    
-def set_attention_processor(unet, id_length, is_ipadapter=False):
-    global attn_procs
-    attn_procs = {}
-    for name in unet.attn_processors.keys():
-        cross_attention_dim = (
-            None
-            if name.endswith("attn1.processor")
-            else unet.config.cross_attention_dim
-        )
-        if name.startswith("mid_block"):
-            hidden_size = unet.config.block_out_channels[-1]
-        elif name.startswith("up_blocks"):
-            block_id = int(name[len("up_blocks.")])
-            hidden_size = list(reversed(unet.config.block_out_channels))[block_id]
-        elif name.startswith("down_blocks"):
-            block_id = int(name[len("down_blocks.")])
-            hidden_size = unet.config.block_out_channels[block_id]
-        if cross_attention_dim is None:
-            if name.startswith("up_blocks"):
-                attn_procs[name] = SpatialAttnProcessor2_0(id_length=id_length)
-            else:
-                attn_procs[name] = AttnProcessor()
-        else:
-            if is_ipadapter:
-                attn_procs[name] = IPAttnProcessor2_0(
-                    hidden_size=hidden_size,
-                    cross_attention_dim=cross_attention_dim,
-                    scale=1,
-                    num_tokens=4,
-                ).to(unet.device, dtype=torch.float16)
-            else:
-                attn_procs[name] = AttnProcessor()
+global total_count, attn_count_, cur_step, mask1024, mask4096, attn_procs_, unet_,sa32, sa64,write,height_s, width_s
 
-    unet.set_attn_processor(copy.deepcopy(attn_procs))
+infer_type_g=torch.float16 if device=="cuda" else torch.float32 #TODO
 
-    
-class SpatialAttnProcessor2_0(torch.nn.Module):
-    r"""
-    Attention processor for IP-Adapater for PyTorch 2.0.
-    Args:
-        hidden_size (`int`):
-            The hidden size of the attention layer.
-        cross_attention_dim (`int`):
-            The number of channels in the `encoder_hidden_states`.
-        text_context_len (`int`, defaults to 77):
-            The context length of the text features.
-        scale (`float`, defaults to 1.0):
-            the weight scale of image prompt.
-    """
-
-    def __init__(
-            self,
-            hidden_size=None,
-            cross_attention_dim=None,
-            id_length=4,
-            device=device,
-            dtype=torch.float16,
-    ):
-        super().__init__()
-        if not hasattr(F, "scaled_dot_product_attention"):
-            raise ImportError(
-                "AttnProcessor2_0 requires PyTorch 2.0, to use it, please upgrade PyTorch to 2.0."
-            )
-        self.device = device
-        self.dtype = dtype
-        self.hidden_size = hidden_size
-        self.cross_attention_dim = cross_attention_dim
-        self.total_length = id_length + 1
-        self.id_length = id_length
-        self.id_bank = {}
-
-    def __call__(
-            self,
-            attn,
-            hidden_states,
-            encoder_hidden_states=None,
-            attention_mask=None,
-            temb=None,
-    ):
-        # un_cond_hidden_states, cond_hidden_states = hidden_states.chunk(2)
-        # un_cond_hidden_states = self.__call2__(attn, un_cond_hidden_states,encoder_hidden_states,attention_mask,temb)
-        # 生成一个0到1之间的随机数
-        global total_count, attn_count, cur_step, indices1024, indices4096
-        global sa32, sa64
-        global write
-        global height_s, width_s
-        global character_dict
-        global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals
-        if attn_count == 0 and cur_step == 0:
-            indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
-                self.total_length,
-                self.id_length,
-                sa32,
-                sa64,
-                height_s,
-                width_s,
-                device=self.device,
-                dtype=self.dtype,
-            )
-        if write:
-            assert len(cur_character) == 1
-            if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
-                indices = indices1024
-            else:
-                indices = indices4096
-            # print(f"white:{cur_step}")
-            total_batch_size, nums_token, channel = hidden_states.shape
-            img_nums = total_batch_size // 2
-            hidden_states = hidden_states.reshape(-1, img_nums, nums_token, channel)
-            # print(img_nums,len(indices),hidden_states.shape,self.total_length)
-            if cur_character[0] not in self.id_bank:
-                self.id_bank[cur_character[0]] = {}
-            self.id_bank[cur_character[0]][cur_step] = [
-                hidden_states[:, img_ind, indices[img_ind], :]
-                .reshape(2, -1, channel)
-                .clone()
-                for img_ind in range(img_nums)
-            ]
-            hidden_states = hidden_states.reshape(-1, nums_token, channel)
-            # self.id_bank[cur_step] = [hidden_states[:self.id_length].clone(), hidden_states[self.id_length:].clone()]
-        else:
-            # encoder_hidden_states = torch.cat((self.id_bank[cur_step][0].to(self.device),self.id_bank[cur_step][1].to(self.device)))
-            # TODO: ADD Multipersion Control
-            encoder_arr = []
-            for character in cur_character:
-                encoder_arr = encoder_arr + [
-                    tensor.to(self.device)
-                    for tensor in self.id_bank[character][cur_step]
-                ]
-        # 判断随机数是否大于0.5
-        if cur_step < 1:
-            hidden_states = self.__call2__(
-                attn, hidden_states, None, attention_mask, temb
-            )
-        else:  # 256 1024 4096
-            random_number = random.random()
-            if cur_step < 20:
-                rand_num = 0.3
-            else:
-                rand_num = 0.1
-            # print(f"hidden state shape {hidden_states.shape[1]}")
-            if random_number > rand_num:
-                if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
-                    indices = indices1024
-                else:
-                    indices = indices4096
-                # print("before attention",hidden_states.shape,attention_mask.shape,encoder_hidden_states.shape if encoder_hidden_states is not None else "None")
-                if write:
-                    total_batch_size, nums_token, channel = hidden_states.shape
-                    img_nums = total_batch_size // 2
-                    hidden_states = hidden_states.reshape(
-                        -1, img_nums, nums_token, channel
-                    )
-                    encoder_arr = [
-                        hidden_states[:, img_ind, indices[img_ind], :].reshape(
-                            2, -1, channel
-                        )
-                        for img_ind in range(img_nums)
-                    ]
-                    for img_ind in range(img_nums):
-                        # print(img_nums)
-                        # assert img_nums != 1
-                        img_ind_list = [i for i in range(img_nums)]
-                        # print(img_ind_list,img_ind)
-                        img_ind_list.remove(img_ind)
-                        # print(img_ind,invert_character_index_dict[img_ind])
-                        # print(character_index_dict[invert_character_index_dict[img_ind]])
-                        # print(img_ind_list)
-                        # print(img_ind,img_ind_list)
-                        encoder_hidden_states_tmp = torch.cat(
-                            [encoder_arr[img_ind] for img_ind in img_ind_list]
-                            + [hidden_states[:, img_ind, :, :]],
-                            dim=1,
-                        )
-
-                        hidden_states[:, img_ind, :, :] = self.__call2__(
-                            attn,
-                            hidden_states[:, img_ind, :, :],
-                            encoder_hidden_states_tmp,
-                            None,
-                            temb,
-                        )
-                else:
-                    _, nums_token, channel = hidden_states.shape
-                    # img_nums = total_batch_size // 2
-                    # encoder_hidden_states = encoder_hidden_states.reshape(-1,img_nums,nums_token,channel)
-                    hidden_states = hidden_states.reshape(2, -1, nums_token, channel)
-
-                    # encoder_arr = [encoder_hidden_states[:,img_ind,indices[img_ind],:].reshape(2,-1,channel) for img_ind in range(img_nums)]
-                    encoder_hidden_states_tmp = torch.cat(
-                        encoder_arr + [hidden_states[:, 0, :, :]], dim=1
-                    )
-
-                    hidden_states[:, 0, :, :] = self.__call2__(
-                        attn,
-                        hidden_states[:, 0, :, :],
-                        encoder_hidden_states_tmp,
-                        None,
-                        temb,
-                    )
-                hidden_states = hidden_states.reshape(-1, nums_token, channel)
-            else:
-                hidden_states = self.__call2__(
-                    attn, hidden_states, None, attention_mask, temb
-                )
-        attn_count += 1
-        if attn_count == total_count:
-            attn_count = 0
-            cur_step += 1
-            indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
-                self.total_length,
-                self.id_length,
-                sa32,
-                sa64,
-                height_s,
-                width_s,
-                device=self.device,
-                dtype=self.dtype,
-            )
-
-        return hidden_states
-
-    def __call2__(
-            self,
-            attn,
-            hidden_states,
-            encoder_hidden_states=None,
-            attention_mask=None,
-            temb=None,
-    ):
-        residual = hidden_states
-
-        if attn.spatial_norm is not None:
-            hidden_states = attn.spatial_norm(hidden_states, temb)
-
-        input_ndim = hidden_states.ndim
-
-        if input_ndim == 4:
-            batch_size, channel, height_s, width_s = hidden_states.shape
-            hidden_states = hidden_states.view(
-                batch_size, channel, height_s * width_s
-            ).transpose(1, 2)
-
-        batch_size, sequence_length, channel = hidden_states.shape
-
-        if attention_mask is not None:
-            attention_mask = attn.prepare_attention_mask(
-                attention_mask, sequence_length, batch_size
-            )
-            # scaled_dot_product_attention expects attention_mask shape to be
-            # (batch, heads, source_length, target_length)
-            attention_mask = attention_mask.view(
-                batch_size, attn.heads, -1, attention_mask.shape[-1]
-            )
-
-        if attn.group_norm is not None:
-            hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(
-                1, 2
-            )
-
-        query = attn.to_q(hidden_states)
-
-        if encoder_hidden_states is None:
-            encoder_hidden_states = hidden_states  # B, N, C
-        # else:
-        #     encoder_hidden_states = encoder_hidden_states.view(-1,self.id_length+1,sequence_length,channel).reshape(-1,(self.id_length+1) * sequence_length,channel)
-
-        key = attn.to_k(encoder_hidden_states)
-        value = attn.to_v(encoder_hidden_states)
-
-        inner_dim = key.shape[-1]
-        head_dim = inner_dim // attn.heads
-
-        query = query.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
-
-        key = key.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
-        value = value.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
-
-        # the output of sdp = (batch, num_heads, seq_len, head_dim)
-        # TODO: add support for attn.scale when we move to Torch 2.1
-        hidden_states = F.scaled_dot_product_attention(
-            query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
-        )
-
-        hidden_states = hidden_states.transpose(1, 2).reshape(
-            batch_size, -1, attn.heads * head_dim
-        )
-        hidden_states = hidden_states.to(query.dtype)
-
-        # linear proj
-        hidden_states = attn.to_out[0](hidden_states)
-        # dropout
-        hidden_states = attn.to_out[1](hidden_states)
-
-        if input_ndim == 4:
-            hidden_states = hidden_states.transpose(-1, -2).reshape(
-                batch_size, channel, height_s, width_s
-            )
-
-        if attn.residual_connection:
-            hidden_states = hidden_states + residual
-
-        hidden_states = hidden_states / attn.rescale_output_factor
-
-        return hidden_states
-
-
-    
-class Comic_Type:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {"image": ("IMAGE",),
-                             "scene_prompts": ("STRING", {"multiline": True, "forceInput": True, "default": ""}),
-                             "fonts_list": (fonts_lists,),
-                             "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
-                             "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
-                             "split_lines": ("STRING", {"default": "；"}),
-                             }}
-
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
-    FUNCTION = "comic_gen"
-    CATEGORY = "Storydiffusion"
-
-    def comic_gen(self, image, scene_prompts, fonts_list, text_size, comic_type, split_lines):
-        result = [item for index, item in enumerate(image)]
-        total_results = narry_list_pil(result)
-        font_choice = os.path.join(dir_path, "fonts", fonts_list)
-        captions = scene_prompts.splitlines()
-        if len(captions) > 1:
-            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
-                        for caption in captions]  # del ()
-            captions = [caption.replace("[NC]", "") for caption in captions]
-            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
-            captions = [
-                caption.split("#")[-1] if "#" in caption else caption
-                for caption in captions
-            ]
-        else:
-            prompt_array = scene_prompts.replace(split_lines, "\n")
-            captions = prompt_array.splitlines()
-        font = ImageFont.truetype(font_choice, text_size)
-        images = (
-                get_comic(total_results, comic_type, captions=captions, font=font)
-                + total_results
-        )
-        images = phi2narry(images[0])
-        return (images,)
-
-
-class Pre_Translate_prompt:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {"scene_prompts": ("STRING", {"forceInput": True, "default": ""}),
-                             "keep_character_name": ("BOOLEAN", {"default": False},)
-                             }}
-
-    RETURN_TYPES = ("STRING",)
-    ETURN_NAMES = ("prompt_array",)
-    FUNCTION = "translate_prompt"
-    CATEGORY = "Storydiffusion"
-
-    def translate_prompt(self, scene_prompts, keep_character_name):
-        captions = scene_prompts.splitlines()
-        if not keep_character_name:
-            captions = [caption.split(")", 1)[-1] if ")" in caption else caption for caption in captions]  # del character
-        else:
-            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
-                        for caption in captions]  # del ()
-        captions = [caption.replace("[NC]", "") for caption in captions]
-        if not keep_character_name:
-            captions = [caption.split("]", 1)[-1] for caption in captions]
-        else:
-            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
-        captions = [
-            caption.split("#")[-1] if "#" in caption else caption
-            for caption in captions
-        ]
-        scene_prompts = ''.join(captions)
-        return (scene_prompts,)
+ 
 
 class EasyFunction_Lite:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"extra_repo": ("STRING", { "default": ""}),
-                            "checkpoints": (["none"] + folder_paths.get_filename_list("diffusion_models")+folder_paths.get_filename_list("gguf")+folder_paths.get_filename_list("clip"),),
+                            "checkpoints":(["none"] +folder_paths.get_filename_list("diffusion_models")+folder_paths.get_filename_list("gguf")+folder_paths.get_filename_list("clip"),),
+                            "clip": (["none"] + folder_paths.get_filename_list("clip"),),
                             "clip_vision": (["none"] + folder_paths.get_filename_list("clip_vision")+folder_paths.get_filename_list("loras"),),
-                            "function_mode": (["none","tag", "clip","mask","infinite",],),
+                            "lora": (["none"] + folder_paths.get_filename_list("clip_vision")+folder_paths.get_filename_list("loras"),),
+                            "function_mode": (["none","tag", "clip","mask","realcustom",],),
                             "select_method":("STRING",{ "default":""}),
                             "temperature": (
                                  "FLOAT", {"default": 0.7, "min": 0.1, "max": 1.0, "step": 0.1, "round": 0.01}),
                              }}
     
-    RETURN_TYPES = ("MODEL","CLIP")
-    RETURN_NAMES = ("model","clip")
+    RETURN_TYPES = ("MODEL","CLIP","STORY_CONDITIONING")
+    RETURN_NAMES = ("model","clip","add_function")
     FUNCTION = "easy_function_main"
     CATEGORY = "Storydiffusion"
     
-    def easy_function_main(self, extra_repo,checkpoints,clip_vision,function_mode,select_method,temperature):
+    def easy_function_main(self, extra_repo,checkpoints,clip,clip_vision,lora,function_mode,select_method,temperature):
         use_gguf,use_unet=False,False
-        model_path,clip,lora_path=None,None,None
-    
+
+        use_svdq=True if "svdq" in select_method else False
+
+        model_path,clip_path,lora_path,model,lora_dual_path,clip_vision_path,clip_vision_path_dual,clip_path_dual=None,None,None,None,None,None,None,None
+        add_function={}
         if checkpoints != "none":
             if checkpoints.endswith(".gguf"):
                 model_path = folder_paths.get_full_path("gguf", checkpoints)
                 use_gguf=True
-            elif "glm" in checkpoints:
-                model_path = folder_paths.get_full_path("clip", checkpoints)
+            elif "glm" in checkpoints.lower() or "clip" in checkpoints.lower():
+                clip_path_dual = folder_paths.get_full_path("clip", checkpoints)
             else:
                 model_path = folder_paths.get_full_path("diffusion_models", checkpoints)
                 use_unet=True
 
+        if clip != "none":
+            clip_path = folder_paths.get_full_path("clip", clip)
+
         if clip_vision != "none":
-            if  "clip_vision" in clip_vision:
-                clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision)     
+            if  "clip"  in clip_vision.lower() or "patch" in clip_vision.lower() or "vit" in clip_vision.lower() or  "dino" in clip_vision.lower()  or "vision" in clip_vision.lower() or "sig" in clip_vision.lower():
+                clip_vision_path = folder_paths.get_full_path("clip_vision", clip_vision) 
             else:
-                lora_path = folder_paths.get_full_path("loras", clip_vision)
-                clip_vision_path = None
-           
-        else:
-            clip_vision_path=None
+                lora_dual_path = folder_paths.get_full_path("loras", clip_vision)
+                
+        if lora != "none":
+            if  "clip"  in lora.lower() or "patch" in lora.lower() or "vit" in lora.lower() or  "dino" in lora.lower()  or "vision" in lora.lower() or "sig" in lora.lower():
+                clip_vision_path_dual = folder_paths.get_full_path("clip_vision", lora) 
+            else:
+                lora_path = folder_paths.get_full_path("loras", lora)
+
+
         if function_mode=="tag":
             from .model_loader_utils import StoryLiteTag
             model = StoryLiteTag(device, temperature,select_method, extra_repo)
         elif function_mode=="clip":
             from .model_loader_utils import GLM_clip
-            clip=GLM_clip(dir_path,model_path)
-            model=None
+            if clip_path is not None:
+                clip=GLM_clip(dir_path,clip_path)
+            elif clip_path_dual is not None and clip_path is None:
+                clip=GLM_clip(dir_path,clip_path_dual)
+            else:
+                clip=None
         elif function_mode=="mask":
-            model=None
+            add_function={"clip_vision_path_":clip_vision_path,"clip_path":model_path,"mask_path":select_method}
+        elif function_mode=="realcustom":
+            add_function["clip_path"]=clip_path
+            add_function["clip_vision_path"]=clip_vision_path
+            add_function["clip_path_dual"]=clip_path_dual
+            add_function["clip_vision_path_dual"]=clip_vision_path_dual     
         else:
             model=None
-        
-        use_svdq=True if "svdq" in select_method else False
 
-        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"lora_ckpt_path":lora_path,
-              "use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
-        return (pipe,clip)
+        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"clip_vision_path_dual":clip_vision_path_dual,
+              "lora_ckpt_path":lora_path,"use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
+        return (pipe,clip,add_function)
 
 
 class StoryDiffusion_Apply:
@@ -495,12 +129,12 @@ class StoryDiffusion_Apply:
                 {
                     "model": ("MODEL",),
                     "vae": ("VAE",),
-                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
                     "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
                     "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
                     "quantize_mode": ([ "fp8", "nf4","fp16", ],),
                     "lora_scale": ("FLOAT", {"default": 0.8, "min": 0.1, "max": 1.0, "step": 0.1}),
-                    "extra_funtion":("STRING", {"default": ""}),
+                    "extra_function":("STRING", {"default": ""}),
                             },
                 "optional":{
                     "CLIP_VISION": ("CLIP_VISION",),
@@ -512,36 +146,24 @@ class StoryDiffusion_Apply:
     FUNCTION = "main_apply"
     CATEGORY = "Storydiffusion"
     
-    def main_apply(self,model,vae,infer_mode,photomake_ckpt,ipadapter_ckpt,quantize_mode,lora_scale,extra_funtion, **kwargs):
-
-        
+    def main_apply(self,model,vae,infer_mode,photomake_ckpt,ipadapter_ckpt,quantize_mode,lora_scale,extra_function, **kwargs):
+        print(f"infer model is {infer_mode}")
+        # pre data
         photomake_ckpt_path = None if photomake_ckpt == "none"  else  folder_paths.get_full_path("photomaker", photomake_ckpt)
         ipadapter_ckpt_path = None if ipadapter_ckpt == "none"  else  folder_paths.get_full_path("photomaker", ipadapter_ckpt)
+        save_quantezed=True if "save" in extra_function and quantize_mode=="fp8" else False
+        clip_vision_path=model.get("clip_vision_path") if isinstance(model,dict) else None
+        clip_vision_path_dual=model.get("clip_vision_path_dual") if isinstance(model,dict) else None
+        repo=model.get("extra_repo") if isinstance(model,dict) else None
+
+        vae_encoder,vae_downsample_factor,vae_config,vision_model_config_ar,image_proj_model,CLIP_VISION_2=None,None,None,None,None,None
     
-        CLIP_VISION=kwargs.get("CLIP_VISION")
-        
-        
+        CLIP_VISION=kwargs.get("CLIP_VISION") 
         unet_type=torch.float16 #use for sdxl
-        image_proj_model=None
-        
-        if isinstance(model,dict):
-            cf_model_type=model.get("extra_easy")
-            clip_vision_path=model.get("clip_vision_path")
-            repo=model.get("extra_repo")
-          
-        else:
-            cf_model_type=fitter_cf_model_type(model)
-            clip_vision_path=None
-            repo=None
-           
-        
-        save_quantezed=True if "save" in extra_funtion and quantize_mode=="fp8" else False
-
-        print(f"infer model type is {cf_model_type}")
-
-        
-        if clip_vision_path is None:    # 有2种加载clip vision的方式 
-            clip_vision_path=CLIP_VISION if CLIP_VISION is not None else None
+       
+        if infer_mode=="flux_pulid":
+            if clip_vision_path is None:    # 有2种加载clip vision的方式 
+                clip_vision_path=CLIP_VISION if CLIP_VISION is not None else None
  
         if infer_mode=="msdiffusion" :
             if CLIP_VISION is None and clip_vision_path is None:
@@ -549,6 +171,19 @@ class StoryDiffusion_Apply:
             elif CLIP_VISION is  None and clip_vision_path is not None:
                 from comfy.clip_vision import load as clip_load
                 CLIP_VISION=clip_load(clip_vision_path).model
+                
+        # if infer_mode=="instant_character":
+        #     from comfy.clip_vision import load as clip_load
+        #     if CLIP_VISION is None:
+        #         raise "instant_character need a clipvison dino g  model"
+        #     if clip_vision_path is not None:
+        #         CLIP_VISION_2=clip_load(clip_vision_path).model
+        #     elif clip_vision_path is None and clip_vision_path_dual is not None:
+        #         CLIP_VISION_2=clip_load(clip_vision_path_dual).model
+        #     else:
+        #         raise "instant_character need a clipvison siglip  model"
+
+            
         
         if infer_mode in ["story_maker" ,"story_and_maker"] and not CLIP_VISION  and ipadapter_ckpt_path is None:
              raise "story_maker need a clipvison H model,mask.bin"
@@ -567,25 +202,44 @@ class StoryDiffusion_Apply:
         logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
 
         if infer_mode in["story", "story_and_maker","msdiffusion"]:# mix mode,use maker or ms to make 2 roles in on image
+            from .model_loader_utils import Loader_storydiffusion
             model = Loader_storydiffusion(model,photomake_ckpt_path,vae)
         elif infer_mode =="story_maker":
+            from .model_loader_utils import Loader_story_maker
             model = Loader_story_maker(model,ipadapter_ckpt_path,vae,False,lora_scale)
         elif infer_mode == "flux_pulid":
             from .PuLID.app_flux import get_models
+            from .model_loader_utils import Loader_Flux_Pulid
             if isinstance(model,dict):
                ckpt_path=model.get("model_path")
                if ckpt_path is None:
                    raise "EasyFunction_Lite node must chocie a model"
             else:
                 raise "PuLID can't link a normal comfyui model "
-            
+            if clip_vision_path is None and clip_vision_path_dual is None:
+                raise "flux_pulid need a clipvison H model,mask.bin"
+            elif clip_vision_path is None and clip_vision_path_dual is not None:
+                clip_vision_path=clip_vision_path_dual
+
             model_=get_models("flux-dev",ckpt_path,False,aggressive_offload,device=device,offload=offload,quantized_mode=quantize_mode,)
             model = Loader_Flux_Pulid(model_,model,ipadapter_ckpt_path,quantize_mode,aggressive_offload,offload,False,clip_vision_path)
         elif infer_mode == "infiniteyou":
+            from .model_loader_utils import Loader_InfiniteYou
             model,image_proj_model = Loader_InfiniteYou(model,vae,quantize_mode)
         elif infer_mode == "consistory":
+            from .model_loader_utils import load_pipeline_consistory
             model = load_pipeline_consistory(model,vae)
+        elif infer_mode == "instant_character":
+            from .model_loader_utils import load_pipeline_instant_character
+            model = load_pipeline_instant_character(model,ipadapter_ckpt_path,vae,quantize_mode)
+        elif infer_mode == "realcustom":
+            from .model_loader_utils import load_pipeline_realcustom,load_realcustom_vae
+            if ipadapter_ckpt_path is None:
+                raise "realcustom need a realcustom model which in photomaker folder, and  chocie it in ipadapter_ckpt_path"
+            model,vision_model_config_ar,_ = load_pipeline_realcustom(model,ipadapter_ckpt_path)
+            vae_encoder,vae_downsample_factor,vae_config=load_realcustom_vae(vae,device)
         elif infer_mode == "kolor_face":
+            from .model_loader_utils import Loader_KOLOR
             if not  isinstance(model,dict) :
                 raise " must link EasyFunction_Lite node "
             else:
@@ -593,6 +247,7 @@ class StoryDiffusion_Apply:
                     raise "EasyFunction_Lite node extra_repo must fill kolor repo"
             model = Loader_KOLOR(repo,clip_vision_path,ipadapter_ckpt_path)
         elif infer_mode == "uno":
+            from .model_loader_utils import Loader_UNO
             model = Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank=512)
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
@@ -600,19 +255,18 @@ class StoryDiffusion_Apply:
         story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
         model_=model if infer_mode=="flux_pulid" or story_img else None
 
-        return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"lora_scale":lora_scale,"image_proj_model":image_proj_model,
-                       "CLIP_VISION":CLIP_VISION,"VAE":vae,"repo":repo,"model_":model_,"unet_type":unet_type,"extra_funtion":extra_funtion,"clip_vision_path":clip_vision_path})
+        return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"vision_model_config_ar":vision_model_config_ar,
+                       "lora_scale":lora_scale,"image_proj_model":image_proj_model, "vae_encoder":vae_encoder,"vae_downsample_factor":vae_downsample_factor,"vae_config":vae_config,
+                       "CLIP_VISION":CLIP_VISION,"CLIP_VISION_2":CLIP_VISION_2,"VAE":vae,"repo":repo,"model_":model_,"unet_type":unet_type,"extra_function":extra_function,"clip_vision_path":clip_vision_path})
 
-
-        
+      
 class StoryDiffusion_CLIPTextEncode:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "clip": ("CLIP", {"tooltip": "The CLIP model used for encoding the text."}),
-                "switch": ("DIFFCONDI", {
-                    "tooltip": "Switch infer mode witch your chocie."}),
+                "clip": ("CLIP",),
+                "switch": ("DIFFCONDI", ),
                 "width": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 16, "display": "number"}),
                 "height": ("INT", {"default": 768, "min": 256, "max": 2048, "step": 16, "display": "number"}),
                 "role_text": ("STRING", {"multiline": True,"default": "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n""[Lecun] a man img,wearing a suit,black hair."}),
@@ -629,54 +283,69 @@ class StoryDiffusion_CLIPTextEncode:
                 "extra_param":("STRING", {"default": ""}),
                 "guidance_list": ("STRING", {"multiline": True, "default": "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"}),
             },
-            "optional": {"tag_txt": ("CONDITIONING"),
+            "optional": {"add_function": ("STORY_CONDITIONING",),
                          "image":("IMAGE",),
                          "control_image":("IMAGE",),
                          }
         }
     RETURN_TYPES = ("CONDITIONING","CONDITIONING","DIFFINFO","INT","INT",)
     RETURN_NAMES = ("positive", "negative","info","width","height",)
-    OUTPUT_TOOLTIPS = ("A conditioning containing the embedded text used to guide the diffusion model.",)
     FUNCTION = "encode"
     CATEGORY = "Storydiffusion"
-    DESCRIPTION = "Encodes a text prompt using a CLIP model into an embedding that can be used to guide the diffusion model towards generating specific images."
+
 
     def encode(self, clip,switch,width,height, role_text,scene_text,pos_text,neg_text,lora_trigger_words,add_style,mask_threshold,extra_param,guidance_list,**kwargs):
         infer_mode=switch.get("infer_mode")
         use_lora=switch.get("use_lora")
         clip_vision = switch.get("CLIP_VISION")
-        extra_funtion=switch.get("extra_funtion")
+        extra_function=switch.get("extra_function")
         photomake_ckpt_path=switch.get("photomake_ckpt_path")
-        ipadapter_ckpt_path = switch.get("ipadapter_ckpt_path")
         unet_type=switch.get("unet_type")
         model_=switch.get("model_")
         vae=switch.get("VAE")
-        
-        
-        tag_dict=kwargs.get("tag_txt")
+        add_function=kwargs.get("add_function")
         image=kwargs.get("image")
         control_image=kwargs.get("control_image")
         
-        auraface,use_photov2,img2img_mode,cached,inject,onnx_provider=get_extra_function(extra_funtion,extra_param,photomake_ckpt_path,image,infer_mode)
+        tag_dict,clip_path,text_model,vision_model,clip_path_dual,siglip_path,dino_path=None,None,None,None,None,None,None
+
+        
+        if add_function is not None:
+            if  isinstance(add_function,list):
+                tag_dict=kwargs.get("add_function")
+            elif isinstance(add_function,dict):
+
+                siglip_path_=add_function.get("clip_vision_path") 
+                dino_path_=add_function.get("clip_vision_path_dual")
+                clip_path=add_function.get("clip_path")
+                clip_path_dual=add_function.get("clip_path_dual")
+                if siglip_path_ is not None or siglip_path_ is  not None:
+                    if "sig" in dino_path_ and  "dino" in siglip_path_:
+                        siglip_path=dino_path_
+                        dino_path=siglip_path_
+                    else:
+                        siglip_path=siglip_path_
+                        dino_path=dino_path_
+                else:
+                    siglip_path=siglip_path_
+                    dino_path=dino_path_
+
+                if infer_mode == "realcustom" and (siglip_path is None or dino_path is None):
+                    print ("if use realcustom mode, u must linke add_function to your node,if not ,will auto load clip_vision_path and clip_path")
+                    siglip_path="" if siglip_path is None else siglip_path
+                    dino_path="" if dino_path is None else dino_path
+                
+        else:
+            if infer_mode == "realcustom":
+                raise"if use realcustom mode, u must linke add_function to your node"        
+
+            
+        
+        auraface,use_photov2,img2img_mode,cached,inject,onnx_provider=get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infer_mode)
 
         
         (replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,
          nc_txt_list,nc_indexs,positions_index_char_1,positions_index_char_2,positions_index_dual,prompts_dual,index_char_1_list,index_char_2_list)=pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict)
-        #print("role_index_dict:",replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,nc_txt_list,nc_indexs,positions_index_char_1,positions_index_char_2,positions_index_dual,prompts_dual,index_char_1_list,index_char_2_list)
-        #role_index_dict: {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
-        # invert_role_index_dict{0: ['[Taylor]'], 1: ['[Taylor]'], 2: ['[Lecun]'], 3: ['[Lecun]']}
-        # ref_role_index_dict {'[Taylor]': [0, 1], '[Lecun]': [2, 3]} 
-        # ref_role_totals[0, 1, 2, 3]
-        # role_list ['[Taylor]', '[Lecun]']
-        # role_dict {'[Taylor]': ' a woman img, wearing a white T-shirt, blue loose hair.', '[Lecun]': ' a man img,wearing a suit,black hair.'} 
-        # nc_txt_list [' a panda'] 
-        # nc_indexs[4]
-        # positions_index_dual[]
-        # positions_index_char_1 0 2 
-        # positions_index_char_2 [] 
-        # prompts_dual[] #['[A] play whith [B] in the garden'] 
-        # index_char_1_list [0, 1] 
-        # index_char_2_list[2, 3]
 
 
         global character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals, character_dict
@@ -690,9 +359,9 @@ class StoryDiffusion_CLIPTextEncode:
         neg_text = neg_text + style_neg
         
         replace_prompts=[i+pos_text for i in replace_prompts]
-           # pre roles txt emb
+        
         only_role_list=[apply_style_positive(add_style,i)[0] for i in replace_prompts]
-        #print("only_role_list",only_role_list) ##w,m,w
+        
 
         if len(role_list)==1:
             role_key_list=role_list*len(only_role_list)
@@ -715,9 +384,7 @@ class StoryDiffusion_CLIPTextEncode:
         else:
             inf_list_split=[only_role_list]
         
-        
-        # if prompts_dual and infer_mode not in ["story_and_maker","story_maker","msdiffusion"]:
-        #     raise "only support prompts_dual role in story maker and msdiffusion"
+
 
         if not img2img_mode and infer_mode=="flux_pulid":
             raise "flux_pulid mode only support image2image"
@@ -754,13 +421,39 @@ class StoryDiffusion_CLIPTextEncode:
                 image_emb = clip_vision.encode_image(image)["penultimate_hidden_states"] #MS分情况，图生图直接在前面拿，文生图在在sample拿
                 if not image_emb.is_cuda:#确保emb在cuda,以及type的正确
                     image_emb = image_emb.to(device,dtype=unet_type)
-            elif infer_mode == "kolor_face":
-                pass
+            elif infer_mode == "instant_character":
+                from .model_loader_utils import load_dual_clip,instant_character_id_clip
+                if extra_function is not None and extra_param:
+                    if "sig" in extra_function and  "dino" in extra_param:
+                        siglip_path=extra_function
+                        dino_path=extra_param
+                    else:
+                        siglip_path=extra_param
+                        dino_path=extra_function
+                else:
+                    dino_path="facebook/dinov2-giant"
+                    siglip_path="google/siglip-so400m-patch14-384"
+                siglip_image_encoder,siglip_image_processor,dino_image_encoder_2,dino_image_processor_2=load_dual_clip(siglip_path,dino_path,device,torch.bfloat16)
+                image_emb=[]
+                for img in tensortopil_list(image):
+                    id_emb=instant_character_id_clip(img,siglip_image_encoder,siglip_image_processor,dino_image_encoder_2,dino_image_processor_2,device,torch.bfloat16)
+                    image_emb.append(id_emb)
+                siglip_image_encoder.to("cpu")
+                dino_image_encoder_2.to("cpu")
+                gc_cleanup()
             elif infer_mode == "flux_pulid":
+
                 # get emb use insightface
                 pass
             elif infer_mode == "infiniteyou":
                 pass
+            elif infer_mode == "realcustom":
+                from safetensors.torch import load_file as load_sft
+               
+                text_model,vision_model=load_clip_clipvsion([clip_path,clip_path_dual],
+                                                            [os.path.join(dir_path, "config/clip_1"),os.path.join(dir_path, "config/clip_2")],
+                                                            dino_path,siglip_path,switch.get("vision_model_config_ar"))
+                
             elif infer_mode == "uno":
                 
                 from .UNO.uno.flux.pipeline import preprocess_ref
@@ -808,10 +501,7 @@ class StoryDiffusion_CLIPTextEncode:
                                 c_tensor=phi2narry(preprocess_ref(c, 320))
                                 mix_list.append([vae.encode(role_tensor[:,:,:,:3]).to(torch.bfloat16),vae.encode(c_tensor[:,:,:,:3]).to(torch.bfloat16)])
                             x_1_refs_dict[key]=mix_list #{key:[[1,2],[3,4]]}
-            else:
-                pass
-        else:
-            pass
+  
 
         # pre insight face model and emb
         if img2img_mode:
@@ -849,14 +539,63 @@ class StoryDiffusion_CLIPTextEncode:
                 for index, key in enumerate(role_list):
                     input_id_images_dict[key]=image_list[index]     
 
-        #print("inf_list_split",inf_list_split)
         # pre clip txt emb
       
-            
-        noise_x=[]
-        inp_neg_list=[]
+        noise_x,inp_neg_list,letent_real=[],[],{}
+        
         if  infer_mode=="consistory":
             only_role_emb=None
+        elif infer_mode=="instant_character":
+            from .model_loader_utils import cf_flux_prompt_clip
+            only_role_emb={}
+            for key ,prompts in zip(role_list,inf_list_split):
+                emb_list_=[]
+                for prompt in prompts:
+                    p_,pool_,ind_=cf_flux_prompt_clip(clip,prompt)
+                    emb_list_.append([p_,pool_,ind_])
+                only_role_emb[key]=emb_list_
+
+        elif infer_mode=="realcustom":
+            from .model_loader_utils import realcustom_clip_emb
+            samples_per_prompt=1
+            guidance_weight=3.5
+            role_text_list = role_text.splitlines()
+            roel_text_c=''.join(role_text_list) 
+            
+            if '(' in roel_text_c and ')' in roel_text_c:
+                    object_prompt = extract_content_from_brackets_(roel_text_c)  # 提取prompt的object list
+                    #print(f"object_prompt:{object_prompt}")
+                    object_prompt=[i.strip() for i in object_prompt]
+                    for i in object_prompt:
+                        if " " in i:
+                            raise "when using [object],object must be a word,any blank in it will cause error."
+                        
+                    object_prompt=[i for i in object_prompt ]
+                    target_phrases = sorted(list(set(object_prompt)),key=lambda x: list(object_prompt).index(x))  # 清除同名物体,保持原有顺序
+                    #print(f"object_prompt:{phrases}",len(phrases))
+                    assert  len(target_phrases)>=2,"when using msdiffusion ,object must be more than 2."
+                    if len(target_phrases)>2:
+                        target_phrases=target_phrases[:2] #只取前两个物体
+            else:
+                raise "when using realcustom ,(objectA)  and (objectA) must be in the role prompt."
+            
+            print(f"object_prompt:{target_phrases}")
+            image_list=tensortopil_list_upscale(image, width, height)
+
+            only_role_emb,letent_real={},{}
+          
+            for key ,prompts,role_image,target_phrase in zip(role_list,inf_list_split,image_list,target_phrases):
+                emb_dict_real_list,latent_dict_list=[],[]
+                for p,n in zip(prompts,[neg_text]*len(prompts)): 
+                    seed=random.randint(0, MAX_SEED)
+                    emb_dict_real,latent_dict=realcustom_clip_emb(text_model,vision_model,switch.get("vae_config"),switch.get("vae_downsample_factor"),seed,p,n,role_image,target_phrase,
+                                                                width,height,device,samples_per_prompt,guidance_weight)
+                    emb_dict_real_list.append(emb_dict_real)
+                    latent_dict_list.append(latent_dict)
+                only_role_emb[key]=emb_dict_real_list
+                letent_real[key]=latent_dict_list
+            vision_model.to("cpu")
+            gc_cleanup()         
         elif infer_mode=="flux_pulid":
             from .PuLID.flux.util import load_clip, load_t5
             from .PuLID.app_flux  import get_emb_flux_pulid
@@ -895,9 +634,10 @@ class StoryDiffusion_CLIPTextEncode:
 
 
         elif infer_mode=="kolor_face":
+            from .model_loader_utils import glm_single_encode
             from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
             tokenizer = ChatGLMTokenizer.from_pretrained(os.path.join(switch.get("repo"),'text_encoder'))
-
+            assert clip is not None, "clip is None,check your clip path"
             chatglm3_model = {
                 'text_encoder': clip, 
                 'tokenizer': tokenizer
@@ -1029,6 +769,12 @@ class StoryDiffusion_CLIPTextEncode:
         if infer_mode=="consistory":
             negative = None
             postive_dict={}
+        elif infer_mode=="instant_character":
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
+            negative = None
+        elif infer_mode=="realcustom":
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
+            negative=[letent_real]
         elif infer_mode=="flux_pulid":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} #不支持NC
             negative = [inp_neg_list,noise_x]
@@ -1060,10 +806,10 @@ class StoryDiffusion_CLIPTextEncode:
                 negative = [cond_n, output_n]
         
             
-
-        # Pre emb for maker,
+        # Pre emb for maker
         
         if img2img_mode and infer_mode in ["story_and_maker","story_maker"]:
+            from .StoryMaker.pipeline_sdxl_storymaker_wrapper import encode_prompt_image_emb_
             num_images_per_prompt=1
             make_img,make_mask_img,make_face_info,make_cloth_info=[],[],[],[]
             
@@ -1139,38 +885,19 @@ class StoryDiffusion_CLIPTextEncode:
               
         
         # switch
-        switch["id_len"]=len(role_list)
-        switch["role_list"] = role_list
-        switch["invert_role_index_dict"]=invert_role_index_dict
-        switch["nc_index"] = nc_indexs
-        switch["dual_index"] = positions_index_dual
-        switch["grounding_kwargs"]=grounding_kwargs
-        switch["cross_attention_kwargs"]=cross_attention_kwargs
-        switch["image_embeds"] = image_emb
-        switch["img2img_mode"] =img2img_mode
-        switch["positions_index_char_1"] =positions_index_char_1
-        switch["positions_index_char_2"] =positions_index_char_2
-        switch["mask_threshold"] =mask_threshold
-        switch["clip_vision"]=clip_vision
-        switch["input_id_emb_s_dict"]=input_id_emb_s_dict
-        switch["input_id_img_s_dict"]=input_id_img_s_dict
-        switch["input_id_emb_un_dict"]=input_id_emb_un_dict
-        switch["maker_control_image"]=maker_control_image
-        switch["prompt_image_emb"]=prompt_image_emb
-        switch["prompt_image_emb_dual"]=prompt_image_emb_dual
-        switch["maker_control_image_dual"]=maker_control_image_dual
-        switch["prompts_dual"]= prompts_dual
-        switch["control_image"] = control_image
-        switch["only_role_list"]=only_role_list
-        switch["nc_txt_list"]=nc_txt_list
-        switch["neg_text"]=neg_text
-        switch["role_text"]=role_text
-        switch["cf_clip"] =clip
-        switch["cached"]=cached
-        switch["inject"]=inject
-        switch["role_key_list"]=role_key_list
-        switch["input_id_images_dict"]=input_id_images_dict
-        switch["id_index"]=(index_char_1_list,index_char_2_list)
+        new_dict={
+            "id_len":len(role_list),"role_list":role_list,"invert_role_index_dict":invert_role_index_dict,
+            "nc_index":nc_indexs,"dual_index":positions_index_dual,"grounding_kwargs":grounding_kwargs,"cross_attention_kwargs":cross_attention_kwargs,
+            "image_embeds":image_emb,"img2img_mode":img2img_mode,"positions_index_char_1":positions_index_char_1,
+            "positions_index_char_2":positions_index_char_2,"mask_threshold":mask_threshold,"clip_vision":clip_vision,
+            "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"input_id_emb_un_dict":input_id_emb_un_dict,
+            "maker_control_image":maker_control_image,"prompt_image_emb":prompt_image_emb,"prompt_image_emb_dual":prompt_image_emb_dual,
+            "maker_control_image_dual":maker_control_image_dual,"prompts_dual":prompts_dual,"control_image":control_image,
+            "only_role_list":only_role_list,"nc_txt_list":nc_txt_list,"neg_text":neg_text,"role_text":role_text,"cf_clip":clip,"cached":cached,
+            "inject":inject,"role_key_list":role_key_list,"input_id_images_dict":input_id_images_dict,"id_index":(index_char_1_list,index_char_2_list)
+        }
+        switch.update(new_dict)
+    
         
  
         return (postive_dict,negative,switch,width,height)
@@ -1311,16 +1038,16 @@ class StoryDiffusion_KSampler:
             if infer_mode in["story" ,"msdiffusion","story_and_maker"]: #三者都调用story的unet方法，只是双角色引入ms或者maker
                 if ipadapter_ckpt_path is None and infer_mode=="msdiffusion":
                     raise "msdiffusion  need a ms_adapter.bin file at ipadapter_ckpt menu."
-                global attn_procs,sa32, sa64, write, height_s, width_s,attn_count, total_count, id_length, total_length, cur_step,cur_character
+                global attn_procs_,sa32, sa64, write, height_s, width_s,attn_count_, total_count, id_length, total_length, cur_step,cur_character
 
                 sa32 = sa32_degree
                 sa64 = sa64_degree
-                attn_count = 0
+                attn_count_ = 0
                 total_count = 0
                 cur_step = 0
                 id_length = id_len
                 total_length = 5
-                attn_procs = {}
+                attn_procs_ = {}
                 write = False
                 height_s = height
                 width_s = width
@@ -1431,6 +1158,7 @@ class StoryDiffusion_KSampler:
                                 role_2 = VAE.decode(out_2["samples"])
                                
                                 if  infer_mode=="msdiffusion":
+                                    from .model_loader_utils import Infer_MSdiffusion
                                     role_tensor=torch.cat((role_1,role_2),dim=0)
                                     image_embeds=clip_vision.encode_image(role_tensor)["penultimate_hidden_states"]
                                     image_embeds = image_embeds.to(device, dtype=model.unet.dtype)
@@ -1441,6 +1169,7 @@ class StoryDiffusion_KSampler:
                                                                  1,mask_threshold,height,width,steps,seed_random,cfg,i[1].get("pooled_output"),negative[1].get("pooled_output") )
 
                                 else: #maker的emb要单独处理，用列表形式传入 make
+                                    from .StoryMaker.pipeline_sdxl_storymaker_wrapper import encode_prompt_image_emb_
                                     # image_embeds=[]
                                     # for X in [role_1,role_2]:
                                     #     image_embeds.append(clip_vision.encode_image(X)["penultimate_hidden_states"].to(device, dtype=model.unet.dtype))
@@ -1479,12 +1208,14 @@ class StoryDiffusion_KSampler:
                             else:
                                 if  infer_mode=="msdiffusion":
                                     #del model
+                                    from .model_loader_utils import Loader_storydiffusion,Infer_MSdiffusion
                                     model=Loader_storydiffusion(None,None,None,model)
                                     gc_cleanup()
                                     samples = Infer_MSdiffusion(model,ipadapter_ckpt_path,image_embeds, i[0],negative[0],grounding_kwargs,cross_attention_kwargs,
                                                                  1,mask_threshold,height,width,steps,seed_random,cfg,i[1].get("pooled_output"),negative[1].get("pooled_output") )
                                 #del model
                                 else:
+                                    from .model_loader_utils import Loader_story_maker
                                     print("reload maker") 
                                     model=Loader_story_maker(None,ipadapter_ckpt_path,VAE,False,info.get("lora_scale"),UNET=model)
                                     gc_cleanup()
@@ -1706,7 +1437,8 @@ class StoryDiffusion_KSampler:
                 samples_list = []
                 for key in role_list:
                     for index,emb in enumerate(only_role_emb[key]):
-                        samples = model.generate_image(width=width, 
+                        samples = model.generate_image(
+                            width=width, 
                             height=height,
                             num_steps=steps,
                             start_step=2,
@@ -1728,8 +1460,10 @@ class StoryDiffusion_KSampler:
                 for key in role_list:
                     for index,emb in enumerate(only_role_emb[key]):
                         #print(emb)
-                        samples = model(width=width, 
-                            height=height,guidance=cfg,
+                        samples = model(
+                            width=width, 
+                            height=height,
+                            guidance=cfg,
                             num_steps=steps,
                             inp_cond=emb,
                             )  # torch.Size([1, 4, 64, 64])
@@ -1738,8 +1472,10 @@ class StoryDiffusion_KSampler:
 
                 if daul_emb:
                     for index, emb in zip(dual_index, daul_emb):
-                        samples = model(width=width, 
-                            height=height,guidance=cfg,
+                        samples = model(
+                            width=width, 
+                            height=height,
+                            guidance=cfg,
                             num_steps=steps,
                             inp_cond=emb,
                             )  # torch.Size([1, 4, 64, 64])
@@ -1748,6 +1484,49 @@ class StoryDiffusion_KSampler:
                 out = {}
                 out["samples"] = torch.cat(samples_list, dim=0)
                 return (out,)
+            elif infer_mode=="realcustom": 
+                from .model_loader_utils import realcustom_infer
+                write = False
+                samples_list = []
+                for key in role_list:
+                    for emb,latent_ in zip(only_role_emb[key],negative[0][key]):
+                        samples = realcustom_infer(
+                            model,
+                            sample_steps=steps, 
+                            mask_reused_step=12,
+                            emb_dict=emb,
+                            latent_dict=latent_,
+                            mask_scope=0.20,
+                            mask_strategy="max_norm", #"min_max_per_channel", "max_norm"
+                            guidance_weight=cfg,
+                            device=device,
+                            )
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                return (out,) 
+            elif infer_mode=="instant_character": 
+                samples_list = []
+                #model.to(device)
+                for key,id_emb in zip(role_list,image_embeds):
+                    for emb_list in only_role_emb[key]:
+                        samples = model(
+                            prompt_embeds=emb_list[0], 
+                            pooled_prompt_embeds=emb_list[1],
+                            num_inference_steps=steps,
+                            guidance_scale=cfg,
+                            subject_image=True,
+                            subject_scale=0.9,
+                            generator=torch.manual_seed(seed),
+                            text_ids=emb_list[2],
+                            subject_image_embeds_dict=id_emb,
+                            )[0]  # torch.Size([1, 4, 64, 64])
+                        print(samples.shape)
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                return (out,) 
+        
             else: #none:
                 return
 
@@ -1814,6 +1593,387 @@ class StoryDiffusion_Lora_Control:
 
         return (model,switch)
 
+
+    
+class Comic_Type:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"image": ("IMAGE",),
+                             "scene_prompts": ("STRING", {"multiline": True, "forceInput": True, "default": ""}),
+                             "fonts_list": (os.listdir(os.path.join(dir_path, "fonts")),),
+                             "text_size": ("INT", {"default": 40, "min": 1, "max": 100}),
+                             "comic_type": (["Four_Pannel", "Classic_Comic_Style"],),
+                             "split_lines": ("STRING", {"default": "；"}),
+                             }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "comic_gen"
+    CATEGORY = "Storydiffusion"
+
+    def comic_gen(self, image, scene_prompts, fonts_list, text_size, comic_type, split_lines):
+        result = [item for index, item in enumerate(image)]
+        total_results = narry_list_pil(result)
+        font_choice = os.path.join(dir_path, "fonts", fonts_list)
+        captions = scene_prompts.splitlines()
+        if len(captions) > 1:
+            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
+                        for caption in captions]  # del ()
+            captions = [caption.replace("[NC]", "") for caption in captions]
+            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
+            captions = [
+                caption.split("#")[-1] if "#" in caption else caption
+                for caption in captions
+            ]
+        else:
+            prompt_array = scene_prompts.replace(split_lines, "\n")
+            captions = prompt_array.splitlines()
+        font = ImageFont.truetype(font_choice, text_size)
+        images = (
+                get_comic(total_results, comic_type, captions=captions, font=font)
+                + total_results
+        )
+        images = phi2narry(images[0])
+        return (images,)
+
+
+class Pre_Translate_prompt:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"scene_prompts": ("STRING", {"forceInput": True, "default": ""}),
+                             "keep_character_name": ("BOOLEAN", {"default": False},)
+                             }}
+
+    RETURN_TYPES = ("STRING",)
+    ETURN_NAMES = ("prompt_array",)
+    FUNCTION = "translate_prompt"
+    CATEGORY = "Storydiffusion"
+
+    def translate_prompt(self, scene_prompts, keep_character_name):
+        captions = scene_prompts.splitlines()
+        if not keep_character_name:
+            captions = [caption.split(")", 1)[-1] if ")" in caption else caption for caption in captions]  # del character
+        else:
+            captions = [caption.replace("(", "").replace(")", "") if "(" or ")" in caption else caption
+                        for caption in captions]  # del ()
+        captions = [caption.replace("[NC]", "") for caption in captions]
+        if not keep_character_name:
+            captions = [caption.split("]", 1)[-1] for caption in captions]
+        else:
+            captions = [caption.replace("]", "").replace("[", "") for caption in captions]
+        captions = [
+            caption.split("#")[-1] if "#" in caption else caption
+            for caption in captions
+        ]
+        scene_prompts = ''.join(captions)
+        return (scene_prompts,)
+
+   
+def set_attention_processor(unet_, id_length, is_ipadapter=False):
+    global attn_procs_
+    attn_procs_ = {}
+    for name in unet_.attn_processors.keys():
+        cross_attention_dim = (
+            None
+            if name.endswith("attn1.processor")
+            else unet_.config.cross_attention_dim
+        )
+        if name.startswith("mid_block"):
+            hidden_size = unet_.config.block_out_channels[-1]
+        elif name.startswith("up_blocks"):
+            block_id = int(name[len("up_blocks.")])
+            hidden_size = list(reversed(unet_.config.block_out_channels))[block_id]
+        elif name.startswith("down_blocks"):
+            block_id = int(name[len("down_blocks.")])
+            hidden_size = unet_.config.block_out_channels[block_id]
+        if cross_attention_dim is None:
+            if name.startswith("up_blocks"):
+                attn_procs_[name] = SpatialAttnProcessor2_0(id_length=id_length)
+            else:
+                attn_procs_[name] = AttnProcessor()
+        else:
+            if is_ipadapter:
+                attn_procs_[name] = IPAttnProcessor2_0(
+                    hidden_size=hidden_size,
+                    cross_attention_dim=cross_attention_dim,
+                    scale=1,
+                    num_tokens=4,
+                ).to(unet_.device, dtype=torch.float16)
+            else:
+                attn_procs_[name] = AttnProcessor()
+
+    unet_.set_attn_processor(copy.deepcopy(attn_procs_))
+
+    
+class SpatialAttnProcessor2_0(torch.nn.Module):
+    r"""
+    Attention processor for IP-Adapater for PyTorch 2.0.
+    Args:
+        hidden_size (`int`):
+            The hidden size of the attention layer.
+        cross_attention_dim (`int`):
+            The number of channels in the `encoder_hidden_states`.
+        text_context_len (`int`, defaults to 77):
+            The context length of the text features.
+        scale (`float`, defaults to 1.0):
+            the weight scale of image prompt.
+    """
+
+    def __init__(
+            self,
+            hidden_size=None,
+            cross_attention_dim=None,
+            id_length=4,
+            device=device,
+            dtype=torch.float16,
+    ):
+        super().__init__()
+        if not hasattr(F, "scaled_dot_product_attention"):
+            raise ImportError(
+                "AttnProcessor2_0 requires PyTorch 2.0, to use it, please upgrade PyTorch to 2.0."
+            )
+        self.device = device
+        self.dtype = dtype
+        self.hidden_size = hidden_size
+        self.cross_attention_dim = cross_attention_dim
+        self.total_length = id_length + 1
+        self.id_length = id_length
+        self.id_bank = {}
+
+    def __call__(
+            self,
+            attn,
+            hidden_states,
+            encoder_hidden_states=None,
+            attention_mask=None,
+            temb=None,
+    ):
+        # un_cond_hidden_states, cond_hidden_states = hidden_states.chunk(2)
+        # un_cond_hidden_states = self.__call2__(attn, un_cond_hidden_states,encoder_hidden_states,attention_mask,temb)
+        # 生成一个0到1之间的随机数
+        global total_count, attn_count_, cur_step, indices1024, indices4096
+        global sa32, sa64
+        global write
+        global height_s, width_s
+        global character_dict
+        global  character_index_dict, invert_character_index_dict, cur_character, ref_indexs_dict, ref_totals
+        if attn_count_ == 0 and cur_step == 0:
+            indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
+                self.total_length,
+                self.id_length,
+                sa32,
+                sa64,
+                height_s,
+                width_s,
+                device=self.device,
+                dtype=self.dtype,
+            )
+        if write:
+            assert len(cur_character) == 1
+            if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
+                indices = indices1024
+            else:
+                indices = indices4096
+            # print(f"white:{cur_step}")
+            total_batch_size, nums_token, channel = hidden_states.shape
+            img_nums = total_batch_size // 2
+            hidden_states = hidden_states.reshape(-1, img_nums, nums_token, channel)
+            # print(img_nums,len(indices),hidden_states.shape,self.total_length)
+            if cur_character[0] not in self.id_bank:
+                self.id_bank[cur_character[0]] = {}
+            self.id_bank[cur_character[0]][cur_step] = [
+                hidden_states[:, img_ind, indices[img_ind], :]
+                .reshape(2, -1, channel)
+                .clone()
+                for img_ind in range(img_nums)
+            ]
+            hidden_states = hidden_states.reshape(-1, nums_token, channel)
+            # self.id_bank[cur_step] = [hidden_states[:self.id_length].clone(), hidden_states[self.id_length:].clone()]
+        else:
+            # encoder_hidden_states = torch.cat((self.id_bank[cur_step][0].to(self.device),self.id_bank[cur_step][1].to(self.device)))
+            # TODO: ADD Multipersion Control
+            encoder_arr = []
+            for character in cur_character:
+                encoder_arr = encoder_arr + [
+                    tensor.to(self.device)
+                    for tensor in self.id_bank[character][cur_step]
+                ]
+        # 判断随机数是否大于0.5
+        if cur_step < 1:
+            hidden_states = self.__call2__(
+                attn, hidden_states, None, attention_mask, temb
+            )
+        else:  # 256 1024 4096
+            random_number = random.random()
+            if cur_step < 20:
+                rand_num = 0.3
+            else:
+                rand_num = 0.1
+            # print(f"hidden state shape {hidden_states.shape[1]}")
+            if random_number > rand_num:
+                if hidden_states.shape[1] == (height_s // 32) * (width_s // 32):
+                    indices = indices1024
+                else:
+                    indices = indices4096
+                # print("before attention",hidden_states.shape,attention_mask.shape,encoder_hidden_states.shape if encoder_hidden_states is not None else "None")
+                if write:
+                    total_batch_size, nums_token, channel = hidden_states.shape
+                    img_nums = total_batch_size // 2
+                    hidden_states = hidden_states.reshape(
+                        -1, img_nums, nums_token, channel
+                    )
+                    encoder_arr = [
+                        hidden_states[:, img_ind, indices[img_ind], :].reshape(
+                            2, -1, channel
+                        )
+                        for img_ind in range(img_nums)
+                    ]
+                    for img_ind in range(img_nums):
+                        # print(img_nums)
+                        # assert img_nums != 1
+                        img_ind_list = [i for i in range(img_nums)]
+                        # print(img_ind_list,img_ind)
+                        img_ind_list.remove(img_ind)
+                        # print(img_ind,invert_character_index_dict[img_ind])
+                        # print(character_index_dict[invert_character_index_dict[img_ind]])
+                        # print(img_ind_list)
+                        # print(img_ind,img_ind_list)
+                        encoder_hidden_states_tmp = torch.cat(
+                            [encoder_arr[img_ind] for img_ind in img_ind_list]
+                            + [hidden_states[:, img_ind, :, :]],
+                            dim=1,
+                        )
+
+                        hidden_states[:, img_ind, :, :] = self.__call2__(
+                            attn,
+                            hidden_states[:, img_ind, :, :],
+                            encoder_hidden_states_tmp,
+                            None,
+                            temb,
+                        )
+                else:
+                    _, nums_token, channel = hidden_states.shape
+                    # img_nums = total_batch_size // 2
+                    # encoder_hidden_states = encoder_hidden_states.reshape(-1,img_nums,nums_token,channel)
+                    hidden_states = hidden_states.reshape(2, -1, nums_token, channel)
+
+                    # encoder_arr = [encoder_hidden_states[:,img_ind,indices[img_ind],:].reshape(2,-1,channel) for img_ind in range(img_nums)]
+                    encoder_hidden_states_tmp = torch.cat(
+                        encoder_arr + [hidden_states[:, 0, :, :]], dim=1
+                    )
+
+                    hidden_states[:, 0, :, :] = self.__call2__(
+                        attn,
+                        hidden_states[:, 0, :, :],
+                        encoder_hidden_states_tmp,
+                        None,
+                        temb,
+                    )
+                hidden_states = hidden_states.reshape(-1, nums_token, channel)
+            else:
+                hidden_states = self.__call2__(
+                    attn, hidden_states, None, attention_mask, temb
+                )
+        attn_count_ += 1
+        if attn_count_ == total_count:
+            attn_count_ = 0
+            cur_step += 1
+            indices1024, indices4096 = cal_attn_indice_xl_effcient_memory(
+                self.total_length,
+                self.id_length,
+                sa32,
+                sa64,
+                height_s,
+                width_s,
+                device=self.device,
+                dtype=self.dtype,
+            )
+
+        return hidden_states
+
+    def __call2__(
+            self,
+            attn,
+            hidden_states,
+            encoder_hidden_states=None,
+            attention_mask=None,
+            temb=None,
+    ):
+        residual = hidden_states
+
+        if attn.spatial_norm is not None:
+            hidden_states = attn.spatial_norm(hidden_states, temb)
+
+        input_ndim = hidden_states.ndim
+
+        if input_ndim == 4:
+            batch_size, channel, height_s, width_s = hidden_states.shape
+            hidden_states = hidden_states.view(
+                batch_size, channel, height_s * width_s
+            ).transpose(1, 2)
+
+        batch_size, sequence_length, channel = hidden_states.shape
+
+        if attention_mask is not None:
+            attention_mask = attn.prepare_attention_mask(
+                attention_mask, sequence_length, batch_size
+            )
+            # scaled_dot_product_attention expects attention_mask shape to be
+            # (batch, heads, source_length, target_length)
+            attention_mask = attention_mask.view(
+                batch_size, attn.heads, -1, attention_mask.shape[-1]
+            )
+
+        if attn.group_norm is not None:
+            hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(
+                1, 2
+            )
+
+        query = attn.to_q(hidden_states)
+
+        if encoder_hidden_states is None:
+            encoder_hidden_states = hidden_states  # B, N, C
+        # else:
+        #     encoder_hidden_states = encoder_hidden_states.view(-1,self.id_length+1,sequence_length,channel).reshape(-1,(self.id_length+1) * sequence_length,channel)
+
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
+
+        inner_dim = key.shape[-1]
+        head_dim = inner_dim // attn.heads
+
+        query = query.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
+
+        key = key.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
+        value = value.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
+
+        # the output of sdp = (batch, num_heads, seq_len, head_dim)
+        # TODO: add support for attn.scale when we move to Torch 2.1
+        hidden_states = F.scaled_dot_product_attention(
+            query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
+        )
+
+        hidden_states = hidden_states.transpose(1, 2).reshape(
+            batch_size, -1, attn.heads * head_dim
+        )
+        hidden_states = hidden_states.to(query.dtype)
+
+        # linear proj
+        hidden_states = attn.to_out[0](hidden_states)
+        # dropout
+        hidden_states = attn.to_out[1](hidden_states)
+
+        if input_ndim == 4:
+            hidden_states = hidden_states.transpose(-1, -2).reshape(
+                batch_size, channel, height_s, width_s
+            )
+
+        if attn.residual_connection:
+            hidden_states = hidden_states + residual
+
+        hidden_states = hidden_states / attn.rescale_output_factor
+
+        return hidden_states
 
 
 NODE_CLASS_MAPPINGS = {
