@@ -2336,7 +2336,7 @@ def load_clip_clipvsion(clip_paths,token_paths,dino_path,siglip_path,vision_mode
 
 
 
-def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor,seed,positive_prompt,negative_prompt,positive_image,target_phrase,width,height,device,samples_per_prompt,guidance_weight=7.5):
+def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor,positive_prompt,negative_prompt,positive_image,target_phrase,width,height,device,samples_per_prompt,guidance_weight=7.5):
     from  .RealCustom.inference.inference_utils import find_phrase_positions_in_text
     import torchvision
     with torch.no_grad():
@@ -2403,15 +2403,15 @@ def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor
         negative_image_output = vision_model(negative_image_dict, device=device)
         #negative_image_output=daul_encoder(vision_model,negative_image_dict)
         # Initialize latent with input latent + noise (i2i) / pure noise (t2i)
-        latent = torch.randn(
-            size=[
-                samples_per_prompt,
-                vae_config["latent_channels"],
-                height // vae_downsample_factor,
-                width // vae_downsample_factor
-            ],
-            device=device,
-            generator=torch.Generator(device).manual_seed(seed))
+        # latent = torch.randn(
+        #     size=[
+        #         samples_per_prompt,
+        #         vae_config["latent_channels"],
+        #         height // vae_downsample_factor,
+        #         width // vae_downsample_factor
+        #     ],
+        #     device=device,
+        #     generator=torch.Generator(device).manual_seed(seed))
         target_h = (height // vae_downsample_factor) // 2
         target_w = (width // vae_downsample_factor) // 2
 
@@ -2426,7 +2426,8 @@ def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor
         }
 
         latent_dict={
-            "latent":latent,
+            "vae_config":vae_config,
+            "vae_downsample_factor":vae_downsample_factor,
             "target_h":target_h,
             "target_w":target_w,
             "pbar_text":pbar_text,
@@ -2438,7 +2439,7 @@ def realcustom_clip_emb(text_model,vision_model,vae_config,vae_downsample_factor
         return emb_dict,latent_dict
 
 
-def realcustom_infer(unet_model,sample_steps,mask_reused_step,emb_dict,latent_dict,mask_scope,mask_strategy,guidance_weight,
+def realcustom_infer(unet_model,sample_steps,mask_reused_step,emb_dict,latent_dict,mask_scope,mask_strategy,guidance_weight,height,width,seed,
                      device,schedule_type="squared_linear",schedule_shift_snr=1.0,scheduler_type="ddim",unet_prediction="epsilon"):
     from .RealCustom.schedulers.ddim import DDIMScheduler
     from .RealCustom.schedulers.dpm_s import DPMSolverSingleStepScheduler
@@ -2461,6 +2462,17 @@ def realcustom_infer(unet_model,sample_steps,mask_reused_step,emb_dict,latent_di
     #guidance_weight = latent_dict.get("guidance_weight")
     unet_model.to(device)
     latent=latent_dict.get("latent")
+    latent = torch.randn(
+            size=[
+                1,
+                latent_dict.get("vae_config")["latent_channels"],
+                height // latent_dict.get("vae_downsample_factor"),
+                width // latent_dict.get("vae_downsample_factor")
+            ],
+            device=device,
+            generator=torch.Generator(device).manual_seed(seed))
+    
+
     with torch.no_grad():
         for timestep in tqdm(iterable=infer_timesteps, desc=f"[{pbar_text}]", dynamic_ncols=True):
             
