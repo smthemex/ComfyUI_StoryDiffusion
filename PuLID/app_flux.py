@@ -44,8 +44,8 @@ def get_models(name: str,ckpt_path,if_repo,aggressive_offload,device: torch.devi
     return model
 
 
-def get_emb_flux_pulid(t5,clip,if_repo,seed,prompt,neg_prompt,width,height,num_steps,guidance,device,true_cfg=1.0):
-    seed = int(seed)
+def get_emb_flux_pulid(t5,clip,if_repo,prompt,neg_prompt,width,height,num_steps,guidance,device,true_cfg=1.0):
+    seed = int(42)
     if seed == -1:
         seed = None
     
@@ -68,23 +68,23 @@ def get_emb_flux_pulid(t5,clip,if_repo,seed,prompt,neg_prompt,width,height,num_s
     if opts.seed is None:
         opts.seed = torch.Generator(device="cpu").seed()
     opts.text = opts.text if isinstance(opts.text,str) else str(opts.text)
-    print(f"Generating '{opts.text}' with seed {opts.seed}")
+    #print(f"Generating '{opts.text}' with seed {opts.seed}")
 
     use_true_cfg = abs(true_cfg - 1.0) > 1e-2
 
     # prepare input
-    x = get_noise(
-        1,
-        opts.height,
-        opts.width,
-        device=device,
-        dtype=torch.bfloat16,
-        seed=opts.seed,
-    )
+    # x = get_noise(
+    #     1,
+    #     opts.height,
+    #     opts.width,
+    #     device=device,
+    #     dtype=torch.bfloat16,
+    #     seed=opts.seed,
+    # )
 
-    inp = prepare(t5=t5, clip=clip, img=x, prompt=opts.text,if_repo=if_repo)
-    inp_neg = prepare(t5=t5, clip=clip, img=x, prompt=neg_prompt,if_repo=if_repo) if use_true_cfg else None
-    return inp,inp_neg,x
+    inp = prepare(t5=t5, clip=clip, prompt=opts.text,if_repo=if_repo,device=device,h=height,w=width)
+    inp_neg = prepare(t5=t5, clip=clip, prompt=neg_prompt,if_repo=if_repo,device=device,h=height,w=width) if use_true_cfg else None
+    return inp,inp_neg
 
 
 
@@ -120,7 +120,6 @@ class FluxGenerator:
             seed,
             inp,
             inp_neg,
-            x=None,
             prompt="none",
             id_embeddings = None,
             uncond_id_embeddings=None,
@@ -133,9 +132,9 @@ class FluxGenerator:
         # if self.if_repo:
         #     self.t5.max_length = max_sequence_length
 
-        seed = int(seed)
-        if seed == -1:
-            seed = None
+        # seed = int(seed)
+        # if seed == -1:
+        #     seed = None
         
         # if isinstance(prompt,str):
         #     text=prompt
@@ -163,14 +162,19 @@ class FluxGenerator:
         use_true_cfg = abs(true_cfg - 1.0) > 1e-2
 
         # prepare input
-        # x = get_noise(
-        #     1,
-        #     height,
-        #     width,
-        #     device=self.device,
-        #     dtype=torch.bfloat16,
-        #     seed=seed,
-        # )
+        x = get_noise(
+            1,
+            height,
+            width,
+            device=torch.device("cuda"),
+            dtype=torch.bfloat16,
+            seed=seed,
+        )
+
+        img = rearrange(x, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
+        # if img.shape[0] == 1 and bs > 1:
+        #     img = repeat(img, "1 ... -> bs ...", bs=bs)
+
         timesteps = get_schedule(
             num_steps,
             x.shape[-1] * x.shape[-2] // 4,
@@ -200,7 +204,7 @@ class FluxGenerator:
         # denoise initial noise
         print("start denoise...")
         x = denoise(
-            self.model, **inp, timesteps=timesteps, guidance=guidance, id=id_embeddings, id_weight=id_weight,
+            self.model,img, **inp, timesteps=timesteps, guidance=guidance, id=id_embeddings, id_weight=id_weight,
             start_step=start_step, uncond_id=uncond_id_embeddings, true_cfg=true_cfg,
             timestep_to_start_cfg=timestep_to_start_cfg,
             neg_txt=inp_neg["txt"] if use_true_cfg else None,
