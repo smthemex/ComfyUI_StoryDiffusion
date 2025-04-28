@@ -172,18 +172,7 @@ class StoryDiffusion_Apply:
                 from comfy.clip_vision import load as clip_load
                 CLIP_VISION=clip_load(clip_vision_path).model
                 
-        # if infer_mode=="instant_character":
-        #     from comfy.clip_vision import load as clip_load
-        #     if CLIP_VISION is None:
-        #         raise "instant_character need a clipvison dino g  model"
-        #     if clip_vision_path is not None:
-        #         CLIP_VISION_2=clip_load(clip_vision_path).model
-        #     elif clip_vision_path is None and clip_vision_path_dual is not None:
-        #         CLIP_VISION_2=clip_load(clip_vision_path_dual).model
-        #     else:
-        #         raise "instant_character need a clipvison siglip  model"
-
-            
+      
         
         if infer_mode in ["story_maker" ,"story_and_maker"] and not CLIP_VISION  and ipadapter_ckpt_path is None:
              raise "story_maker need a clipvison H model,mask.bin"
@@ -587,8 +576,8 @@ class StoryDiffusion_CLIPTextEncode:
             for key ,prompts,role_image,target_phrase in zip(role_list,inf_list_split,image_list,target_phrases):
                 emb_dict_real_list,latent_dict_list=[],[]
                 for p,n in zip(prompts,[neg_text]*len(prompts)): 
-                    seed=random.randint(0, MAX_SEED)
-                    emb_dict_real,latent_dict=realcustom_clip_emb(text_model,vision_model,switch.get("vae_config"),switch.get("vae_downsample_factor"),seed,p,n,role_image,target_phrase,
+                  
+                    emb_dict_real,latent_dict=realcustom_clip_emb(text_model,vision_model,switch.get("vae_config"),switch.get("vae_downsample_factor"),p,n,role_image,target_phrase,
                                                                 width,height,device,samples_per_prompt,guidance_weight)
                     emb_dict_real_list.append(emb_dict_real)
                     latent_dict_list.append(latent_dict)
@@ -607,31 +596,24 @@ class StoryDiffusion_CLIPTextEncode:
             only_role_emb,noise_x,inp_neg_list={},{},{}
             
             for key ,prompts in zip(role_list,inf_list_split):
-                ip_emb,noise_,inp_n=[],[],[]
+                ip_emb,inp_n=[],[]
                 
                 for p,n in zip(prompts,[neg_text]*len(prompts)): 
-                    seed_random = random.randint(0, MAX_SEED) #pulid 和uno的emb需要随机数
-                    inp,inp_neg,x=get_emb_flux_pulid(t5_,clip_,if_repo,seed_random,p,n,width,height,num_steps=20,guidance=3.5,device=device)
+                    inp,inp_neg=get_emb_flux_pulid(t5_,clip_,if_repo,p,n,width,height,num_steps=20,guidance=3.5,device=device)
                     ip_emb.append(inp)
                     inp_n.append(inp_neg)
-                    noise_.append(x)
                 only_role_emb[key]=ip_emb
-                noise_x[key]=noise_
                 inp_neg_list[key]=inp_n
         elif infer_mode == "uno":
             only_role_emb={}
             from .UNO.uno.flux.sampling import prepare_multi_ip_wrapper
-            from .UNO.uno.flux.sampling import get_noise
+            
             for key ,prompts in zip(role_list,inf_list_split):
                 ip_emb=[]
-
                 for p,x_1 in zip(prompts,x_1_refs_dict[key]):
-                    seed_random = random.randint(0, MAX_SEED) #pulid 和uno的emb需要随机数
-                    uno_x = get_noise(1, height, width, device=device,dtype=torch.bfloat16, seed=seed_random) 
-                    inp = prepare_multi_ip_wrapper(clip,img=uno_x,prompt=p, ref_imgs=x_1, pe=uno_pe)
+                    inp = prepare_multi_ip_wrapper(clip,prompt=p, ref_imgs=x_1, pe=uno_pe,device=device,h=height,w=width)
                     ip_emb.append(inp)
                 only_role_emb[key]=ip_emb
-
 
         elif infer_mode=="kolor_face":
             from .model_loader_utils import glm_single_encode
@@ -758,10 +740,8 @@ class StoryDiffusion_CLIPTextEncode:
             prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' The figurine  play whith  The pig in the garden,best 8k,RAW']
            
             daul_emb=[]
-            for dual_t,x_1 in zip(prompts_dual,x_1_refs_dual): # dual_t:The figurine  play whith  The pig in the garden best 8k,RAW
-                seed_random = random.randint(0, MAX_SEED) 
-                uno_x = get_noise(1, height, width, device=device,dtype=torch.bfloat16, seed=seed_random) 
-                inp = prepare_multi_ip_wrapper(clip,img=uno_x,prompt=dual_t, ref_imgs=x_1, pe=uno_pe)
+            for dual_t,x_1 in zip(prompts_dual,x_1_refs_dual): # dual_t:The figurine  play whith  The pig in the garden best 8k,RAW       
+                inp = prepare_multi_ip_wrapper(clip,prompt=dual_t, ref_imgs=x_1, pe=uno_pe,device=device,h=height,w=width)
                 daul_emb.append(inp)
         else:
             daul_emb=None
@@ -1422,7 +1402,7 @@ class StoryDiffusion_KSampler:
                             control_image=cn_img[index] if isinstance(cn_img , list) else input_id_img_s_dict[key][0],
                             guidance_scale=cfg,
                             num_steps=steps,
-                            seed=seed,
+                            seed=random.randint(0, seed),
                             infusenet_conditioning_scale=1.0,
                             infusenet_guidance_start=0,
                             infusenet_guidance_end=1.0,
@@ -1443,10 +1423,9 @@ class StoryDiffusion_KSampler:
                             num_steps=steps,
                             start_step=2,
                             guidance=cfg,
-                            seed=seed,
+                            seed=random.randint(0, seed),
                             inp=emb,
                             inp_neg=negative[0][key][index],
-                            x=negative[1][key][index], #seed 上一个节点调用
                             id_embeddings=input_id_emb_s_dict[key][0],
                             uncond_id_embeddings=input_id_emb_un_dict[key][0],
                             )  # torch.Size([1, 4, 64, 64])
@@ -1466,6 +1445,8 @@ class StoryDiffusion_KSampler:
                             guidance=cfg,
                             num_steps=steps,
                             inp_cond=emb,
+                            seed=random.randint(0, seed),
+                            
                             )  # torch.Size([1, 4, 64, 64])
                     
                         samples_list.append(samples)
@@ -1478,6 +1459,7 @@ class StoryDiffusion_KSampler:
                             guidance=cfg,
                             num_steps=steps,
                             inp_cond=emb,
+                            seed=random.randint(0, seed) 
                             )  # torch.Size([1, 4, 64, 64])
                         samples_list.insert(index, samples)
 
@@ -1499,6 +1481,9 @@ class StoryDiffusion_KSampler:
                             mask_scope=0.20,
                             mask_strategy="max_norm", #"min_max_per_channel", "max_norm"
                             guidance_weight=cfg,
+                            height=height,
+                            width=width,
+                            seed=random.randint(0, seed),
                             device=device,
                             )
                         samples_list.append(samples)
@@ -1517,11 +1502,11 @@ class StoryDiffusion_KSampler:
                             guidance_scale=cfg,
                             subject_image=True,
                             subject_scale=0.9,
-                            generator=torch.manual_seed(seed),
+                            generator=torch.manual_seed(random.randint(0, seed)),
                             text_ids=emb_list[2],
                             subject_image_embeds_dict=id_emb,
                             )[0]  # torch.Size([1, 4, 64, 64])
-                        print(samples.shape)
+                        #print(samples.shape)
                         samples_list.append(samples)
                 out = {}
                 out["samples"] = torch.cat(samples_list, dim=0)  
