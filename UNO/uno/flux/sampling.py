@@ -180,19 +180,23 @@ def prepare_wrapper(
     
 def prepare_multi_ip_wrapper(
     clip,
-    img: Tensor,
     prompt: str | list[str],
     ref_imgs: list[Tensor] | None = None,
-    pe: Literal['d', 'h', 'w', 'o'] = 'd'
+    pe: Literal['d', 'h', 'w', 'o'] = 'd',
+    device: str = 'cuda:0',
+    h=512,
+    w=512,
 ) -> dict[str, Tensor]:
     assert pe in ['d', 'h', 'w', 'o']
-    bs, c, h, w = img.shape
-    if bs == 1 and not isinstance(prompt, str):
-        bs = len(prompt)
-
-    img = rearrange(img, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
-    if img.shape[0] == 1 and bs > 1:
-        img = repeat(img, "1 ... -> bs ...", bs=bs)
+    bs=1
+    #bs, c, h, w = img.shape
+    # if bs == 1 and not isinstance(prompt, str):
+    #     bs = len(prompt)
+    h=2 * math.ceil(h / 16)
+    w=2 * math.ceil(w / 16)
+    #img = rearrange(img, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
+    # if img.shape[0] == 1 and bs > 1:
+    #     img = repeat(img, "1 ... -> bs ...", bs=bs)
 
     img_ids = torch.zeros(h // 2, w // 2, 3)
     img_ids[..., 1] = img_ids[..., 1] + torch.arange(h // 2)[:, None]
@@ -236,13 +240,12 @@ def prepare_multi_ip_wrapper(
         vec = repeat(vec, "1 ... -> bs ...", bs=bs)
 
     return {
-        "img": img,
-        "img_ids": img_ids.to(img.device,torch.bfloat16),
+        "img_ids": img_ids.to(device,torch.bfloat16),
         "ref_img": tuple(ref_imgs_list),
-        "ref_img_ids": [ref_img_id.to(img.device,torch.bfloat16) for ref_img_id in ref_img_ids],
-        "txt": txt.to(img.device,torch.bfloat16),
-        "txt_ids": txt_ids.to(img.device,torch.bfloat16),
-        "vec": vec.to(img.device,torch.bfloat16),
+        "ref_img_ids": [ref_img_id.to(device,torch.bfloat16) for ref_img_id in ref_img_ids],
+        "txt": txt.to(device,torch.bfloat16),
+        "txt_ids": txt_ids.to(device,torch.bfloat16),
+        "vec": vec.to(device,torch.bfloat16),
     }
 
 
