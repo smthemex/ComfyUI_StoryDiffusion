@@ -252,7 +252,7 @@ repo：[google/siglip-so400m-patch14-384](https://huggingface.co/google/siglip-s
 **4.8 UNO**  
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/UNO_N.png" width="50%">
  * dual 双角色同框示例
- <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/example_uno_dual.png" width="50%">
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/example_uno_dual1.png" width="50%">
 
 
 **4.9 RealCustom**    
