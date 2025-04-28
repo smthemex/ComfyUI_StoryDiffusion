@@ -232,11 +232,13 @@ class UNOPipeline:
         guidance: float,
         num_steps: int,
         inp_cond={},
+        seed: int = -1,
     ):
-        # x = get_noise(
-        #     1, height, width, device=self.device,
-        #     dtype=torch.bfloat16, seed=seed
-        # )
+        x = get_noise(
+            1, height, width, device=self.device,
+            dtype=torch.bfloat16, seed=seed
+        )
+        img= rearrange(x, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
         timesteps = get_schedule(
             num_steps,
             (width // 8) * (height // 8) // (16 * 16),
@@ -268,6 +270,7 @@ class UNOPipeline:
 
         x = denoise(
             self.model,
+            img,
             **inp_cond,
             timesteps=timesteps,
             guidance=guidance,
