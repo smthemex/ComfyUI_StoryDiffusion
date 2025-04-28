@@ -29,14 +29,17 @@ def get_noise(
     )
 
 
-def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str,if_repo:bool) -> dict[str, Tensor]:
-    bs, c, h, w = img.shape
-    if bs == 1 and not isinstance(prompt, str):
-        bs = len(prompt)
+def prepare(t5: HFEmbedder, clip: HFEmbedder, prompt: str,if_repo:bool,device,h,w) -> dict[str, Tensor]:
 
-    img = rearrange(img, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
-    if img.shape[0] == 1 and bs > 1:
-        img = repeat(img, "1 ... -> bs ...", bs=bs)
+    h=2 * math.ceil(h / 16)
+    w=2 * math.ceil(w / 16)
+    #bs, c, h, w = img.shape
+    # if bs == 1 and not isinstance(prompt, str):
+    #     bs = len(prompt)
+    bs=1
+    # img = rearrange(img, "b c (h ph) (w pw) -> b (h w) (c ph pw)", ph=2, pw=2)
+    # if img.shape[0] == 1 and bs > 1:
+    #     img = repeat(img, "1 ... -> bs ...", bs=bs)
 
     img_ids = torch.zeros(h // 2, w // 2, 3)
     img_ids[..., 1] = img_ids[..., 1] + torch.arange(h // 2)[:, None]
@@ -60,19 +63,19 @@ def prepare(t5: HFEmbedder, clip: HFEmbedder, img: Tensor, prompt: str,if_repo:b
    
     if if_repo:
         return {
-            "img": img,
-            "img_ids": img_ids.to(img.device),
-            "txt": txt.to(img.device),
-            "txt_ids": txt_ids.to(img.device, ),
-            "vec": vec.to(img.device),
+
+            "img_ids": img_ids.to(device),
+            "txt": txt.to(device),
+            "txt_ids": txt_ids.to(device, ),
+            "vec": vec.to(device),
         }
     else:
         return {
-            "img": img,
-            "img_ids": img_ids.to(img.device, torch.bfloat16),
-            "txt": txt.to(img.device, torch.bfloat16),
-            "txt_ids": txt_ids.to(img.device, torch.bfloat16),
-            "vec": vec.to(img.device, torch.bfloat16),
+            
+            "img_ids": img_ids.to(device, torch.bfloat16),
+            "txt": txt.to(device, torch.bfloat16),
+            "txt_ids": txt_ids.to(device, torch.bfloat16),
+            "vec": vec.to(device, torch.bfloat16),
         }
     
 
