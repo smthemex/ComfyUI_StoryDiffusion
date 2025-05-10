@@ -68,7 +68,7 @@
     "image_ref_processor_input_keys": ["image_ref"],
     "vision_model_config": {
         "vision_model_config": {
-            "target": "ComfyUI.custom_nodes.ComfyUI_StoryDiffusion.RealCustom.models.image_encoder_siglipdino_shallowdeep.ShallowDeepPatchfySiglipDinoEncoder_v2",
+            "target": "custom_nodes.ComfyUI_StoryDiffusion.RealCustom.models.image_encoder_siglipdino_shallowdeep.ShallowDeepPatchfySiglipDinoEncoder_v2",
             "params": {
                 "siglip_config": {
                     "backbone_name_or_path": "vit_so400m_patch14_siglip_384",
@@ -103,7 +103,7 @@
     "image_prompt_settings": {
         "vision_projection_type": "custom",
         "vision_projection_config": {
-            "target": "ComfyUI.custom_nodes.ComfyUI_StoryDiffusion.RealCustom.models.projectors.ProjectorHighResShallowMinAttnV1",
+            "target": "custom_nodes.ComfyUI_StoryDiffusion.RealCustom.models.projectors.ProjectorHighResShallowMinAttnV1",
             "params": {
                 "vision_dim": 2176,
                 "out_dim": 2048,
