@@ -111,12 +111,14 @@ class ShallowDeepPatchfySiglipDinoEncoder(nn.Module):
 
 
 class ShallowDeepPatchfySiglipDinoEncoder_v2(nn.Module):
-    def __init__(self, siglip_config={}, dino_config={}, patchfy_scale=2, default_image_size=384):
+    def __init__(self, siglip_config={}, dino_config={}, patchfy_scale=2, default_image_size=384,siglip_path="",dino_path=""):
         super().__init__()
         self.to_pil = torchvision.transforms.ToPILImage()
-        self.image_encoder_siglip = SigLIPViTBackbone(**siglip_config)
-        self.image_encoder_dino = DinoViTBackbone(**dino_config)
-
+        self.siglip_path=siglip_path
+        self.dino_path=dino_path
+        self.image_encoder_siglip = SigLIPViTBackbone(**siglip_config,siglip_path=self.siglip_path)
+        self.image_encoder_dino = DinoViTBackbone(**dino_config,dino_path=self.dino_path)
+        
         self.patchfy = (patchfy_scale > 1)
         self.patchfy_scale = patchfy_scale
         self.default_image_size = default_image_size
