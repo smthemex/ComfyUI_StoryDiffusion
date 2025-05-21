@@ -1,0 +1,15 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.3.1+cu118
+torchvision==0.18.1+cu118
+
+einops
+timm
+diffusers==0.31.0
+transformers==4.45.2
+sentencepiece
+gradio==4.44.1
+spaces
+huggingface_hub
+accelerate==0.32.0
+peft
+git+https://github.com/ToTheBeginning/facexlib.git
