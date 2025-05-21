@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from typing import Any, Callable, Dict, List, Optional, Union
-
+import os
 import diffusers
 import numpy as np
 import torch
@@ -45,25 +45,48 @@ class DreamOPipeline(FluxPipeline):
         self.task_embedding = nn.Embedding(2, 3072)
         self.idx_embedding = nn.Embedding(10, 3072)
 
-    def load_dreamo_model(self, device, dreamo_lora_path,cfg_distill_path,Turbo_path,use_turbo=True):
+    def load_dreamo_model(self, device, dreamo_lora_path,cfg_distill_path,Turbo_path,use_turbo=True,):
+        # download models and load file
         # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo.safetensors', local_dir='models')
         # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_cfg_distill.safetensors', local_dir='models')
+        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_pos.safetensors', local_dir='models')
+        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_neg.safetensors', local_dir='models')
+        # dreamo_lora = load_file('models/dreamo.safetensors')
+        # cfg_distill_lora = load_file('models/dreamo_cfg_distill.safetensors')
+        
         dreamo_lora = load_file(dreamo_lora_path)
         cfg_distill_lora = load_file(cfg_distill_path)
+
+        quality_lora_pos_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_quality_lora_pos.safetensors")
+        quality_lora_neg_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_quality_lora_neg.safetensors")
+        if os.path.exists(quality_lora_pos_path):
+            quality_lora_pos = load_file(quality_lora_pos_path)
+        # else:
+        #     hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_pos.safetensors', local_dir=os.path.dirname(dreamo_lora_path))
+        if os.path.exists(quality_lora_neg_path):
+            quality_lora_neg = load_file(quality_lora_neg_path)
+        # else:
+        #     hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_neg.safetensors', local_dir=os.path.dirname(dreamo_lora_path))
+        
+        # load embedding
         self.t5_embedding.weight.data = dreamo_lora.pop('dreamo_t5_embedding.weight')[-10:]
         self.task_embedding.weight.data = dreamo_lora.pop('dreamo_task_embedding.weight')
         self.idx_embedding.weight.data = dreamo_lora.pop('dreamo_idx_embedding.weight')
         self._prepare_t5()
 
+        # main lora
         dreamo_diffuser_lora = convert_flux_lora_to_diffusers(dreamo_lora)
-        cfg_diffuser_lora = convert_flux_lora_to_diffusers(cfg_distill_lora)
         adapter_names = ['dreamo']
         adapter_weights = [1]
         self.load_lora_weights(dreamo_diffuser_lora, adapter_name='dreamo')
-        if cfg_diffuser_lora is not None:
-            self.load_lora_weights(cfg_diffuser_lora, adapter_name='cfg')
-            adapter_names.append('cfg')
-            adapter_weights.append(1)
+
+        # cfg lora to avoid true image cfg
+        cfg_diffuser_lora = convert_flux_lora_to_diffusers(cfg_distill_lora)
+        self.load_lora_weights(cfg_diffuser_lora, adapter_name='cfg')
+        adapter_names.append('cfg')
+        adapter_weights.append(1)
+
+        # turbo lora to speed up (from 25+ step to 12 step)
         if use_turbo:
             self.load_lora_weights(
                 Turbo_path,
@@ -72,9 +95,21 @@ class DreamOPipeline(FluxPipeline):
             adapter_names.append('turbo')
             adapter_weights.append(1)
 
-        self.fuse_lora(adapter_names=adapter_names, adapter_weights=adapter_weights, lora_scale=1)
-        self.unload_lora_weights()
+        # quality loras, one pos, one neg
+        if os.path.exists(quality_lora_pos_path) and os.path.exists(quality_lora_neg_path):
+            quality_lora_pos = convert_flux_lora_to_diffusers(quality_lora_pos)
+            self.load_lora_weights(quality_lora_pos, adapter_name='quality_pos')
+            adapter_names.append('quality_pos')
+            adapter_weights.append(0.15)
+            quality_lora_neg = convert_flux_lora_to_diffusers(quality_lora_neg)
+            self.load_lora_weights(quality_lora_neg, adapter_name='quality_neg')
+            adapter_names.append('quality_neg')
+            adapter_weights.append(-0.8)
 
+        self.set_adapters(adapter_names, adapter_weights)
+        self.fuse_lora(adapter_names=adapter_names, lora_scale=1)
+        self.unload_lora_weights()
+       
         self.t5_embedding = self.t5_embedding.to(device)
         self.task_embedding = self.task_embedding.to(device)
         self.idx_embedding = self.idx_embedding.to(device)
@@ -88,26 +123,11 @@ class DreamOPipeline(FluxPipeline):
         input_embedding = self.text_encoder_2.get_input_embeddings().weight.data
         input_embedding[-num_new_token:] = self.t5_embedding.weight.data
 
-    @staticmethod
-    def _prepare_latent_image_ids(batch_size, height, width, device, dtype, start_height=0, start_width=0):
-        latent_image_ids = torch.zeros(height // 2, width // 2, 3)
-        latent_image_ids[..., 1] = latent_image_ids[..., 1] + torch.arange(height // 2)[:, None] + start_height
-        latent_image_ids[..., 2] = latent_image_ids[..., 2] + torch.arange(width // 2)[None, :] + start_width
-
-        latent_image_id_height, latent_image_id_width, latent_image_id_channels = latent_image_ids.shape
-
-        latent_image_ids = latent_image_ids[None, :].repeat(batch_size, 1, 1, 1)
-        latent_image_ids = latent_image_ids.reshape(
-            batch_size, latent_image_id_height * latent_image_id_width, latent_image_id_channels
-        )
-
-        return latent_image_ids.to(device=device, dtype=dtype)
-
-    # @staticmethod
-    # def _prepare_style_latent_image_ids(batch_size, height, width, device, dtype, start_height=0, start_width=0):
+    #@staticmethod
+    # def _prepare_latent_image_ids(batch_size, height, width, device, dtype, start_height=0, start_width=0):
     #     latent_image_ids = torch.zeros(height // 2, width // 2, 3)
-    #     latent_image_ids[..., 1] = latent_image_ids[..., 1] + start_height
-    #     latent_image_ids[..., 2] = latent_image_ids[..., 2] + start_width
+    #     latent_image_ids[..., 1] = latent_image_ids[..., 1] + torch.arange(height // 2)[:, None] + start_height
+    #     latent_image_ids[..., 2] = latent_image_ids[..., 2] + torch.arange(width // 2)[None, :] + start_width
 
     #     latent_image_id_height, latent_image_id_width, latent_image_id_channels = latent_image_ids.shape
 
@@ -117,8 +137,6 @@ class DreamOPipeline(FluxPipeline):
     #     )
 
     #     return latent_image_ids.to(device=device, dtype=dtype)
-
-
     @staticmethod
     def _prepare_latent_image_ids(batch_size, height, width, device, dtype, start_height=0, start_width=0):
         latent_image_ids = torch.zeros(height, width, 3)
@@ -133,6 +151,21 @@ class DreamOPipeline(FluxPipeline):
         )
 
         return latent_image_ids.to(device=device, dtype=dtype)
+    @staticmethod
+    def _prepare_style_latent_image_ids(batch_size, height, width, device, dtype, start_height=0, start_width=0):
+        latent_image_ids = torch.zeros(height // 2, width // 2, 3)
+        latent_image_ids[..., 1] = latent_image_ids[..., 1] + start_height
+        latent_image_ids[..., 2] = latent_image_ids[..., 2] + start_width
+
+        latent_image_id_height, latent_image_id_width, latent_image_id_channels = latent_image_ids.shape
+
+        latent_image_ids = latent_image_ids[None, :].repeat(batch_size, 1, 1, 1)
+        latent_image_ids = latent_image_ids.reshape(
+            batch_size, latent_image_id_height * latent_image_id_width, latent_image_id_channels
+        )
+
+        return latent_image_ids.to(device=device, dtype=dtype)
+
     @torch.no_grad()
     def __call__(
         self,
@@ -361,7 +394,7 @@ class DreamOPipeline(FluxPipeline):
             start_width += cur_width // 2
 
             # prepare task_idx_embedding
-            task_idx = get_task_embedding_idx(task) # 0
+            task_idx = get_task_embedding_idx(task)
             cur_task_embedding = repeat(
                 self.task_embedding.weight[task_idx], "c -> n l c", n=batch_size, l=ref_latent.shape[1]
             )
@@ -417,8 +450,7 @@ class DreamOPipeline(FluxPipeline):
                 self._current_timestep = t
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latents.shape[0]).to(latents.dtype)
-                #print(latents.shape,pooled_prompt_embeds.shape,prompt_embeds.shape,latent_image_ids.shape,embeddings.shape,text_ids.shape)
-                #[1, 1024, 64],[1, 768],[1, 512, 4096],[1, 256, 3],[1, 2048, 3072],[512,3]
+
                 noise_pred = self.transformer(
                     hidden_states=torch.cat((latents, *ref_latents), dim=1),
                     timestep=timestep / 1000,
@@ -469,10 +501,13 @@ class DreamOPipeline(FluxPipeline):
 
         self._current_timestep = None
 
+        # if self.offload:
+        #     self.transformer.cpu()
+        #     torch.cuda.empty_cache()
+
         if output_type == "latent":
             latents = self._unpack_latents(latents, height, width, self.vae_scale_factor)
             latents = (latents / self.vae.config.scaling_factor) + self.vae.config.shift_factor
-            #print(latents.shape)
             image = latents
         else:
             latents = self._unpack_latents(latents, height, width, self.vae_scale_factor)
