@@ -8,7 +8,8 @@ import os
 from PIL import ImageFont,Image
 import torch.nn.functional as F
 import copy
-
+from pathlib import PureWindowsPath
+from tqdm import tqdm
 from .utils.utils import get_comic
 from .model_loader_utils import  (phi2narry,replicate_data_by_indices,get_float,gc_cleanup,tensor_to_image,photomaker_clip,tensortopil_list_upscale,tensortopil_list,extract_content_from_brackets_,
                                   narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,load_clip_clipvsion,
@@ -64,6 +65,12 @@ class EasyFunction_Lite:
     CATEGORY = "Storydiffusion"
     
     def easy_function_main(self, extra_repo,checkpoints,clip,clip_vision,lora,function_mode,select_method,temperature):
+
+        if extra_repo:
+            extra_repo=PureWindowsPath(extra_repo).as_posix()
+        if select_method:
+            select_method=PureWindowsPath(select_method).as_posix()
+
         use_gguf,use_unet=False,False
 
         use_svdq=True if "svdq" in select_method else False
@@ -113,11 +120,12 @@ class EasyFunction_Lite:
             add_function["clip_path"]=clip_path
             add_function["clip_vision_path"]=clip_vision_path
             add_function["clip_path_dual"]=clip_path_dual
-            add_function["clip_vision_path_dual"]=clip_vision_path_dual     
+            add_function["clip_vision_path_dual"]=clip_vision_path_dual  
+
         else:
             model=None
 
-        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"clip_vision_path_dual":clip_vision_path_dual,
+        pipe={"model":model,"extra_repo":extra_repo,"model_path":model_path,"use_svdq":use_svdq,"use_gguf":use_gguf,"clip_vision_path_dual":clip_vision_path_dual,"lora_dual_path":lora_dual_path,
               "lora_ckpt_path":lora_path,"use_unet":use_unet,"extra_easy":function_mode,"select_method":select_method,"clip_vision_path":clip_vision_path}
         return (pipe,clip,add_function)
 
@@ -129,7 +137,7 @@ class StoryDiffusion_Apply:
                 {
                     "model": ("MODEL",),
                     "vae": ("VAE",),
-                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
                     "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
                     "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
                     "quantize_mode": ([ "fp8", "nf4","fp16", ],),
@@ -151,6 +159,10 @@ class StoryDiffusion_Apply:
         # pre data
         photomake_ckpt_path = None if photomake_ckpt == "none"  else  folder_paths.get_full_path("photomaker", photomake_ckpt)
         ipadapter_ckpt_path = None if ipadapter_ckpt == "none"  else  folder_paths.get_full_path("photomaker", ipadapter_ckpt)
+
+        if extra_function:
+            extra_function=PureWindowsPath(extra_function).as_posix()
+
         save_quantezed=True if "save" in extra_function and quantize_mode=="fp8" else False
         clip_vision_path=model.get("clip_vision_path") if isinstance(model,dict) else None
         clip_vision_path_dual=model.get("clip_vision_path_dual") if isinstance(model,dict) else None
@@ -172,7 +184,20 @@ class StoryDiffusion_Apply:
                 from comfy.clip_vision import load as clip_load
                 CLIP_VISION=clip_load(clip_vision_path).model
                 
-      
+        
+        dreamo_lora=model.get("lora_ckpt_path") if isinstance(model,dict) else None
+        cfg_distill=model.get("lora_dual_path") if isinstance(model,dict) else None
+        if infer_mode =="dreamo" and  dreamo_lora is not None and cfg_distill is not None:
+            if "distill" in dreamo_lora:
+                cfg_distill_path=dreamo_lora
+                dreamo_lora_path=cfg_distill
+            else:
+                cfg_distill_path=cfg_distill
+                dreamo_lora_path=dreamo_lora
+        else:
+            cfg_distill_path=None
+            dreamo_lora_path=None
+
         
         if infer_mode in ["story_maker" ,"story_and_maker"] and not CLIP_VISION  and ipadapter_ckpt_path is None:
              raise "story_maker need a clipvison H model,mask.bin"
@@ -238,6 +263,11 @@ class StoryDiffusion_Apply:
         elif infer_mode == "uno":
             from .model_loader_utils import Loader_UNO
             model = Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank=512)
+        elif infer_mode == "dreamo":
+            from.model_loader_utils import Loader_Dreamo
+            if dreamo_lora_path is None or cfg_distill_path is None or ipadapter_ckpt_path is None:
+                raise "dreamo need a dreamo lora and cfg distill and turbo lora in ipadapter menu"
+            model = Loader_Dreamo(model,vae,quantize_mode,dreamo_lora_path,cfg_distill_path,ipadapter_ckpt_path,device)
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
 
@@ -295,7 +325,8 @@ class StoryDiffusion_CLIPTextEncode:
         add_function=kwargs.get("add_function")
         image=kwargs.get("image")
         control_image=kwargs.get("control_image")
-        
+        if extra_function:
+            extra_function=PureWindowsPath(extra_function).as_posix()
         tag_dict,clip_path,text_model,vision_model,clip_path_dual,siglip_path,dino_path=None,None,None,None,None,None,None
 
         
@@ -434,10 +465,20 @@ class StoryDiffusion_CLIPTextEncode:
 
                 # get emb use insightface
                 pass
-            elif infer_mode == "infiniteyou":
-                pass
+            elif infer_mode == "dreamo":
+                from .model_loader_utils import Dreamo_image_encoder
+                from huggingface_hub import hf_hub_download
+                BEN2_path=switch.get("select_method")
+                if not BEN2_path:
+                    BEN2_path= hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='ComfyUI/models')
+                ref_list=tensortopil_list_upscale(image,width,height)
+                task_list=["ip", "id", "style"] #TODO
+                image_emb={}
+                for key,role_img in zip(role_list,ref_list):
+                    role_emb=Dreamo_image_encoder(BEN2_path,role_img,None,task_list[0],task_list[0],ref_res=512) #TODO
+                    image_emb[key]=role_emb
+
             elif infer_mode == "realcustom":
-                from safetensors.torch import load_file as load_sft
                
                 text_model,vision_model=load_clip_clipvsion([clip_path,clip_path_dual],
                                                             [os.path.join(dir_path, "config/clip_1"),os.path.join(dir_path, "config/clip_2")],
@@ -653,6 +694,8 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode=="classic": #TODO 逆序的角色会出现iD不匹配，受影响的有story文生图
                     only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
+                elif infer_mode=="dreamo":
+                    pass # TODO 暂时不支持dreamo
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
         # pre nc txt emb
@@ -670,6 +713,8 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode!="kolor_face":
                     nc_emb=cf_clip(nc_txt_list, clip, infer_mode,role_list,input_split=False)
+                elif infer_mode=="dreamo":
+                    pass # TODO 暂时不支持dreamo
                 else:
                     nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
         else:
@@ -743,6 +788,19 @@ class StoryDiffusion_CLIPTextEncode:
             for dual_t,x_1 in zip(prompts_dual,x_1_refs_dual): # dual_t:The figurine  play whith  The pig in the garden best 8k,RAW       
                 inp = prepare_multi_ip_wrapper(clip,prompt=dual_t, ref_imgs=x_1, pe=uno_pe,device=device,h=height,w=width)
                 daul_emb.append(inp)
+        elif prompts_dual and infer_mode == "dreamo":
+            from .model_loader_utils import Dreamo_image_encoder
+            from huggingface_hub import hf_hub_download
+            BEN2_path=switch.get("select_method")
+            if not BEN2_path:
+                BEN2_path= hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='ComfyUI/models')
+            ref_list=tensortopil_list_upscale(image,width,height)
+            task_list=["ip", "id", "style"] #TODO
+            images_emb=Dreamo_image_encoder(BEN2_path,ref_list[0],ref_list[1],task_list[0],task_list[0],ref_res=512) #TODO
+            prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
+            prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
+            prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' The figurine  play whith  The pig in the garden,best 8k,RAW']
+            daul_emb=[images_emb,prompts_dual]
         else:
             daul_emb=None
         # neg
@@ -752,6 +810,12 @@ class StoryDiffusion_CLIPTextEncode:
         elif infer_mode=="instant_character":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
             negative = None
+        elif infer_mode=="dreamo":
+            only_role_emb={}
+            for key ,prompts in zip(role_list,inf_list_split):
+                only_role_emb[key]=prompts
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb}
+            negative = neg_text # TODO
         elif infer_mode=="realcustom":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
             negative=[letent_real]
@@ -1508,10 +1572,52 @@ class StoryDiffusion_KSampler:
                             )[0]  # torch.Size([1, 4, 64, 64])
                         #print(samples.shape)
                         samples_list.append(samples)
+        
                 out = {}
                 out["samples"] = torch.cat(samples_list, dim=0)  
                 return (out,) 
+            elif infer_mode=="dreamo": 
+                samples_list = []
         
+                first_step_guidance=0
+                for key in role_list: 
+                    for prompt in tqdm(only_role_emb[key],desc=f"Processing {key}"):
+                        samples = model(prompt=prompt,
+                            width=width,
+                            height=height,
+                            num_inference_steps=steps,
+                            guidance_scale=cfg,
+                            ref_conds=image_embeds[key],
+                            generator=torch.Generator(device="cpu").manual_seed(seed),
+                            true_cfg_scale=1,
+                            true_cfg_start_step=0,
+                            true_cfg_end_step=0,
+                            negative_prompt=neg_text,
+                            neg_guidance_scale=cfg,
+                            first_step_guidance_scale=first_step_guidance if first_step_guidance > 0 else cfg,
+                        ).images
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                if daul_emb:
+                    for index, prompt in tqdm(zip(dual_index, daul_emb[1]),desc="Processing dual prompts"): #daul_emb [emb,prompts]
+                        samples = model(prompt=prompt,
+                            width=width,
+                            height=height,
+                            num_inference_steps=steps,
+                            guidance_scale=cfg,
+                            ref_conds=daul_emb[0],
+                            generator=torch.Generator(device="cpu").manual_seed(seed),
+                            true_cfg_scale=1,
+                            true_cfg_start_step=0,
+                            true_cfg_end_step=0,
+                            negative_prompt=neg_text,
+                            neg_guidance_scale=cfg,
+                            first_step_guidance_scale=first_step_guidance if first_step_guidance > 0 else cfg,
+                        ).images
+                        samples_list.insert(index, samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                return (out,) 
             else: #none:
                 return
 

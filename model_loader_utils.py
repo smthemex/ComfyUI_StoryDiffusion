@@ -2776,3 +2776,144 @@ def instant_character_id_clip(subject_image,siglip_image_encoder,siglip_image_pr
     subject_image_embeds_dict = encode_image_emb(subject_image, device, dtype)
 
     return subject_image_embeds_dict
+
+def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device):
+    from .DreamO.dreamo.dreamo_pipeline import DreamOPipeline
+    from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
+    vae=convert_cfvae2diffuser(VAE,use_flux=True)
+    if cf_model.get("use_svdq") :
+        print("use svdq")
+        from nunchaku import NunchakuFluxTransformer2dModel    
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        try:
+            transformer.set_attention_impl("nunchaku-fp16")
+        except:
+            pass
+        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+    elif cf_model.get("use_gguf"):
+        print("use gguf quantization")
+        if cf_model.get("model_path") is None:
+            raise "need chocie a  gguf model in EasyFunction_Lite!"
+        from diffusers import  GGUFQuantizationConfig
+        transformer = FluxTransformer2DModel.from_single_file(
+            cf_model.get("model_path"),
+            config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
+            quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
+            torch_dtype=torch.bfloat16,
+        )
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)   
+        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+    elif cf_model.get("use_unet"):
+
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+                                                                            torch_dtype=torch.bfloat16)
+        else:
+            from safetensors.torch import load_file
+            t_state_dict=load_file(cf_model.get("model_path"))
+            unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
+            transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
+            transformer.load_state_dict(t_state_dict, strict=False)
+            del t_state_dict
+            gc_cleanup()
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+    else:
+        print(f"use {quantize_mode} quantization") 
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
+                torch_dtype=torch.bfloat16,
+            )
+                   
+        elif quantize_mode=="nf4": #nf4
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(
+                    load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                ),
+                torch_dtype=torch.bfloat16,)
+        else:
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                 torch_dtype=torch.bfloat16,
+                )
+        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+    
+    dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+    dreamo_pipeline.enable_model_cpu_offload()
+    return dreamo_pipeline
+
+@torch.no_grad()
+def get_align_face(img,face_helper):
+    from .DreamO.dreamo.utils import img2tensor,tensor2img
+    from torchvision.transforms.functional import normalize
+    # the face preprocessing code is same as PuLID
+    face_helper.clean_all()
+    image_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    face_helper.read_image(image_bgr)
+    face_helper.get_face_landmarks_5(only_center_face=True)
+    face_helper.align_warp_face()
+    if len(face_helper.cropped_faces) == 0:
+        return None
+    align_face = face_helper.cropped_faces[0]
+
+    input = img2tensor(align_face, bgr2rgb=True).unsqueeze(0) / 255.0
+    input = input.to(torch.device("cuda"))
+    parsing_out = face_helper.face_parse(normalize(input, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))[0]
+    parsing_out = parsing_out.argmax(dim=1, keepdim=True)
+    bg_label = [0, 16, 18, 7, 8, 9, 14, 15]
+    bg = sum(parsing_out == i for i in bg_label).bool()
+    white_image = torch.ones_like(input)
+    # only keep the face features
+    face_features_image = torch.where(bg, white_image, input)
+    face_features_image = tensor2img(face_features_image, rgb2bgr=False)
+
+    return face_features_image
+
+def Dreamo_image_encoder(BEN2_path,ref_image1,ref_image2,ref_task1,ref_task2,ref_res):
+    from .DreamO.dreamo.utils import img2tensor, resize_numpy_image_area
+    ref_conds = []
+    #debug_images = []
+
+    ref_images = [ref_image1, ref_image2]
+    ref_tasks = [ref_task1, ref_task2]
+
+    for idx, (ref_image, ref_task) in enumerate(zip(ref_images, ref_tasks)):
+        if ref_image is not None:
+            if ref_task == "id":
+                from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+                face_helper = FaceRestoreHelper(
+                    upscale_factor=1,
+                    face_size=512,
+                    crop_ratio=(1, 1),
+                    det_model='retinaface_resnet50',
+                    save_ext='png',
+                    device=device,
+                )
+                ref_image = resize_numpy_image_long(ref_image, 1024)
+                ref_image = get_align_face(ref_image,face_helper)
+            elif ref_task != "style": # ip
+                from .DreamO.tools import BEN2
+                bg_rm_model = BEN2.BEN_Base().to(device).eval()
+                #hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='models')
+                bg_rm_model.loadcheckpoints(BEN2_path)
+                ref_image = bg_rm_model.inference(ref_image) #NEED TO CHECK
+            if ref_task != "id":
+                ref_image = resize_numpy_image_area(np.array(ref_image), ref_res * ref_res)
+                
+            #debug_images.append(ref_image)
+            ref_image = img2tensor(ref_image, bgr2rgb=False).unsqueeze(0) / 255.0
+            ref_image = 2 * ref_image - 1.0
+            ref_conds.append(
+                {
+                    'img': ref_image,
+                    'task': ref_task,
+                    'idx': idx + 1,
+                }
+            )
+    return ref_conds
