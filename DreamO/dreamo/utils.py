@@ -117,6 +117,16 @@ def resize_numpy_image_area(image, area=512 * 512):
     image = cv2.resize(image, (w, h), interpolation=cv2.INTER_AREA)
     return image
 
+def resize_numpy_image_long(image, long_edge=768):
+    h, w = image.shape[:2]
+    if max(h, w) <= long_edge:
+        return image
+    k = long_edge / max(h, w)
+    h = int(h * k)
+    w = int(w * k)
+    image = cv2.resize(image, (w, h), interpolation=cv2.INTER_AREA)
+    return image
+
 
 # reference: https://github.com/huggingface/diffusers/pull/9295/files
 def convert_flux_lora_to_diffusers(old_state_dict):
