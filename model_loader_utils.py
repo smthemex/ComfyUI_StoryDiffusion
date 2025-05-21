@@ -2780,17 +2780,9 @@ def instant_character_id_clip(subject_image,siglip_image_encoder,siglip_image_pr
 def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device):
     from .DreamO.dreamo.dreamo_pipeline import DreamOPipeline
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
-    vae=convert_cfvae2diffuser(VAE,use_flux=True)
-    if cf_model.get("use_svdq") :
-        print("use svdq")
-        from nunchaku import NunchakuFluxTransformer2dModel    
-        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
-        try:
-            transformer.set_attention_impl("nunchaku-fp16")
-        except:
-            pass
-        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
-    elif cf_model.get("use_gguf"):
+    #vae=convert_cfvae2diffuser(VAE,use_flux=True)
+    
+    if cf_model.get("use_gguf"): #get error
         print("use gguf quantization")
         if cf_model.get("model_path") is None:
             raise "need chocie a  gguf model in EasyFunction_Lite!"
@@ -2801,10 +2793,20 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             torch_dtype=torch.bfloat16,
         )
-        vae=convert_cfvae2diffuser(VAE,use_flux=True)   
-        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+    elif cf_model.get("use_svdq") :#get error
+        print("use svdq")
+        from nunchaku import NunchakuFluxTransformer2dModel    
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        try:
+            transformer.set_attention_impl("nunchaku-fp16")
+        except:
+            pass
+        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,use_svdq=True)
     elif cf_model.get("use_unet"):
-
+        print("use single unet")
         if quantize_mode=="fp8":
             transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
                                                                             torch_dtype=torch.bfloat16)
@@ -2816,35 +2818,42 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             transformer.load_state_dict(t_state_dict, strict=False)
             del t_state_dict
             gc_cleanup()
-        vae=convert_cfvae2diffuser(VAE,use_flux=True)
-        dreamo_pipeline = DreamOPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"), vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
     else:
         print(f"use {quantize_mode} quantization") 
         if quantize_mode=="fp8":
-            transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
-                subfolder="transformer",
-                quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
-                torch_dtype=torch.bfloat16,
-            )
-                   
-        elif quantize_mode=="nf4": #nf4
-            transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
-                subfolder="transformer",
-                quantization_config=DiffusersBitsAndBytesConfig(
-                    load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
-                ),
-                torch_dtype=torch.bfloat16,)
-        else:
-            transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
-                subfolder="transformer",
-                 torch_dtype=torch.bfloat16,
-                )
-        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
-    
-    dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+            # transformer = FluxTransformer2DModel.from_pretrained(
+            #     cf_model.get("extra_repo"),
+            #     subfolder="transformer",
+            #     quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
+            #     torch_dtype=torch.bfloat16,
+            # )
+            dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), torch_dtype=torch.bfloat16)
+            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+            from optimum.quanto import freeze, qint8, quantize
+            quantize(dreamo_pipeline.transformer, qint8)
+            freeze(dreamo_pipeline.transformer)
+            quantize(dreamo_pipeline.text_encoder_2, qint8)
+            freeze(dreamo_pipeline.text_encoder_2)  
+        
+        else:    
+            if quantize_mode=="nf4": #nf4
+                transformer = FluxTransformer2DModel.from_pretrained(
+                    cf_model.get("extra_repo"),
+                    subfolder="transformer",
+                    quantization_config=DiffusersBitsAndBytesConfig(
+                        load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                    ),
+                    torch_dtype=torch.bfloat16,)
+            else:
+                transformer = FluxTransformer2DModel.from_pretrained(
+                    cf_model.get("extra_repo"),
+                    subfolder="transformer",
+                        torch_dtype=torch.bfloat16,
+                    )
+            dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
     dreamo_pipeline.enable_model_cpu_offload()
     return dreamo_pipeline
 
@@ -2899,10 +2908,11 @@ def Dreamo_image_encoder(BEN2_path,ref_image1,ref_image2,ref_task1,ref_task2,ref
                 ref_image = get_align_face(ref_image,face_helper)
             elif ref_task != "style": # ip
                 from .DreamO.tools import BEN2
-                bg_rm_model = BEN2.BEN_Base().to(device).eval()
+                bg_rm_model = BEN2.BEN_Base().to(device).eval() #TODO 反复加载 需要修复
                 #hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='models')
                 bg_rm_model.loadcheckpoints(BEN2_path)
                 ref_image = bg_rm_model.inference(ref_image) #NEED TO CHECK
+                bg_rm_model.to(torch.device('cpu'))
             if ref_task != "id":
                 ref_image = resize_numpy_image_area(np.array(ref_image), ref_res * ref_res)
                 
