@@ -3,15 +3,30 @@
 Using different ID migration methods to make storys in ComfyUI
 ----
 
-* Origin methods from [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker)，[Consistory](https://github.com/NVlabs/consistory),[Kolor](https://github.com/Kwai-Kolors/Kolors),[Pulid](https://github.com/ToTheBeginning/PuLID),[Flux](https://github.com/black-forest-labs/flux),[photomaker](https://github.com/TencentARC/PhotoMaker),[IP-Adapter](https://github.com/tencent-ailab/IP-Adapter), [InfiniteYou](https://github.com/bytedance/InfiniteYou), [UNO](https://github.com/bytedance/UNO),[RealCustom](https://github.com/bytedance/RealCustom),[InstantCharacter](https://github.com/Tencent/InstantCharacter)
+Origin methods from  
+*  [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)
+*  [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),
+*  [StoryMaker](https://github.com/RedAIGC/StoryMaker),
+*  [Consistory](https://github.com/NVlabs/consistory),
+*  [Kolor](https://github.com/Kwai-Kolors/Kolors),
+*  [Pulid](https://github.com/ToTheBeginning/PuLID),
+*  [Flux](https://github.com/black-forest-labs/flux),
+*  [photomaker](https://github.com/TencentARC/PhotoMaker),
+*  [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter),
+*  [InfiniteYou](https://github.com/bytedance/InfiniteYou),
+*  [UNO](https://github.com/bytedance/UNO),
+*  [RealCustom](https://github.com/bytedance/RealCustom),
+*  [InstantCharacter](https://github.com/Tencent/InstantCharacter),
+*  [DreamO](https://github.com/bytedance/DreamO)
 
 
 ## Updates:
-* 2025/04/21
-* 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
-
+* 2025/05/21
+* 新增DreamO的方法IP方法实现，双人同框还未测试，应该是可用的,工作流默认使用的是nf4量化。
+* The IP method implementation of the new dreamo method has not been tested for two people in the same box yet, so it should be available.
  
 ## previous
+* 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
 * 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
 * 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
 * Use the function of UNO to realize the dual roles of the FLUX process in the same frame, the prompt example is shown in the figure;
@@ -175,14 +190,14 @@ or
   download svdquant repo from [here](https://huggingface.co/mit-han-lab/svdq-fp4-flux.1-dev/tree/main) and  fill local path in 'easyfunction_lite' node's 'select_method'
 
 
-**3.7 UNO mode**
+**3.7 UNO mode**  
 download lora [dit_lora.safetensor](https://huggingface.co/bytedance-research/UNO/tree/main),use fp8,if Vram <24.
 ```
 ├── ComfyUI/models/
 |             ├── diffusion_models/flux1-dev.safetensors  #
 |             ├── loras/dit_lora.safetensors # 
 ```
-**3.8 RealCustom mode**
+**3.8 RealCustom mode**  
 download all [bytedance-research/RealCustom](https://huggingface.co/bytedance-research/RealCustom/tree/main/ckpts) 可能要连外网
 ```
 ├── ComfyUI/models/
@@ -193,19 +208,30 @@ download all [bytedance-research/RealCustom](https://huggingface.co/bytedance-re
 |             ├── clipvison/vit_so400m_patch14_siglip_384.bin #vit_so400m_patch14_siglip_384
 |             ├── clipvison/vit_large_patch14_reg4_dinov2.bin #vit_large_patch14_reg4_dinov2.lvd142m 
 ```
-**3.9 InstantCharacter mode**
+**3.9 InstantCharacter mode**  
 download [ instantcharacter_ip-adapter.bin](https://huggingface.co/tencent/InstantCharacter/tree/main)    
 repo：[google/siglip-so400m-patch14-384](https://huggingface.co/google/siglip-so400m-patch14-384/tree/main) and repo：[facebook/dinov2-giant](https://huggingface.co/facebook/dinov2-giant/tree/main)
 
 ```
-├── ComfyUI/models/instantcharacter_ip-adapter.bin
+├── ComfyUI/models/photomaker/instantcharacter_ip-adapter.bin
 ├──  anypath/google/siglip-so400m-patch14-384
 ├──  anypath/facebook/dinov2-giant
 ```
 
-
-
-
+**3.10 DreamO mode**  
+download [dreamo](https://huggingface.co/ByteDance/DreamO/tree/main)  
+flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)  
+ben2 pth :[BEN2_Base.pth](https://huggingface.co/PramaLLC/BEN2/tree/main) or auto 或者自动下载  
+turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimama-creative/FLUX.1-Turbo-Alpha/tree/main)   
+```
+├── ComfyUI/models/loras/
+       ├──dreamo_cfg_distill.safetensors
+       ├──dreamo.safetensors #dreamo_quality_lora_neg.safetensors
+├── ComfyUI/models/photomaker/
+       ├──FLUX.1-Turbo-Alpha.safetensors #rename 重命名的turbo lora
+├──  anypath/black-forest-labs/FLUX.1-dev
+├──  ComfyUI/models//BEN2_Base.pth #or any path
+```
 
 
 
@@ -262,7 +288,10 @@ repo：[google/siglip-so400m-patch14-384](https://huggingface.co/google/siglip-s
 **4.10 InstantCharacter**    
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/InstantCharacter.png" width="50%">
 
-**4.11 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
+**4.11 DreamO**    
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo.png" width="50%">
+ 
+**4.12 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/comfyui_classic.png" width="50%">
 
@@ -400,3 +429,4 @@ svdquant
   year={2025}
 }
 ```
+[DreamO](https://github.com/bytedance/DreamO)
