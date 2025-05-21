@@ -226,7 +226,9 @@ turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimam
 ```
 ├── ComfyUI/models/loras/
        ├──dreamo_cfg_distill.safetensors
-       ├──dreamo.safetensors #dreamo_quality_lora_neg.safetensors
+       ├──dreamo.safetensors
+       ├──dreamo_quality_lora_neg.safetensors #可选，没有也能用，与上两个lora在一个目录即可
+       ├──dreamo_quality_lora_pos.safetensors #可选，没有也能用，与上两个lora在一个目录即可
 ├── ComfyUI/models/photomaker/
        ├──FLUX.1-Turbo-Alpha.safetensors #rename 重命名的turbo lora
 ├──  anypath/black-forest-labs/FLUX.1-dev
