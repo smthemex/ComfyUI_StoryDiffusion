@@ -361,7 +361,8 @@ class StoryDiffusion_CLIPTextEncode:
 
             
         
-        auraface,use_photov2,img2img_mode,cached,inject,onnx_provider=get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infer_mode)
+        auraface,use_photov2,img2img_mode,cached,inject,onnx_provider,dreamo_mode=get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infer_mode)
+        
 
         
         (replace_prompts,role_index_dict,invert_role_index_dict,ref_role_index_dict,ref_role_totals,role_list,role_dict,
@@ -472,11 +473,43 @@ class StoryDiffusion_CLIPTextEncode:
                 if not BEN2_path:
                     BEN2_path= hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='ComfyUI/models')
                 ref_list=tensortopil_list_upscale(image,width,height)
-                task_list=["ip", "id", "style"] #TODO
+                if control_image is not None and dreamo_mode=="id":#如果是id加ip模式，角色可以多次换装，但是要考虑衣服的数量
+                    control_pil_list=tensortopil_list_upscale(control_image,width,height)
+                    if len(control_pil_list) != len(only_role_list):
+                        raise "when use dreamo id + ip,control image must same size as prompts,dreamo的id模式,多少句角色prompt,就要有多少件衣服在control节点输入"
+                    else:
+                        if len(role_list)>1:
+                                nc_dual_list=[]
+                                for i in nc_indexs:
+                                    nc_dual_list.append(i)
+                                for i in positions_index_dual:
+                                    nc_dual_list.append(i) 
+                                adjusted_a = adjust_indices(index_char_1_list, nc_dual_list)
+                                adjusted_b = adjust_indices(index_char_2_list, nc_dual_list)
+                                # print("adjusted_a",adjusted_a)
+                                # print("adjusted_b",adjusted_b)
+                                a_list = [control_pil_list[i] for i in adjusted_a if 0 <= i < len(control_pil_list)]
+                                b_list = [control_pil_list[i] for i in adjusted_b if 0 <= i < len(control_pil_list)]
+
+                                control_pil_list=[a_list,b_list]
+                        else:
+                            control_pil_list=[control_pil_list]
+                else:
+                    control_pil_list=None
+
+                #task_list=["ip", "id", "style"] #TODO,
                 image_emb={}
-                for key,role_img in zip(role_list,ref_list):
-                    role_emb=Dreamo_image_encoder(BEN2_path,role_img,None,task_list[0],task_list[0],ref_res=512) #TODO
-                    image_emb[key]=role_emb
+                if control_pil_list is not None and dreamo_mode=="id":
+                    for key,role_img ,control_list in zip(role_list,ref_list,control_pil_list):
+                        id_role_emb=[]
+                        for i in control_list:
+                            role_emb=Dreamo_image_encoder(BEN2_path,role_img,i,dreamo_mode,"ip",ref_res=512) #TODO
+                            id_role_emb.append(role_emb)
+                        image_emb[key]=id_role_emb
+                else:
+                    for key,role_img in zip(role_list,ref_list):
+                        role_emb=Dreamo_image_encoder(BEN2_path,role_img,None,dreamo_mode,"ip",ref_res=512) #TODO
+                        image_emb[key]=[role_emb]*len(only_role_list) #改成列表方便协同id模式
 
             elif infer_mode == "realcustom":
                
@@ -795,8 +828,8 @@ class StoryDiffusion_CLIPTextEncode:
             if not BEN2_path:
                 BEN2_path= hf_hub_download(repo_id='PramaLLC/BEN2', filename='BEN2_Base.pth', local_dir='ComfyUI/models')
             ref_list=tensortopil_list_upscale(image,width,height)
-            task_list=["ip", "id", "style"] #TODO
-            images_emb=Dreamo_image_encoder(BEN2_path,ref_list[0],ref_list[1],task_list[0],task_list[0],ref_res=512) #TODO
+            #task_list=["ip", "id", "style"] #TODO
+            images_emb=Dreamo_image_encoder(BEN2_path,ref_list[0],ref_list[1],"ip","ip",ref_res=512) #TODO
             prompts_dual=[i.replace(role_list[0] ,role_dict[role_list[0]]) for i in prompts_dual if role_list[0] in i ]
             prompts_dual = [i.replace(role_list[1], role_dict[role_list[1]]) for i in prompts_dual if role_list[1] in i]
             prompts_dual=[apply_style_positive(add_style,i+pos_text)[0] for i in prompts_dual] #[' The figurine  play whith  The pig in the garden,best 8k,RAW']
@@ -932,7 +965,7 @@ class StoryDiffusion_CLIPTextEncode:
         new_dict={
             "id_len":len(role_list),"role_list":role_list,"invert_role_index_dict":invert_role_index_dict,
             "nc_index":nc_indexs,"dual_index":positions_index_dual,"grounding_kwargs":grounding_kwargs,"cross_attention_kwargs":cross_attention_kwargs,
-            "image_embeds":image_emb,"img2img_mode":img2img_mode,"positions_index_char_1":positions_index_char_1,
+            "image_embeds":image_emb,"img2img_mode":img2img_mode,"positions_index_char_1":positions_index_char_1,"dreamo_mode":dreamo_mode,
             "positions_index_char_2":positions_index_char_2,"mask_threshold":mask_threshold,"clip_vision":clip_vision,
             "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"input_id_emb_un_dict":input_id_emb_un_dict,
             "maker_control_image":maker_control_image,"prompt_image_emb":prompt_image_emb,"prompt_image_emb_dual":prompt_image_emb_dual,
@@ -1045,7 +1078,7 @@ class StoryDiffusion_KSampler:
         cached=info.get("cached")
         inject=info.get("inject")
         input_id_images_dict=info.get("input_id_images_dict")
-        
+        dreamo_mode=info.get("dreamo_mode")
         invert_role_index_dict=info.get("invert_role_index_dict")
         latent_init=latent_image["samples"]
         scheduler_choice = get_scheduler(sampler_name, scheduler)
@@ -1581,13 +1614,13 @@ class StoryDiffusion_KSampler:
         
                 first_step_guidance=0
                 for key in role_list: 
-                    for prompt in tqdm(only_role_emb[key],desc=f"Processing {key}"):
+                    for index,prompt in tqdm(enumerate(only_role_emb[key]),desc=f"Processing {key}"):
                         samples = model(prompt=prompt,
                             width=width,
                             height=height,
                             num_inference_steps=steps,
                             guidance_scale=cfg,
-                            ref_conds=image_embeds[key],
+                            ref_conds=image_embeds[key][index],
                             generator=torch.Generator(device="cpu").manual_seed(seed),
                             true_cfg_scale=1,
                             true_cfg_start_step=0,
