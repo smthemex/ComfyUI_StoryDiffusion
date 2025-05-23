@@ -21,9 +21,9 @@ Origin methods from
 
 
 ## Updates:
-* 2025/05/21
-* 新增DreamO的方法IP方法实现，双人同框还未测试，应该是可用的,工作流默认使用的是nf4量化，fp8或者int8模式吃配置，慢很多，效果好一些。
-* The IP method implementation of the new dreamo method has not been tested for two people in the same box yet, so it should be available.
+* 2025/05/23
+* DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
+
  
 ## previous
 * 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
@@ -295,6 +295,10 @@ turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimam
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo.png" width="50%">
  * fp8 unet or int8 and dual roles
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo_int8.png" width="50%">
+  * nf4 style
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo_style.png" width="50%">
+ * nf4 id
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo_id.png" width="50%">
  
 **4.12 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
