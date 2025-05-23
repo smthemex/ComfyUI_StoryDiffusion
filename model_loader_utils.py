@@ -107,6 +107,8 @@ def get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infe
     onnx_provider="gpu"
     img2img_mode = True if isinstance(image, torch.Tensor) else False
 
+    dreamo_mode="ip"
+
     if extra_function:
         extra_function = extra_function.strip().lower()
         if "auraface" in extra_function:
@@ -120,10 +122,15 @@ def get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infe
             inject=True
         if "cpu" in extra_param:
             onnx_provider="cpu"
+        if "id" in extra_param:
+            dreamo_mode="id"
+        elif "style" in extra_param:
+            dreamo_mode="style"
+
     if isinstance(photomake_ckpt_path, str) and img2img_mode:
         use_photov2 = True if "v2" in photomake_ckpt_path else False
 
-    return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider
+    return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider,dreamo_mode
 
 def extract_content_from_brackets(text):
     # 正则表达式匹配多对方括号内的内容
