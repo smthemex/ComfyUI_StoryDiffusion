@@ -1594,6 +1594,8 @@ class StoryDiffusion_KSampler:
                     for emb_list in only_role_emb[key]:
                         samples = model(
                             prompt_embeds=emb_list[0], 
+                            height=height,
+                            width=width,
                             pooled_prompt_embeds=emb_list[1],
                             num_inference_steps=steps,
                             guidance_scale=cfg,
