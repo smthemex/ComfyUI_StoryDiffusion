@@ -1,8 +1,8 @@
 {
   "id": "8c88bdba-81c9-4829-8859-d9e43dcbe853",
   "revision": 0,
-  "last_node_id": 339,
-  "last_link_id": 583,
+  "last_node_id": 329,
+  "last_link_id": 570,
   "nodes": [
     {
       "id": 18,
@@ -16,7 +16,7 @@
         46
       ],
       "flags": {},
-      "order": 191,
+      "order": 183,
       "mode": 2,
       "inputs": [
         {
@@ -57,7 +57,7 @@
         106
       ],
       "flags": {},
-      "order": 151,
+      "order": 143,
       "mode": 2,
       "inputs": [
         {
@@ -108,7 +108,7 @@
         330
       ],
       "flags": {},
-      "order": 171,
+      "order": 163,
       "mode": 2,
       "inputs": [
         {
@@ -151,7 +151,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1513827882,
+        399914557,
         "randomize",
         20,
         7.1000000000000005,
@@ -174,7 +174,7 @@
         517.3723754882812
       ],
       "flags": {},
-      "order": 211,
+      "order": 203,
       "mode": 2,
       "inputs": [
         {
@@ -201,7 +201,7 @@
         330
       ],
       "flags": {},
-      "order": 161,
+      "order": 154,
       "mode": 2,
       "inputs": [
         {
@@ -244,7 +244,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1447212758,
+        963181978,
         "randomize",
         20,
         8,
@@ -267,7 +267,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 201,
+      "order": 194,
       "mode": 2,
       "inputs": [
         {
@@ -294,7 +294,7 @@
         106
       ],
       "flags": {},
-      "order": 141,
+      "order": 134,
       "mode": 2,
       "inputs": [
         {
@@ -382,7 +382,7 @@
         330
       ],
       "flags": {},
-      "order": 162,
+      "order": 155,
       "mode": 2,
       "inputs": [
         {
@@ -425,7 +425,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        690721098,
+        1223401420,
         "randomize",
         20,
         8,
@@ -448,7 +448,7 @@
         106
       ],
       "flags": {},
-      "order": 142,
+      "order": 135,
       "mode": 2,
       "inputs": [
         {
@@ -499,7 +499,7 @@
         46
       ],
       "flags": {},
-      "order": 182,
+      "order": 175,
       "mode": 2,
       "inputs": [
         {
@@ -540,7 +540,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 202,
+      "order": 195,
       "mode": 2,
       "inputs": [
         {
@@ -605,7 +605,7 @@
         46
       ],
       "flags": {},
-      "order": 97,
+      "order": 91,
       "mode": 2,
       "inputs": [
         {
@@ -646,7 +646,7 @@
         46
       ],
       "flags": {},
-      "order": 90,
+      "order": 84,
       "mode": 2,
       "inputs": [
         {
@@ -763,7 +763,7 @@
         46
       ],
       "flags": {},
-      "order": 82,
+      "order": 77,
       "mode": 2,
       "inputs": [
         {
@@ -804,7 +804,7 @@
         106
       ],
       "flags": {},
-      "order": 144,
+      "order": 137,
       "mode": 2,
       "inputs": [
         {
@@ -855,7 +855,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 203,
+      "order": 196,
       "mode": 2,
       "inputs": [
         {
@@ -913,7 +913,7 @@
         620.0560913085938
       ],
       "flags": {},
-      "order": 124,
+      "order": 117,
       "mode": 2,
       "inputs": [
         {
@@ -1016,7 +1016,7 @@
         330
       ],
       "flags": {},
-      "order": 164,
+      "order": 157,
       "mode": 2,
       "inputs": [
         {
@@ -1059,7 +1059,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1112252025,
+        374028495,
         "randomize",
         20,
         8,
@@ -1082,7 +1082,7 @@
         620.0560913085938
       ],
       "flags": {},
-      "order": 123,
+      "order": 116,
       "mode": 2,
       "inputs": [
         {
@@ -1185,7 +1185,7 @@
         330
       ],
       "flags": {},
-      "order": 163,
+      "order": 156,
       "mode": 2,
       "inputs": [
         {
@@ -1228,7 +1228,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        709026945,
+        483613572,
         "randomize",
         20,
         8,
@@ -1251,7 +1251,7 @@
         106
       ],
       "flags": {},
-      "order": 143,
+      "order": 136,
       "mode": 2,
       "inputs": [
         {
@@ -1302,7 +1302,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 204,
+      "order": 197,
       "mode": 2,
       "inputs": [
         {
@@ -1329,7 +1329,7 @@
         46
       ],
       "flags": {},
-      "order": 184,
+      "order": 177,
       "mode": 2,
       "inputs": [
         {
@@ -1370,7 +1370,7 @@
         356.8897705078125
       ],
       "flags": {},
-      "order": 205,
+      "order": 198,
       "mode": 2,
       "inputs": [
         {
@@ -1397,7 +1397,7 @@
         46
       ],
       "flags": {},
-      "order": 185,
+      "order": 178,
       "mode": 2,
       "inputs": [
         {
@@ -1469,7 +1469,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 125,
+      "order": 118,
       "mode": 2,
       "inputs": [
         {
@@ -1572,7 +1572,7 @@
         106
       ],
       "flags": {},
-      "order": 145,
+      "order": 138,
       "mode": 2,
       "inputs": [
         {
@@ -1622,7 +1622,7 @@
         106
       ],
       "flags": {},
-      "order": 140,
+      "order": 133,
       "mode": 2,
       "inputs": [
         {
@@ -1780,7 +1780,7 @@
         46
       ],
       "flags": {},
-      "order": 83,
+      "order": 78,
       "mode": 2,
       "inputs": [
         {
@@ -1821,7 +1821,7 @@
         46
       ],
       "flags": {},
-      "order": 180,
+      "order": 173,
       "mode": 2,
       "inputs": [
         {
@@ -1862,7 +1862,7 @@
         330
       ],
       "flags": {},
-      "order": 160,
+      "order": 153,
       "mode": 2,
       "inputs": [
         {
@@ -1905,7 +1905,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        944002976,
+        1894571252,
         "randomize",
         20,
         8,
@@ -1928,7 +1928,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 120,
+      "order": 113,
       "mode": 2,
       "inputs": [
         {
@@ -2031,7 +2031,7 @@
         106
       ],
       "flags": {},
-      "order": 147,
+      "order": 140,
       "mode": 2,
       "inputs": [
         {
@@ -2082,7 +2082,7 @@
         330
       ],
       "flags": {},
-      "order": 167,
+      "order": 160,
       "mode": 2,
       "inputs": [
         {
@@ -2125,7 +2125,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        804551803,
+        1952808751,
         "randomize",
         20,
         8,
@@ -2148,7 +2148,7 @@
         46
       ],
       "flags": {},
-      "order": 187,
+      "order": 180,
       "mode": 2,
       "inputs": [
         {
@@ -2227,7 +2227,7 @@
         46
       ],
       "flags": {},
-      "order": 195,
+      "order": 187,
       "mode": 2,
       "inputs": [
         {
@@ -2268,7 +2268,7 @@
         494.6758728027344
       ],
       "flags": {},
-      "order": 214,
+      "order": 206,
       "mode": 2,
       "inputs": [
         {
@@ -2295,7 +2295,7 @@
         106
       ],
       "flags": {},
-      "order": 154,
+      "order": 146,
       "mode": 2,
       "inputs": [
         {
@@ -2346,7 +2346,7 @@
         46
       ],
       "flags": {},
-      "order": 194,
+      "order": 186,
       "mode": 2,
       "inputs": [
         {
@@ -2387,7 +2387,7 @@
         330
       ],
       "flags": {},
-      "order": 174,
+      "order": 166,
       "mode": 2,
       "inputs": [
         {
@@ -2430,7 +2430,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1199452833,
+        1342692776,
         "randomize",
         20,
         7.1000000000000005,
@@ -2605,7 +2605,7 @@
         494.6758728027344
       ],
       "flags": {},
-      "order": 210,
+      "order": 202,
       "mode": 2,
       "inputs": [
         {
@@ -2632,7 +2632,7 @@
         218
       ],
       "flags": {},
-      "order": 104,
+      "order": 97,
       "mode": 2,
       "inputs": [
         {
@@ -2694,7 +2694,7 @@
         218
       ],
       "flags": {},
-      "order": 108,
+      "order": 101,
       "mode": 2,
       "inputs": [
         {
@@ -2756,7 +2756,7 @@
         330
       ],
       "flags": {},
-      "order": 170,
+      "order": 162,
       "mode": 2,
       "inputs": [
         {
@@ -2799,7 +2799,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        672009088,
+        91887170,
         "randomize",
         20,
         7.1000000000000005,
@@ -2822,7 +2822,7 @@
         46
       ],
       "flags": {},
-      "order": 190,
+      "order": 182,
       "mode": 2,
       "inputs": [
         {
@@ -2863,7 +2863,7 @@
         106
       ],
       "flags": {},
-      "order": 150,
+      "order": 142,
       "mode": 2,
       "inputs": [
         {
@@ -2914,7 +2914,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 130,
+      "order": 122,
       "mode": 2,
       "inputs": [
         {
@@ -3016,7 +3016,7 @@
         46
       ],
       "flags": {},
-      "order": 85,
+      "order": 80,
       "mode": 2,
       "inputs": [
         {
@@ -3057,7 +3057,7 @@
         218
       ],
       "flags": {},
-      "order": 103,
+      "order": 96,
       "mode": 2,
       "inputs": [
         {
@@ -3186,7 +3186,7 @@
         218
       ],
       "flags": {},
-      "order": 109,
+      "order": 102,
       "mode": 2,
       "inputs": [
         {
@@ -3248,7 +3248,7 @@
         46
       ],
       "flags": {},
-      "order": 86,
+      "order": 81,
       "mode": 2,
       "inputs": [
         {
@@ -3327,7 +3327,7 @@
         330
       ],
       "flags": {},
-      "order": 175,
+      "order": 167,
       "mode": 2,
       "inputs": [
         {
@@ -3370,7 +3370,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        526878943,
+        1850240117,
         "randomize",
         20,
         8,
@@ -3393,7 +3393,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 135,
+      "order": 127,
       "mode": 2,
       "inputs": [
         {
@@ -3495,7 +3495,7 @@
         106
       ],
       "flags": {},
-      "order": 155,
+      "order": 147,
       "mode": 2,
       "inputs": [
         {
@@ -3535,240 +3535,6 @@
       ]
     },
     {
-      "id": 196,
-      "type": "StoryDiffusion_KSampler",
-      "pos": [
-        486.547607421875,
-        6.096909046173096
-      ],
-      "size": [
-        315,
-        330
-      ],
-      "flags": {},
-      "order": 168,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 354
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 355
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 356
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "link": 357
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 319
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "slot_index": 0,
-          "links": [
-            318
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_KSampler"
-      },
-      "widgets_values": [
-        682142271,
-        "randomize",
-        20,
-        7.1000000000000005,
-        "euler",
-        "normal",
-        0.5,
-        0.5,
-        1
-      ]
-    },
-    {
-      "id": 199,
-      "type": "ImageBatch",
-      "pos": [
-        -279.72100830078125,
-        114.4057388305664
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 87,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 320
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 321
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            322
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 201,
-      "type": "LoadImage",
-      "pos": [
-        -686.7171630859375,
-        210.67344665527344
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 17,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            320
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "4.jpg",
-        "image"
-      ]
-    },
-    {
-      "id": 193,
-      "type": "EmptyLatentImage",
-      "pos": [
-        482.091064453125,
-        390.834228515625
-      ],
-      "size": [
-        315,
-        106
-      ],
-      "flags": {},
-      "order": 148,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "width",
-          "type": "INT",
-          "widget": {
-            "name": "width"
-          },
-          "link": 358
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "widget": {
-            "name": "height"
-          },
-          "link": 359
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "slot_index": 0,
-          "links": [
-            319
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EmptyLatentImage"
-      },
-      "widgets_values": [
-        512,
-        512,
-        1
-      ]
-    },
-    {
-      "id": 200,
-      "type": "LoadImage",
-      "pos": [
-        -349.8046569824219,
-        209.42681884765625
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 18,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            321
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "1 (1).jpg",
-        "image"
-      ]
-    },
-    {
       "id": 78,
       "type": "StoryDiffusion_CLIPTextEncode",
       "pos": [
@@ -3780,7 +3546,7 @@
         585.0397338867188
       ],
       "flags": {},
-      "order": 121,
+      "order": 114,
       "mode": 2,
       "inputs": [
         {
@@ -3881,7 +3647,7 @@
         46
       ],
       "flags": {},
-      "order": 181,
+      "order": 174,
       "mode": 2,
       "inputs": [
         {
@@ -3922,7 +3688,7 @@
         98
       ],
       "flags": {},
-      "order": 19,
+      "order": 17,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -3971,7 +3737,7 @@
         98
       ],
       "flags": {},
-      "order": 20,
+      "order": 18,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4020,7 +3786,7 @@
         585.0397338867188
       ],
       "flags": {},
-      "order": 122,
+      "order": 115,
       "mode": 2,
       "inputs": [
         {
@@ -4123,7 +3889,7 @@
         314
       ],
       "flags": {},
-      "order": 21,
+      "order": 19,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4161,7 +3927,7 @@
         218
       ],
       "flags": {},
-      "order": 89,
+      "order": 83,
       "mode": 2,
       "inputs": [
         {
@@ -4223,7 +3989,7 @@
         218
       ],
       "flags": {},
-      "order": 88,
+      "order": 82,
       "mode": 2,
       "inputs": [
         {
@@ -4284,7 +4050,7 @@
         58
       ],
       "flags": {},
-      "order": 22,
+      "order": 20,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4316,7 +4082,7 @@
         98
       ],
       "flags": {},
-      "order": 23,
+      "order": 21,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4365,7 +4131,7 @@
         46
       ],
       "flags": {},
-      "order": 183,
+      "order": 176,
       "mode": 2,
       "inputs": [
         {
@@ -4406,7 +4172,7 @@
         98
       ],
       "flags": {},
-      "order": 24,
+      "order": 22,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4455,7 +4221,7 @@
         218
       ],
       "flags": {},
-      "order": 92,
+      "order": 86,
       "mode": 2,
       "inputs": [
         {
@@ -4517,7 +4283,7 @@
         218
       ],
       "flags": {},
-      "order": 91,
+      "order": 85,
       "mode": 2,
       "inputs": [
         {
@@ -4579,7 +4345,7 @@
         98
       ],
       "flags": {},
-      "order": 25,
+      "order": 23,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4628,7 +4394,7 @@
         330
       ],
       "flags": {},
-      "order": 165,
+      "order": 158,
       "mode": 2,
       "inputs": [
         {
@@ -4671,7 +4437,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        29766764,
+        1153778783,
         "randomize",
         20,
         8,
@@ -4694,7 +4460,7 @@
         98
       ],
       "flags": {},
-      "order": 26,
+      "order": 24,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4743,7 +4509,7 @@
         218
       ],
       "flags": {},
-      "order": 94,
+      "order": 88,
       "mode": 2,
       "inputs": [
         {
@@ -4803,7 +4569,7 @@
         218
       ],
       "flags": {},
-      "order": 93,
+      "order": 87,
       "mode": 2,
       "inputs": [
         {
@@ -4865,7 +4631,7 @@
         58
       ],
       "flags": {},
-      "order": 27,
+      "order": 25,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4897,7 +4663,7 @@
         98
       ],
       "flags": {},
-      "order": 28,
+      "order": 26,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -4946,7 +4712,7 @@
         380.6805725097656
       ],
       "flags": {},
-      "order": 215,
+      "order": 207,
       "mode": 2,
       "inputs": [
         {
@@ -4973,7 +4739,7 @@
         270
       ],
       "flags": {},
-      "order": 200,
+      "order": 193,
       "mode": 2,
       "inputs": [
         {
@@ -4989,147 +4755,18 @@
       ]
     },
     {
-      "id": 195,
-      "type": "VAEDecode",
-      "pos": [
-        463.04925537109375,
-        -237.66851806640625
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 188,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 318
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 401
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "slot_index": 0,
-          "links": [
-            317
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAEDecode"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 192,
-      "type": "SaveImage",
-      "pos": [
-        849.9781494140625,
-        -90.35798645019531
-      ],
-      "size": [
-        466.2174987792969,
-        494.6758728027344
-      ],
-      "flags": {},
-      "order": 208,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 317
-        }
-      ],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "ComfyUI"
-      ]
-    },
-    {
-      "id": 211,
-      "type": "StoryDiffusion_Apply",
-      "pos": [
-        102.5223617553711,
-        -252.74484252929688
-      ],
-      "size": [
-        315,
-        218
-      ],
-      "flags": {},
-      "order": 101,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 477
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 360
-        },
-        {
-          "name": "CLIP_VISION",
-          "shape": 7,
-          "type": "CLIP_VISION",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            354
-          ]
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "links": [
-            353
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_Apply"
-      },
-      "widgets_values": [
-        "kolor_face",
-        "none",
-        "ipa-faceid-plus.bin",
-        "fp8",
-        0.8,
-        ""
-      ]
-    },
-    {
       "id": 224,
       "type": "CheckpointLoaderSimple",
       "pos": [
-        -693.9903564453125,
-        -1526.855712890625
+        -652.6229248046875,
+        -1575.41748046875
       ],
       "size": [
         315,
         98
       ],
       "flags": {},
-      "order": 29,
+      "order": 27,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5169,15 +4806,15 @@
       "id": 225,
       "type": "VAEDecode",
       "pos": [
-        548.9874877929688,
-        -1550.30810546875
+        590.3549194335938,
+        -1598.869873046875
       ],
       "size": [
         210,
         46
       ],
       "flags": {},
-      "order": 186,
+      "order": 179,
       "mode": 2,
       "inputs": [
         {
@@ -5210,15 +4847,15 @@
       "id": 221,
       "type": "StoryDiffusion_CLIPTextEncode",
       "pos": [
-        -264.7960510253906,
-        -1229.2852783203125
+        -223.4285125732422,
+        -1277.8470458984375
       ],
       "size": [
         400,
         528
       ],
       "flags": {},
-      "order": 126,
+      "order": 119,
       "mode": 2,
       "inputs": [
         {
@@ -5313,15 +4950,15 @@
       "id": 228,
       "type": "EmptyLatentImage",
       "pos": [
-        198.9620361328125,
-        -917.135498046875
+        240.32958984375,
+        -965.697265625
       ],
       "size": [
         315,
         106
       ],
       "flags": {},
-      "order": 146,
+      "order": 139,
       "mode": 2,
       "inputs": [
         {
@@ -5363,15 +5000,15 @@
       "id": 223,
       "type": "StoryDiffusion_Apply",
       "pos": [
-        -235.19461059570312,
-        -1550.3555908203125
+        -193.82705688476562,
+        -1598.9173583984375
       ],
       "size": [
         315,
         218
       ],
       "flags": {},
-      "order": 96,
+      "order": 90,
       "mode": 2,
       "inputs": [
         {
@@ -5424,15 +5061,15 @@
       "id": 222,
       "type": "StoryDiffusion_KSampler",
       "pos": [
-        197.4423828125,
-        -1383.6396484375
+        238.8099365234375,
+        -1432.201416015625
       ],
       "size": [
         315,
         330
       ],
       "flags": {},
-      "order": 166,
+      "order": 159,
       "mode": 2,
       "inputs": [
         {
@@ -5475,7 +5112,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1353779955,
+        1892568243,
         "randomize",
         20,
         8,
@@ -5490,15 +5127,15 @@
       "id": 226,
       "type": "SaveImage",
       "pos": [
-        582.58056640625,
-        -1283.6318359375
+        623.947998046875,
+        -1332.193603515625
       ],
       "size": [
         527.1549682617188,
         495.6680603027344
       ],
       "flags": {},
-      "order": 206,
+      "order": 199,
       "mode": 2,
       "inputs": [
         {
@@ -5525,7 +5162,7 @@
         314
       ],
       "flags": {},
-      "order": 30,
+      "order": 28,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5563,7 +5200,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 131,
+      "order": 123,
       "mode": 2,
       "inputs": [
         {
@@ -5665,7 +5302,7 @@
         46
       ],
       "flags": {},
-      "order": 105,
+      "order": 98,
       "mode": 2,
       "inputs": [
         {
@@ -5705,7 +5342,7 @@
         46
       ],
       "flags": {},
-      "order": 98,
+      "order": 92,
       "mode": 2,
       "inputs": [
         {
@@ -5745,7 +5382,7 @@
         314
       ],
       "flags": {},
-      "order": 31,
+      "order": 29,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5783,7 +5420,7 @@
         314
       ],
       "flags": {},
-      "order": 32,
+      "order": 30,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -5821,7 +5458,7 @@
         573.784423828125
       ],
       "flags": {},
-      "order": 127,
+      "order": 120,
       "mode": 2,
       "inputs": [
         {
@@ -5924,7 +5561,7 @@
         404.0027770996094
       ],
       "flags": {},
-      "order": 207,
+      "order": 200,
       "mode": 2,
       "inputs": [
         {
@@ -5951,7 +5588,7 @@
         218
       ],
       "flags": {},
-      "order": 95,
+      "order": 89,
       "mode": 2,
       "inputs": [
         {
@@ -6013,7 +5650,7 @@
         314
       ],
       "flags": {},
-      "order": 33,
+      "order": 31,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6051,7 +5688,7 @@
         314
       ],
       "flags": {},
-      "order": 34,
+      "order": 32,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6089,7 +5726,7 @@
         46
       ],
       "flags": {},
-      "order": 99,
+      "order": 93,
       "mode": 2,
       "inputs": [
         {
@@ -6130,7 +5767,7 @@
         46
       ],
       "flags": {},
-      "order": 189,
+      "order": 181,
       "mode": 2,
       "inputs": [
         {
@@ -6171,7 +5808,7 @@
         218
       ],
       "flags": {},
-      "order": 100,
+      "order": 94,
       "mode": 2,
       "inputs": [
         {
@@ -6233,7 +5870,7 @@
         106
       ],
       "flags": {},
-      "order": 149,
+      "order": 141,
       "mode": 2,
       "inputs": [
         {
@@ -6284,7 +5921,7 @@
         399.93212890625
       ],
       "flags": {},
-      "order": 209,
+      "order": 201,
       "mode": 2,
       "inputs": [
         {
@@ -6311,7 +5948,7 @@
         330
       ],
       "flags": {},
-      "order": 169,
+      "order": 161,
       "mode": 2,
       "inputs": [
         {
@@ -6354,7 +5991,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1133049381,
+        1304395250,
         "randomize",
         20,
         8,
@@ -6377,7 +6014,7 @@
         82
       ],
       "flags": {},
-      "order": 35,
+      "order": 33,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6409,7 +6046,7 @@
         58
       ],
       "flags": {},
-      "order": 36,
+      "order": 34,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6441,7 +6078,7 @@
         566.764404296875
       ],
       "flags": {},
-      "order": 129,
+      "order": 121,
       "mode": 2,
       "inputs": [
         {
@@ -6544,7 +6181,7 @@
         266
       ],
       "flags": {},
-      "order": 37,
+      "order": 35,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6594,7 +6231,7 @@
         314
       ],
       "flags": {},
-      "order": 38,
+      "order": 36,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6632,7 +6269,7 @@
         46
       ],
       "flags": {},
-      "order": 102,
+      "order": 95,
       "mode": 2,
       "inputs": [
         {
@@ -6662,193 +6299,6 @@
       "widgets_values": []
     },
     {
-      "id": 212,
-      "type": "VAELoader",
-      "pos": [
-        -611.9459838867188,
-        66.21088409423828
-      ],
-      "size": [
-        315,
-        58
-      ],
-      "flags": {},
-      "order": 39,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "slot_index": 0,
-          "links": [
-            360,
-            401
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAELoader"
-      },
-      "widgets_values": [
-        "sdxl.vae.safetensors"
-      ]
-    },
-    {
-      "id": 202,
-      "type": "StoryDiffusion_CLIPTextEncode",
-      "pos": [
-        -7.400473594665527,
-        35.74631118774414
-      ],
-      "size": [
-        439.7124328613281,
-        678.6901245117188
-      ],
-      "flags": {},
-      "order": 128,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 476
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "link": 353
-        },
-        {
-          "name": "add_function",
-          "shape": 7,
-          "type": "STORY_CONDITIONING",
-          "link": 475
-        },
-        {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 322
-        },
-        {
-          "name": "control_image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            355
-          ]
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "links": [
-            356
-          ]
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "slot_index": 2,
-          "links": [
-            357
-          ]
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "slot_index": 3,
-          "links": [
-            358
-          ]
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "slot_index": 4,
-          "links": [
-            359
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
-      },
-      "widgets_values": [
-        768,
-        768,
-        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
-        "[Taylor] wake up in the bed ;\n[Lecun] driving a car;\n[NC] a panda walking\n[Taylor] have breakfast by the window;\n[Lecun] and [Taylor]  driving a car;\n",
-        "best",
-        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
-        "best quality",
-        "No_style",
-        0.5,
-        "",
-        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
-      ]
-    },
-    {
-      "id": 269,
-      "type": "EasyFunction_Lite",
-      "pos": [
-        -532.7456665039062,
-        -256.1185302734375
-      ],
-      "size": [
-        315,
-        266
-      ],
-      "flags": {},
-      "order": 40,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            477
-          ]
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "links": [
-            476
-          ]
-        },
-        {
-          "name": "add_function",
-          "type": "STORY_CONDITIONING",
-          "links": [
-            475
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EasyFunction_Lite"
-      },
-      "widgets_values": [
-        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
-        "none",
-        "chatglm3-8bit.safetensors",
-        "clip-vit-large-patch14.safetensors",
-        "none",
-        "clip",
-        "",
-        0.7
-      ]
-    },
-    {
       "id": 253,
       "type": "LoadImage",
       "pos": [
@@ -6860,7 +6310,7 @@
         314
       ],
       "flags": {},
-      "order": 41,
+      "order": 37,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6898,7 +6348,7 @@
         130
       ],
       "flags": {},
-      "order": 42,
+      "order": 38,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -6933,7 +6383,7 @@
         46
       ],
       "flags": {},
-      "order": 84,
+      "order": 79,
       "mode": 2,
       "inputs": [
         {
@@ -6974,7 +6424,7 @@
         58
       ],
       "flags": {},
-      "order": 43,
+      "order": 39,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7007,7 +6457,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 134,
+      "order": 126,
       "mode": 2,
       "inputs": [
         {
@@ -7109,7 +6559,7 @@
         130
       ],
       "flags": {},
-      "order": 44,
+      "order": 40,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7144,7 +6594,7 @@
         58
       ],
       "flags": {},
-      "order": 45,
+      "order": 41,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7177,7 +6627,7 @@
         266
       ],
       "flags": {},
-      "order": 46,
+      "order": 42,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7227,7 +6677,7 @@
         130
       ],
       "flags": {},
-      "order": 47,
+      "order": 43,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7262,7 +6712,7 @@
         58
       ],
       "flags": {},
-      "order": 48,
+      "order": 44,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7295,7 +6745,7 @@
         266
       ],
       "flags": {},
-      "order": 49,
+      "order": 45,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7345,7 +6795,7 @@
         58
       ],
       "flags": {},
-      "order": 50,
+      "order": 46,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7378,7 +6828,7 @@
         314
       ],
       "flags": {},
-      "order": 51,
+      "order": 47,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7416,7 +6866,7 @@
         314
       ],
       "flags": {},
-      "order": 52,
+      "order": 48,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7454,7 +6904,7 @@
         266
       ],
       "flags": {},
-      "order": 53,
+      "order": 49,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7504,7 +6954,7 @@
         218
       ],
       "flags": {},
-      "order": 106,
+      "order": 99,
       "mode": 2,
       "inputs": [
         {
@@ -7565,7 +7015,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 132,
+      "order": 124,
       "mode": 2,
       "inputs": [
         {
@@ -7667,7 +7117,7 @@
         46
       ],
       "flags": {},
-      "order": 192,
+      "order": 184,
       "mode": 2,
       "inputs": [
         {
@@ -7708,7 +7158,7 @@
         330
       ],
       "flags": {},
-      "order": 172,
+      "order": 164,
       "mode": 2,
       "inputs": [
         {
@@ -7751,7 +7201,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        372718857,
+        1929725340,
         "randomize",
         20,
         4,
@@ -7774,7 +7224,7 @@
         106
       ],
       "flags": {},
-      "order": 152,
+      "order": 144,
       "mode": 2,
       "inputs": [
         {
@@ -7824,7 +7274,7 @@
         285.9771728515625
       ],
       "flags": {},
-      "order": 212,
+      "order": 204,
       "mode": 2,
       "inputs": [
         {
@@ -7851,7 +7301,7 @@
         285.9771728515625
       ],
       "flags": {},
-      "order": 213,
+      "order": 205,
       "mode": 2,
       "inputs": [
         {
@@ -7878,7 +7328,7 @@
         314
       ],
       "flags": {},
-      "order": 54,
+      "order": 50,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7916,7 +7366,7 @@
         314
       ],
       "flags": {},
-      "order": 55,
+      "order": 51,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7954,7 +7404,7 @@
         130
       ],
       "flags": {},
-      "order": 56,
+      "order": 52,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -7989,7 +7439,7 @@
         46
       ],
       "flags": {},
-      "order": 107,
+      "order": 100,
       "mode": 2,
       "inputs": [
         {
@@ -8029,7 +7479,7 @@
         330
       ],
       "flags": {},
-      "order": 173,
+      "order": 165,
       "mode": 2,
       "inputs": [
         {
@@ -8072,7 +7522,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1860506485,
+        44450168,
         "randomize",
         20,
         4,
@@ -8095,7 +7545,7 @@
         106
       ],
       "flags": {},
-      "order": 153,
+      "order": 145,
       "mode": 2,
       "inputs": [
         {
@@ -8145,7 +7595,7 @@
         678.6901245117188
       ],
       "flags": {},
-      "order": 133,
+      "order": 125,
       "mode": 2,
       "inputs": [
         {
@@ -8247,7 +7697,7 @@
         46
       ],
       "flags": {},
-      "order": 193,
+      "order": 185,
       "mode": 2,
       "inputs": [
         {
@@ -8288,7 +7738,7 @@
         218
       ],
       "flags": {},
-      "order": 110,
+      "order": 103,
       "mode": 2,
       "inputs": [
         {
@@ -8347,7 +7797,7 @@
         58
       ],
       "flags": {},
-      "order": 57,
+      "order": 53,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8380,7 +7830,7 @@
         130
       ],
       "flags": {},
-      "order": 58,
+      "order": 54,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8415,7 +7865,7 @@
         266
       ],
       "flags": {},
-      "order": 59,
+      "order": 55,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8463,7 +7913,7 @@
         266
       ],
       "flags": {},
-      "order": 60,
+      "order": 56,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8513,7 +7963,7 @@
         266
       ],
       "flags": {},
-      "order": 61,
+      "order": 57,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8563,7 +8013,7 @@
         58
       ],
       "flags": {},
-      "order": 62,
+      "order": 58,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8595,7 +8045,7 @@
         266
       ],
       "flags": {},
-      "order": 63,
+      "order": 59,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8647,7 +8097,7 @@
         218
       ],
       "flags": {},
-      "order": 111,
+      "order": 104,
       "mode": 2,
       "inputs": [
         {
@@ -8707,7 +8157,7 @@
         46
       ],
       "flags": {},
-      "order": 112,
+      "order": 105,
       "mode": 2,
       "inputs": [
         {
@@ -8747,7 +8197,7 @@
         314
       ],
       "flags": {},
-      "order": 64,
+      "order": 60,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8784,7 +8234,7 @@
         314
       ],
       "flags": {},
-      "order": 65,
+      "order": 61,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -8821,7 +8271,7 @@
         588.1945190429688
       ],
       "flags": {},
-      "order": 136,
+      "order": 128,
       "mode": 2,
       "inputs": [
         {
@@ -8919,7 +8369,7 @@
         330
       ],
       "flags": {},
-      "order": 176,
+      "order": 168,
       "mode": 2,
       "inputs": [
         {
@@ -8961,7 +8411,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        1644439860,
+        1399543108,
         "randomize",
         20,
         8,
@@ -8984,7 +8434,7 @@
         106
       ],
       "flags": {},
-      "order": 156,
+      "order": 148,
       "mode": 2,
       "inputs": [
         {
@@ -9023,33 +8473,6 @@
       ]
     },
     {
-      "id": 292,
-      "type": "SaveImage",
-      "pos": [
-        -9868.0205078125,
-        258.2762145996094
-      ],
-      "size": [
-        506.8853759765625,
-        513.3900146484375
-      ],
-      "flags": {},
-      "order": 216,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 511
-        }
-      ],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "ComfyUI"
-      ]
-    },
-    {
       "id": 291,
       "type": "VAEDecode",
       "pos": [
@@ -9061,7 +8484,7 @@
         46
       ],
       "flags": {},
-      "order": 196,
+      "order": 188,
       "mode": 2,
       "inputs": [
         {
@@ -9101,7 +8524,7 @@
         58
       ],
       "flags": {},
-      "order": 66,
+      "order": 62,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -9133,7 +8556,7 @@
         46
       ],
       "flags": {},
-      "order": 113,
+      "order": 106,
       "mode": 2,
       "inputs": [
         {
@@ -9173,7 +8596,7 @@
         314
       ],
       "flags": {},
-      "order": 67,
+      "order": 63,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -9210,7 +8633,7 @@
         314
       ],
       "flags": {},
-      "order": 68,
+      "order": 64,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -9247,7 +8670,7 @@
         330
       ],
       "flags": {},
-      "order": 177,
+      "order": 169,
       "mode": 2,
       "inputs": [
         {
@@ -9289,7 +8712,7 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        916871796,
+        217664186,
         "randomize",
         20,
         8,
@@ -9312,7 +8735,7 @@
         106
       ],
       "flags": {},
-      "order": 157,
+      "order": 149,
       "mode": 2,
       "inputs": [
         {
@@ -9362,7 +8785,7 @@
         513.3900146484375
       ],
       "flags": {},
-      "order": 217,
+      "order": 209,
       "mode": 2,
       "inputs": [
         {
@@ -9389,7 +8812,7 @@
         46
       ],
       "flags": {},
-      "order": 197,
+      "order": 189,
       "mode": 2,
       "inputs": [
         {
@@ -9429,7 +8852,7 @@
         588.1945190429688
       ],
       "flags": {},
-      "order": 137,
+      "order": 129,
       "mode": 2,
       "inputs": [
         {
@@ -9527,7 +8950,7 @@
         266
       ],
       "flags": {},
-      "order": 69,
+      "order": 65,
       "mode": 2,
       "inputs": [],
       "outputs": [
@@ -9579,7 +9002,7 @@
         218
       ],
       "flags": {},
-      "order": 114,
+      "order": 107,
       "mode": 2,
       "inputs": [
         {
@@ -9639,7 +9062,7 @@
         355.9756164550781
       ],
       "flags": {},
-      "order": 70,
+      "order": 66,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -9651,19 +9074,1080 @@
       "bgcolor": "#653"
     },
     {
-      "id": 315,
+      "id": 292,
+      "type": "SaveImage",
+      "pos": [
+        -9868.0205078125,
+        258.2762145996094
+      ],
+      "size": [
+        506.8853759765625,
+        513.3900146484375
+      ],
+      "flags": {},
+      "order": 208,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 511
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 269,
+      "type": "EasyFunction_Lite",
+      "pos": [
+        -532.7456665039062,
+        -256.1185302734375
+      ],
+      "size": [
+        315,
+        266
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            477
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            476
+          ]
+        },
+        {
+          "name": "add_function",
+          "type": "STORY_CONDITIONING",
+          "links": [
+            475
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EasyFunction_Lite"
+      },
+      "widgets_values": [
+        "F:/test/ComfyUI/models/diffusers/Kwai-Kolors/Kolors",
+        "none",
+        "chatglm3-8bit.safetensors",
+        "clip-vit-large-patch14.safetensors",
+        "none",
+        "clip",
+        "",
+        0.7
+      ]
+    },
+    {
+      "id": 211,
+      "type": "StoryDiffusion_Apply",
+      "pos": [
+        102.5223617553711,
+        -252.74484252929688
+      ],
+      "size": [
+        315,
+        218
+      ],
+      "flags": {},
+      "order": 109,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 477
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 360
+        },
+        {
+          "name": "CLIP_VISION",
+          "shape": 7,
+          "type": "CLIP_VISION",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            354
+          ]
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "links": [
+            353
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_Apply"
+      },
+      "widgets_values": [
+        "kolor_face",
+        "none",
+        "ipa-faceid-plus.bin",
+        "fp8",
+        0.8,
+        ""
+      ]
+    },
+    {
+      "id": 202,
+      "type": "StoryDiffusion_CLIPTextEncode",
+      "pos": [
+        -7.400473594665527,
+        35.74631118774414
+      ],
+      "size": [
+        439.7124328613281,
+        678.6901245117188
+      ],
+      "flags": {},
+      "order": 130,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 476
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "link": 353
+        },
+        {
+          "name": "add_function",
+          "shape": 7,
+          "type": "STORY_CONDITIONING",
+          "link": 475
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 322
+        },
+        {
+          "name": "control_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            355
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            356
+          ]
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "slot_index": 2,
+          "links": [
+            357
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "slot_index": 3,
+          "links": [
+            358
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "slot_index": 4,
+          "links": [
+            359
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
+      },
+      "widgets_values": [
+        768,
+        768,
+        "[Taylor] a woman img, wearing a white T-shirt, blue loose hair.\n[Lecun] a man img,wearing a suit,black hair.",
+        "[Taylor] wake up in the bed ;\n[Lecun] driving a car;\n[NC] a panda walking\n[Taylor] have breakfast by the window;\n[Lecun] and [Taylor]  driving a car;\n",
+        "best",
+        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "best quality",
+        "No_style",
+        0.5,
+        "",
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 199,
+      "type": "ImageBatch",
+      "pos": [
+        -279.72100830078125,
+        114.4057388305664
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 108,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 320
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 321
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            322
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 200,
+      "type": "LoadImage",
+      "pos": [
+        -349.8046569824219,
+        209.42681884765625
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            321
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1 (1).jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 201,
+      "type": "LoadImage",
+      "pos": [
+        -686.7171630859375,
+        210.67344665527344
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 69,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            320
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "4.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 212,
+      "type": "VAELoader",
+      "pos": [
+        -611.9459838867188,
+        66.21088409423828
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 0,
+          "links": [
+            360,
+            401
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "sdxl.vae.safetensors"
+      ]
+    },
+    {
+      "id": 196,
       "type": "StoryDiffusion_KSampler",
       "pos": [
-        -10270,
-        -1570
+        486.547607421875,
+        6.096909046173096
       ],
       "size": [
         315,
         330
       ],
       "flags": {},
-      "order": 198,
-      "mode": 0,
+      "order": 170,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 354
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 355
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 356
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "link": 357
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 319
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            318
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_KSampler"
+      },
+      "widgets_values": [
+        1475136272,
+        "randomize",
+        20,
+        7.1000000000000005,
+        "euler",
+        "normal",
+        0.5,
+        0.5,
+        1
+      ]
+    },
+    {
+      "id": 195,
+      "type": "VAEDecode",
+      "pos": [
+        463.04925537109375,
+        -237.66851806640625
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 190,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 318
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 401
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            317
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 193,
+      "type": "EmptyLatentImage",
+      "pos": [
+        482.091064453125,
+        390.834228515625
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 150,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 358
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 359
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            319
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 192,
+      "type": "SaveImage",
+      "pos": [
+        849.9781494140625,
+        -90.35798645019531
+      ],
+      "size": [
+        466.2174987792969,
+        494.6758728027344
+      ],
+      "flags": {},
+      "order": 210,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 317
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 314,
+      "type": "VAELoader",
+      "pos": [
+        -501.05157470703125,
+        1718.13427734375
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 0,
+          "links": [
+            536,
+            549
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 308,
+      "type": "EasyFunction_Lite",
+      "pos": [
+        -421.8510437011719,
+        1395.804931640625
+      ],
+      "size": [
+        315,
+        266
+      ],
+      "flags": {},
+      "order": 72,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            535
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            537
+          ]
+        },
+        {
+          "name": "add_function",
+          "type": "STORY_CONDITIONING",
+          "links": [
+            539
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EasyFunction_Lite"
+      },
+      "widgets_values": [
+        "F:\\test\\ComfyUI\\models\\diffusers\\ByteDance-Seed\\BAGEL-7B-MoT",
+        "none",
+        "none",
+        "none",
+        "none",
+        "none",
+        "",
+        0.7
+      ]
+    },
+    {
+      "id": 311,
+      "type": "ImageBatch",
+      "pos": [
+        -146.49078369140625,
+        1770.79638671875
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 111,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 541
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 542
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            540
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageBatch"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 312,
+      "type": "LoadImage",
+      "pos": [
+        -238.91000366210938,
+        1874.7518310546875
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            542
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1 (1).jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 316,
+      "type": "VAEDecode",
+      "pos": [
+        610.7974243164062,
+        1522.360107421875
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 191,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 548
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 549
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            552
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 309,
+      "type": "StoryDiffusion_Apply",
+      "pos": [
+        125.70499420166016,
+        1416.3775634765625
+      ],
+      "size": [
+        315,
+        218
+      ],
+      "flags": {},
+      "order": 110,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 535
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 536
+        },
+        {
+          "name": "CLIP_VISION",
+          "shape": 7,
+          "type": "CLIP_VISION",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            543
+          ]
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "links": [
+            538
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_Apply"
+      },
+      "widgets_values": [
+        "bagel_edit",
+        "none",
+        "none",
+        "nf4",
+        0.8,
+        ""
+      ]
+    },
+    {
+      "id": 310,
+      "type": "StoryDiffusion_CLIPTextEncode",
+      "pos": [
+        103.494140625,
+        1687.669677734375
+      ],
+      "size": [
+        435.6513977050781,
+        628.9425659179688
+      ],
+      "flags": {},
+      "order": 131,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 537
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "link": 538
+        },
+        {
+          "name": "add_function",
+          "shape": 7,
+          "type": "STORY_CONDITIONING",
+          "link": 539
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 540
+        },
+        {
+          "name": "control_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            544
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            545
+          ]
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "slot_index": 2,
+          "links": [
+            546
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "slot_index": 3,
+          "links": [
+            550
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "slot_index": 4,
+          "links": [
+            551
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "[Taylor] a woman img.\n[Lecun] a man img.",
+        "[Taylor] wake up in the bed,has same clothes;\n[Lecun] driving a car,has same clothes;\n",
+        "best",
+        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "best quality",
+        "No_style",
+        0.5,
+        "",
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 313,
+      "type": "LoadImage",
+      "pos": [
+        -643.7376098632812,
+        1836.2706298828125
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 74,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            541
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "4.jpg",
+        "image"
+      ]
+    },
+    {
+      "id": 318,
+      "type": "SaveImage",
+      "pos": [
+        931.389404296875,
+        1579.9923095703125
+      ],
+      "size": [
+        466.2174987792969,
+        494.6758728027344
+      ],
+      "flags": {},
+      "order": 211,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 552
+        }
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
+      "id": 317,
+      "type": "EmptyLatentImage",
+      "pos": [
+        620.0116577148438,
+        2041.5291748046875
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 151,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 550
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 551
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            547
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        512,
+        512,
+        1
+      ]
+    },
+    {
+      "id": 315,
+      "type": "StoryDiffusion_KSampler",
+      "pos": [
+        597.442138671875,
+        1658.020263671875
+      ],
+      "size": [
+        315,
+        330
+      ],
+      "flags": {},
+      "order": 171,
+      "mode": 2,
       "inputs": [
         {
           "name": "model",
@@ -9695,8 +10179,9 @@
         {
           "name": "LATENT",
           "type": "LATENT",
+          "slot_index": 0,
           "links": [
-            551
+            548
           ]
         }
       ],
@@ -9704,10 +10189,10 @@
         "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        2077435997,
+        1871959400,
         "randomize",
-        20,
-        8,
+        25,
+        4,
         "euler",
         "normal",
         0.5,
@@ -9716,203 +10201,69 @@
       ]
     },
     {
-      "id": 316,
-      "type": "EmptyLatentImage",
-      "pos": [
-        -10300,
-        -1100
-      ],
-      "size": [
-        315,
-        106
-      ],
-      "flags": {},
-      "order": 178,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "width",
-          "type": "INT",
-          "widget": {
-            "name": "width"
-          },
-          "link": 548
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "widget": {
-            "name": "height"
-          },
-          "link": 549
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            547
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EmptyLatentImage"
-      },
-      "widgets_values": [
-        512,
-        512,
-        1
-      ]
-    },
-    {
-      "id": 318,
+      "id": 323,
       "type": "VAEDecode",
       "pos": [
-        -9850,
-        -1340
+        654.3922119140625,
+        2801.8505859375
       ],
       "size": [
         210,
         46
       ],
       "flags": {},
-      "order": 218,
-      "mode": 0,
+      "order": 192,
+      "mode": 2,
       "inputs": [
         {
           "name": "samples",
           "type": "LATENT",
-          "link": 551
+          "link": 555
         },
         {
           "name": "vae",
           "type": "VAE",
-          "link": 552
+          "link": 556
         }
       ],
       "outputs": [
         {
           "name": "IMAGE",
           "type": "IMAGE",
+          "slot_index": 0,
           "links": [
-            550
+            563
           ]
         }
       ],
       "properties": {
         "Node name for S&R": "VAEDecode"
-      },
-      "widgets_values": []
+      }
     },
     {
-      "id": 308,
-      "type": "VAELoader",
-      "pos": [
-        -11566.4833984375,
-        -1719.996337890625
-      ],
-      "size": [
-        315,
-        58
-      ],
-      "flags": {},
-      "order": 71,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            536,
-            552
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAELoader"
-      },
-      "widgets_values": [
-        "ae.safetensors"
-      ]
-    },
-    {
-      "id": 309,
-      "type": "EasyFunction_Lite",
-      "pos": [
-        -11580.9462890625,
-        -1583.3741455078125
-      ],
-      "size": [
-        330,
-        266
-      ],
-      "flags": {},
-      "order": 72,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            535
-          ]
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "links": [
-            539
-          ]
-        },
-        {
-          "name": "add_function",
-          "type": "STORY_CONDITIONING",
-          "links": [
-            541
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EasyFunction_Lite"
-      },
-      "widgets_values": [
-        "F:\\test\\ComfyUI\\models\\diffusers\\black-forest-labs\\FLUX.1-dev",
-        "none",
-        "none",
-        "dreamo.safetensors",
-        "dreamo_cfg_distill.safetensors",
-        "none",
-        "",
-        0.7
-      ]
-    },
-    {
-      "id": 310,
+      "id": 324,
       "type": "StoryDiffusion_Apply",
       "pos": [
-        -11108.91796875,
-        -1730.267578125
+        169.29977416992188,
+        2695.8681640625
       ],
       "size": [
         315,
         218
       ],
       "flags": {},
-      "order": 115,
-      "mode": 0,
+      "order": 112,
+      "mode": 2,
       "inputs": [
         {
           "name": "model",
           "type": "MODEL",
-          "link": 535
+          "link": 557
         },
         {
           "name": "vae",
           "type": "VAE",
-          "link": 536
+          "link": 558
         },
         {
           "name": "CLIP_VISION",
@@ -9925,15 +10276,16 @@
         {
           "name": "model",
           "type": "MODEL",
+          "slot_index": 0,
           "links": [
-            543
+            566
           ]
         },
         {
           "name": "switch",
           "type": "DIFFCONDI",
           "links": [
-            540
+            560
           ]
         }
       ],
@@ -9941,104 +10293,27 @@
         "Node name for S&R": "StoryDiffusion_Apply"
       },
       "widgets_values": [
-        "dreamo",
+        "bagel_edit",
         "none",
-        "FLUX.1-Turbo-Alpha.safetensors",
+        "none",
         "nf4",
         0.8,
         ""
       ]
     },
     {
-      "id": 311,
-      "type": "ImageBatch",
-      "pos": [
-        -11090.8095703125,
-        -1444.318115234375
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 116,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 537
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 538
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            542
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 313,
-      "type": "LoadImage",
-      "pos": [
-        -11657.0224609375,
-        -1259.8587646484375
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 73,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            537
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "4.jpg",
-        "image"
-      ]
-    },
-    {
-      "id": 323,
+      "id": 328,
       "type": "EmptyLatentImage",
       "pos": [
-        -10320,
-        -2440
+        663.6065673828125,
+        3321.019775390625
       ],
       "size": [
         315,
         106
       ],
       "flags": {},
-      "order": 159,
+      "order": 152,
       "mode": 2,
       "inputs": [
         {
@@ -10047,7 +10322,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 561
+          "link": 564
         },
         {
           "name": "height",
@@ -10055,15 +10330,16 @@
           "widget": {
             "name": "height"
           },
-          "link": 562
+          "link": 565
         }
       ],
       "outputs": [
         {
           "name": "LATENT",
           "type": "LATENT",
+          "slot_index": 0,
           "links": [
-            560
+            570
           ]
         }
       ],
@@ -10077,740 +10353,18 @@
       ]
     },
     {
-      "id": 324,
-      "type": "SaveImage",
-      "pos": [
-        -9940,
-        -2540
-      ],
-      "size": [
-        506.8853759765625,
-        513.3900146484375
-      ],
-      "flags": {},
-      "order": 219,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 563
-        }
-      ],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "ComfyUI"
-      ]
-    },
-    {
-      "id": 325,
-      "type": "VAEDecode",
-      "pos": [
-        -9870,
-        -2680
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 199,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "samples",
-          "type": "LATENT",
-          "link": 564
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 565
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            563
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VAEDecode"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 322,
+      "id": 329,
       "type": "StoryDiffusion_KSampler",
       "pos": [
-        -10290,
-        -2910
+        641.0369873046875,
+        2937.5107421875
       ],
       "size": [
         315,
         330
       ],
       "flags": {},
-      "order": 179,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 556
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 557
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 558
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "link": 559
-        },
-        {
-          "name": "latent_image",
-          "type": "LATENT",
-          "link": 560
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            564
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_KSampler"
-      },
-      "widgets_values": [
-        1202767124,
-        "randomize",
-        20,
-        8,
-        "euler",
-        "normal",
-        0.5,
-        0.5,
-        1
-      ]
-    },
-    {
-      "id": 312,
-      "type": "LoadImage",
-      "pos": [
-        -11267.0205078125,
-        -1268.3721923828125
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 74,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            538
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "hinton.jpeg",
-        "image"
-      ]
-    },
-    {
-      "id": 320,
-      "type": "LoadImage",
-      "pos": [
-        -11767.2890625,
-        -908.7451171875
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 75,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            554
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "dress.png",
-        "image"
-      ]
-    },
-    {
-      "id": 321,
-      "type": "LoadImage",
-      "pos": [
-        -11474.046875,
-        -825.27099609375
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 76,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            555
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "shirt.png",
-        "image"
-      ]
-    },
-    {
-      "id": 319,
-      "type": "ImageBatch",
-      "pos": [
-        -11064.46875,
-        -878.4054565429688
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 117,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 554
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 555
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            579
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 337,
-      "type": "ImageBatch",
-      "pos": [
-        -10932.0126953125,
-        -1233.8065185546875
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 138,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 579
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 580
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            581
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 338,
-      "type": "LoadImage",
-      "pos": [
-        -11087.9111328125,
-        -758.0772094726562
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 77,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            582
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "shirt.png",
-        "image"
-      ]
-    },
-    {
-      "id": 339,
-      "type": "LoadImage",
-      "pos": [
-        -10678.5986328125,
-        -756.0501098632812
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 78,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            583
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "dress.png",
-        "image"
-      ]
-    },
-    {
-      "id": 336,
-      "type": "ImageBatch",
-      "pos": [
-        -10742.048828125,
-        -868.5256958007812
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 118,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 582
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 583
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            580
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 314,
-      "type": "StoryDiffusion_CLIPTextEncode",
-      "pos": [
-        -10750,
-        -1510
-      ],
-      "size": [
-        415.969970703125,
-        588.1945190429688
-      ],
-      "flags": {},
-      "order": 158,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 539
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "link": 540
-        },
-        {
-          "name": "add_function",
-          "shape": 7,
-          "type": "STORY_CONDITIONING",
-          "link": 541
-        },
-        {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 542
-        },
-        {
-          "name": "control_image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 581
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            544
-          ]
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "links": [
-            545
-          ]
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "links": [
-            546
-          ]
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "links": [
-            548
-          ]
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "links": [
-            549
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
-      },
-      "widgets_values": [
-        512,
-        512,
-        "[Taylor] a woman img,\n[Lecun] a man img,",
-        "[Taylor]  wearing a dress ,is smile ;\n[Lecun] wearing a T-shirt,have breakfast by the window;\n[Taylor]  wearing a T-shirt,is smile ;\n[Lecun] wearing a dress  have breakfast by the window;",
-        ",best",
-        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
-        "best quality",
-        "No_style",
-        0.5,
-        "id",
-        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
-      ]
-    },
-    {
-      "id": 330,
-      "type": "StoryDiffusion_CLIPTextEncode",
-      "pos": [
-        -10770,
-        -2850
-      ],
-      "size": [
-        415.969970703125,
-        588.1945190429688
-      ],
-      "flags": {},
-      "order": 139,
-      "mode": 2,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 570
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "link": 571
-        },
-        {
-          "name": "add_function",
-          "shape": 7,
-          "type": "STORY_CONDITIONING",
-          "link": 572
-        },
-        {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 578
-        },
-        {
-          "name": "control_image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            557
-          ]
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "links": [
-            558
-          ]
-        },
-        {
-          "name": "info",
-          "type": "DIFFINFO",
-          "links": [
-            559
-          ]
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "links": [
-            561
-          ]
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "links": [
-            562
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
-      },
-      "widgets_values": [
-        768,
-        768,
-        "[A] generate a same style image. A rooster wearing overalls.",
-        "[A] best quality ;\n",
-        ",best",
-        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
-        "best quality",
-        "No_style",
-        0.5,
-        "style",
-        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
-      ]
-    },
-    {
-      "id": 331,
-      "type": "LoadImage",
-      "pos": [
-        -11180.857421875,
-        -2451.540771484375
-      ],
-      "size": [
-        315,
-        314
-      ],
-      "flags": {},
-      "order": 79,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            578
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "mickey.png",
-        "image"
-      ]
-    },
-    {
-      "id": 327,
-      "type": "EasyFunction_Lite",
-      "pos": [
-        -11582.0146484375,
-        -2673.103271484375
-      ],
-      "size": [
-        330,
-        266
-      ],
-      "flags": {},
-      "order": 80,
-      "mode": 2,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            566
-          ]
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "links": [
-            570
-          ]
-        },
-        {
-          "name": "add_function",
-          "type": "STORY_CONDITIONING",
-          "links": [
-            572
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "EasyFunction_Lite"
-      },
-      "widgets_values": [
-        "F:\\test\\ComfyUI\\models\\diffusers\\black-forest-labs\\FLUX.1-dev",
-        "none",
-        "none",
-        "dreamo.safetensors",
-        "dreamo_cfg_distill.safetensors",
-        "none",
-        "",
-        0.7
-      ]
-    },
-    {
-      "id": 328,
-      "type": "StoryDiffusion_Apply",
-      "pos": [
-        -11116.919921875,
-        -2945.73388671875
-      ],
-      "size": [
-        315,
-        218
-      ],
-      "flags": {},
-      "order": 119,
+      "order": 172,
       "mode": 2,
       "inputs": [
         {
@@ -10819,67 +10373,74 @@
           "link": 566
         },
         {
-          "name": "vae",
-          "type": "VAE",
+          "name": "positive",
+          "type": "CONDITIONING",
           "link": 567
         },
         {
-          "name": "CLIP_VISION",
-          "shape": 7,
-          "type": "CLIP_VISION",
-          "link": null
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 568
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "link": 569
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 570
         }
       ],
       "outputs": [
         {
-          "name": "model",
-          "type": "MODEL",
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
           "links": [
-            556
-          ]
-        },
-        {
-          "name": "switch",
-          "type": "DIFFCONDI",
-          "links": [
-            571
+            555
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "StoryDiffusion_Apply"
+        "Node name for S&R": "StoryDiffusion_KSampler"
       },
       "widgets_values": [
-        "dreamo",
-        "none",
-        "FLUX.1-Turbo-Alpha.safetensors",
-        "nf4",
-        0.8,
-        ""
+        1316351467,
+        "randomize",
+        25,
+        4,
+        "euler",
+        "normal",
+        0.5,
+        0.5,
+        1
       ]
     },
     {
-      "id": 326,
+      "id": 319,
       "type": "VAELoader",
       "pos": [
-        -11560.37890625,
-        -2896.491943359375
+        -302.0567321777344,
+        3124.648193359375
       ],
       "size": [
         315,
         58
       ],
       "flags": {},
-      "order": 81,
+      "order": 75,
       "mode": 2,
       "inputs": [],
       "outputs": [
         {
           "name": "VAE",
           "type": "VAE",
+          "slot_index": 0,
           "links": [
-            565,
-            567
+            556,
+            558
           ]
         }
       ],
@@ -10891,24 +10452,178 @@
       ]
     },
     {
-      "id": 317,
-      "type": "SaveImage",
+      "id": 320,
+      "type": "EasyFunction_Lite",
       "pos": [
-        -9920,
-        -1200
+        -272.8545837402344,
+        2730.69970703125
       ],
       "size": [
-        506.8853759765625,
-        513.3900146484375
+        315,
+        266
       ],
       "flags": {},
-      "order": 220,
-      "mode": 0,
+      "order": 76,
+      "mode": 2,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            557
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            559
+          ]
+        },
+        {
+          "name": "add_function",
+          "type": "STORY_CONDITIONING",
+          "links": [
+            561
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EasyFunction_Lite"
+      },
+      "widgets_values": [
+        "F:\\test\\ComfyUI\\models\\diffusers\\ByteDance-Seed\\BAGEL-7B-MoT",
+        "none",
+        "none",
+        "none",
+        "none",
+        "none",
+        "",
+        0.7
+      ]
+    },
+    {
+      "id": 325,
+      "type": "StoryDiffusion_CLIPTextEncode",
+      "pos": [
+        118.83414459228516,
+        2972.07373046875
+      ],
+      "size": [
+        435.6513977050781,
+        628.9425659179688
+      ],
+      "flags": {},
+      "order": 132,
+      "mode": 2,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 559
+        },
+        {
+          "name": "switch",
+          "type": "DIFFCONDI",
+          "link": 560
+        },
+        {
+          "name": "add_function",
+          "shape": 7,
+          "type": "STORY_CONDITIONING",
+          "link": 561
+        },
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "control_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            567
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            568
+          ]
+        },
+        {
+          "name": "info",
+          "type": "DIFFINFO",
+          "slot_index": 2,
+          "links": [
+            569
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "slot_index": 3,
+          "links": [
+            564
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "slot_index": 4,
+          "links": [
+            565
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "StoryDiffusion_CLIPTextEncode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "[Taylor] a woman img.\n[Lecun] a man img.",
+        "[Taylor] wake up in the bed,has same clothes;\n[Lecun] driving a car,has same clothes;\n",
+        "best",
+        "bad anatomy, bad hands, missing fingers, extra fingers,three hands, three legs, bad arms, missing legs, missing arms, poorly drawn face, bad face, fused face, cloned face, three crus, fused feet, fused thigh, extra crus, ugly fingers, horn,amputation, disconnected limbs",
+        "best quality",
+        "No_style",
+        0.5,
+        "",
+        "0., 0.25, 0.4, 0.75;0.6, 0.25, 1., 0.75"
+      ]
+    },
+    {
+      "id": 327,
+      "type": "SaveImage",
+      "pos": [
+        974.9842529296875,
+        2859.48291015625
+      ],
+      "size": [
+        466.2174987792969,
+        494.6758728027344
+      ],
+      "flags": {},
+      "order": 212,
+      "mode": 2,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 550
+          "link": 563
         }
       ],
       "outputs": [],
@@ -13353,22 +13068,54 @@
     ],
     [
       535,
-      309,
+      308,
       0,
-      310,
+      309,
       0,
       "MODEL"
     ],
     [
       536,
-      308,
+      314,
       0,
-      310,
+      309,
       1,
       "VAE"
     ],
     [
       537,
+      308,
+      1,
+      310,
+      0,
+      "CLIP"
+    ],
+    [
+      538,
+      309,
+      1,
+      310,
+      1,
+      "DIFFCONDI"
+    ],
+    [
+      539,
+      308,
+      2,
+      310,
+      2,
+      "STORY_CONDITIONING"
+    ],
+    [
+      540,
+      311,
+      0,
+      310,
+      3,
+      "IMAGE"
+    ],
+    [
+      541,
       313,
       0,
       311,
@@ -13376,7 +13123,7 @@
       "IMAGE"
     ],
     [
-      538,
+      542,
       312,
       0,
       311,
@@ -13384,40 +13131,8 @@
       "IMAGE"
     ],
     [
-      539,
-      309,
-      1,
-      314,
-      0,
-      "CLIP"
-    ],
-    [
-      540,
-      310,
-      1,
-      314,
-      1,
-      "DIFFCONDI"
-    ],
-    [
-      541,
-      309,
-      2,
-      314,
-      2,
-      "STORY_CONDITIONING"
-    ],
-    [
-      542,
-      311,
-      0,
-      314,
-      3,
-      "IMAGE"
-    ],
-    [
       543,
-      310,
+      309,
       0,
       315,
       0,
@@ -13425,7 +13140,7 @@
     ],
     [
       544,
-      314,
+      310,
       0,
       315,
       1,
@@ -13433,7 +13148,7 @@
     ],
     [
       545,
-      314,
+      310,
       1,
       315,
       2,
@@ -13441,7 +13156,7 @@
     ],
     [
       546,
-      314,
+      310,
       2,
       315,
       3,
@@ -13449,7 +13164,7 @@
     ],
     [
       547,
-      316,
+      317,
       0,
       315,
       4,
@@ -13457,227 +13172,163 @@
     ],
     [
       548,
-      314,
-      3,
-      316,
-      0,
-      "INT"
-    ],
-    [
-      549,
-      314,
-      4,
-      316,
-      1,
-      "INT"
-    ],
-    [
-      550,
-      318,
-      0,
-      317,
-      0,
-      "IMAGE"
-    ],
-    [
-      551,
       315,
       0,
-      318,
+      316,
       0,
       "LATENT"
     ],
     [
-      552,
-      308,
+      549,
+      314,
       0,
-      318,
+      316,
       1,
       "VAE"
     ],
     [
-      554,
-      320,
+      550,
+      310,
+      3,
+      317,
       0,
-      319,
+      "INT"
+    ],
+    [
+      551,
+      310,
+      4,
+      317,
+      1,
+      "INT"
+    ],
+    [
+      552,
+      316,
+      0,
+      318,
       0,
       "IMAGE"
     ],
     [
       555,
-      321,
+      329,
       0,
-      319,
-      1,
-      "IMAGE"
+      323,
+      0,
+      "LATENT"
     ],
     [
       556,
-      328,
+      319,
       0,
-      322,
+      323,
+      1,
+      "VAE"
+    ],
+    [
+      557,
+      320,
+      0,
+      324,
       0,
       "MODEL"
     ],
     [
-      557,
-      330,
-      0,
-      322,
-      1,
-      "CONDITIONING"
-    ],
-    [
       558,
-      330,
+      319,
+      0,
+      324,
       1,
-      322,
-      2,
-      "CONDITIONING"
+      "VAE"
     ],
     [
       559,
-      330,
-      2,
-      322,
-      3,
-      "DIFFINFO"
+      320,
+      1,
+      325,
+      0,
+      "CLIP"
     ],
     [
       560,
-      323,
-      0,
-      322,
-      4,
-      "LATENT"
+      324,
+      1,
+      325,
+      1,
+      "DIFFCONDI"
     ],
     [
       561,
-      330,
-      3,
-      323,
-      0,
-      "INT"
-    ],
-    [
-      562,
-      330,
-      4,
-      323,
-      1,
-      "INT"
+      320,
+      2,
+      325,
+      2,
+      "STORY_CONDITIONING"
     ],
     [
       563,
-      325,
+      323,
       0,
-      324,
+      327,
       0,
       "IMAGE"
     ],
     [
       564,
-      322,
-      0,
       325,
+      3,
+      328,
       0,
-      "LATENT"
+      "INT"
     ],
     [
       565,
-      326,
-      0,
       325,
+      4,
+      328,
       1,
-      "VAE"
+      "INT"
     ],
     [
       566,
-      327,
+      324,
       0,
-      328,
+      329,
       0,
       "MODEL"
     ],
     [
       567,
-      326,
+      325,
       0,
-      328,
+      329,
       1,
-      "VAE"
+      "CONDITIONING"
+    ],
+    [
+      568,
+      325,
+      1,
+      329,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      569,
+      325,
+      2,
+      329,
+      3,
+      "DIFFINFO"
     ],
     [
       570,
-      327,
-      1,
-      330,
-      0,
-      "CLIP"
-    ],
-    [
-      571,
       328,
-      1,
-      330,
-      1,
-      "DIFFCONDI"
-    ],
-    [
-      572,
-      327,
-      2,
-      330,
-      2,
-      "STORY_CONDITIONING"
-    ],
-    [
-      578,
-      331,
       0,
-      330,
-      3,
-      "IMAGE"
-    ],
-    [
-      579,
-      319,
-      0,
-      337,
-      0,
-      "IMAGE"
-    ],
-    [
-      580,
-      336,
-      0,
-      337,
-      1,
-      "IMAGE"
-    ],
-    [
-      581,
-      337,
-      0,
-      314,
+      329,
       4,
-      "IMAGE"
-    ],
-    [
-      582,
-      338,
-      0,
-      336,
-      0,
-      "IMAGE"
-    ],
-    [
-      583,
-      339,
-      0,
-      336,
-      1,
-      "IMAGE"
+      "LATENT"
     ]
   ],
   "groups": [
@@ -13841,8 +13492,8 @@
       "id": 13,
       "title": "comfyui classic sd1.5 SDXL Flux SD3.5...",
       "bounding": [
-        -702.4773559570312,
-        -1721.9954833984375,
+        -661.1099243164062,
+        -1770.5572509765625,
         1859.2701416015625,
         1044.0970458984375
       ],
@@ -13917,27 +13568,27 @@
     },
     {
       "id": 19,
-      "title": "DreamO id+ip",
+      "title": "Bagel nf4 or fp8 img2img",
       "bounding": [
-        -11771.125,
-        -1863.83935546875,
-        2478.699951171875,
-        1446.368408203125
+        -666.8758544921875,
+        1251.7965087890625,
+        2088.6513671875,
+        1264.9906005859375
       ],
-      "color": "#b58b2a",
+      "color": "#A88",
       "font_size": 24,
       "flags": {}
     },
     {
       "id": 20,
-      "title": "DreamO style",
+      "title": "bagel txt2img",
       "bounding": [
-        -11858.974609375,
-        -3166.23046875,
-        2593.457275390625,
-        1271.67919921875
+        -683.1182861328125,
+        2565.007568359375,
+        2173.44384765625,
+        1201.0010986328125
       ],
-      "color": "#b58b2a",
+      "color": "#A88",
       "font_size": 24,
       "flags": {}
     }
@@ -13945,10 +13596,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.4177248169415722,
+      "scale": 0.13310000000000083,
       "offset": [
-        12558.2614967715,
-        2283.419542787424
+        7198.679652320363,
+        2790.0896732684187
       ]
     },
     "frontendVersion": "1.17.11"

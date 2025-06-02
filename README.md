@@ -18,14 +18,16 @@ Origin methods from
 *  [RealCustom](https://github.com/bytedance/RealCustom),
 *  [InstantCharacter](https://github.com/Tencent/InstantCharacter),
 *  [DreamO](https://github.com/bytedance/DreamO)
+*  [Bagel](https://github.com/ByteDance-Seed/Bagel)
 
 
 ## Updates:
-* 2025/05/23
-* DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
+* 2025/06/02
+*  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
 
  
 ## previous
+* DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
 * 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
 * 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
 * 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
@@ -232,10 +234,18 @@ turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimam
 ├── ComfyUI/models/photomaker/
        ├──FLUX.1-Turbo-Alpha.safetensors #rename 重命名的turbo lora
 ├──  anypath/black-forest-labs/FLUX.1-dev
-├──  ComfyUI/models//BEN2_Base.pth #or any path
+├──  ComfyUI/models/BEN2_Base.pth #or any path
 ```
 
+**3.11 Bagel mode**  
+download [BAGEL-7B-MoT](https://huggingface.co/ByteDance-Seed/BAGEL-7B-MoT/tree/main)  
+```
+├── ComfyUI/models/vae/
+       ├──ae.safetensors # flux or BAGEL-7B-MoT
 
+├──  Any/path/ByteDance-Seed/BAGEL-7B-MoT/
+       ├──all files # 所有文件
+```
 
 4 Example
 ----
@@ -300,7 +310,14 @@ turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimam
  * nf4 id
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo_id.png" width="50%">
  
-**4.12 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
+
+**4.11 Bagel**   
+ * nf4 image2image 
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/bagel_img2img.png" width="50%">
+ * nf4 txt2image
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/bagel_txt2img.png" width="50%">
+
+**4.13 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/comfyui_classic.png" width="50%">
 
@@ -439,3 +456,12 @@ svdquant
 }
 ```
 [DreamO](https://github.com/bytedance/DreamO)
+
+```
+@article{deng2025bagel,
+  title   = {Emerging Properties in Unified Multimodal Pretraining},
+  author  = {Deng, Chaorui and Zhu, Deyao and Li, Kunchang and Gou, Chenhui and Li, Feng and Wang, Zeyu and Zhong, Shu and Yu, Weihao and Nie, Xiaonan and Song, Ziang and Shi, Guang and Fan, Haoqi},
+  journal = {arXiv preprint arXiv:2505.14683},
+  year    = {2025}
+}
+```

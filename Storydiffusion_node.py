@@ -137,7 +137,7 @@ class StoryDiffusion_Apply:
                 {
                     "model": ("MODEL",),
                     "vae": ("VAE",),
-                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","bagel_edit","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
                     "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
                     "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
                     "quantize_mode": ([ "fp8", "nf4","fp16", ],),
@@ -268,6 +268,14 @@ class StoryDiffusion_Apply:
             if dreamo_lora_path is None or cfg_distill_path is None or ipadapter_ckpt_path is None:
                 raise "dreamo need a dreamo lora and cfg distill and turbo lora in ipadapter menu"
             model = Loader_Dreamo(model,vae,quantize_mode,dreamo_lora_path,cfg_distill_path,ipadapter_ckpt_path,device)
+        elif infer_mode == "bagel_edit":
+            from .Bagel.app import load_bagel_model
+            if not isinstance(model,dict) :
+                raise " must link EasyFunction_Lite node "
+            elif repo is None:
+                raise "EasyFunction_Lite node extra_repo must fill bagel repo"
+            max_mem_per_gpu=str(int(total_vram/1000))+"GIB"
+            model = load_bagel_model(repo,quantize_mode,max_mem_per_gpu)
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
 
@@ -426,6 +434,21 @@ class StoryDiffusion_CLIPTextEncode:
         
         only_role_emb_ne,x_1_refs_dict,image_emb,x_1_refs_dual=None,None,None,None
         
+        input_id_images_dict={}
+        image_list=[]
+        
+        if img2img_mode and image is not None:
+             if len(role_list)==1:
+                image_pil=nomarl_upscale(image, width, height)
+                input_id_images_dict[role_list[0]]=image_pil
+                image_list=[image_pil]
+             else:
+                f1, _, _, _ = image.size()
+                img_list = list(torch.chunk(image, chunks=f1))
+                image_list = [nomarl_upscale(img, width, height) for img in img_list]
+                for index, key in enumerate(role_list):
+                    input_id_images_dict[key]=image_list[index]   
+
         if img2img_mode:
             if infer_mode == "story_and_maker" or infer_mode == "story_maker":
                 k1, _, _, _ = image.size()
@@ -466,6 +489,8 @@ class StoryDiffusion_CLIPTextEncode:
 
                 # get emb use insightface
                 pass
+            elif infer_mode == "bagel_edit":
+                image_emb=input_id_images_dict
             elif infer_mode == "dreamo":
                 from .model_loader_utils import Dreamo_image_encoder
                 from huggingface_hub import hf_hub_download
@@ -587,20 +612,7 @@ class StoryDiffusion_CLIPTextEncode:
         else:
             input_id_emb_s_dict,input_id_img_s_dict,input_id_emb_un_dict,input_id_cloth_dict={}, {}, {}, {}
 
-        input_id_images_dict={}
-        image_list=[]
-        
-        if img2img_mode and image is not None:
-             if len(role_list)==1:
-                image_pil=nomarl_upscale(image, width, height)
-                input_id_images_dict[role_list[0]]=image_pil
-                image_list=[image_pil]
-             else:
-                f1, _, _, _ = image.size()
-                img_list = list(torch.chunk(image, chunks=f1))
-                image_list = [nomarl_upscale(img, width, height) for img in img_list]
-                for index, key in enumerate(role_list):
-                    input_id_images_dict[key]=image_list[index]     
+          
 
         # pre clip txt emb
       
@@ -688,7 +700,6 @@ class StoryDiffusion_CLIPTextEncode:
                     inp = prepare_multi_ip_wrapper(clip,prompt=p, ref_imgs=x_1, pe=uno_pe,device=device,h=height,w=width)
                     ip_emb.append(inp)
                 only_role_emb[key]=ip_emb
-
         elif infer_mode=="kolor_face":
             from .model_loader_utils import glm_single_encode
             from .kolors.models.tokenization_chatglm import ChatGLMTokenizer
@@ -727,7 +738,7 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode=="classic": #TODO 逆序的角色会出现iD不匹配，受影响的有story文生图
                     only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
-                elif infer_mode=="dreamo":
+                elif infer_mode=="dreamo" or infer_mode=="bagel_edit":
                     pass # TODO 暂时不支持dreamo
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
@@ -746,7 +757,7 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode!="kolor_face":
                     nc_emb=cf_clip(nc_txt_list, clip, infer_mode,role_list,input_split=False)
-                elif infer_mode=="dreamo":
+                elif infer_mode=="dreamo" or infer_mode=="bagel_edit":
                     pass # TODO 暂时不支持dreamo
                 else:
                     nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
@@ -848,6 +859,12 @@ class StoryDiffusion_CLIPTextEncode:
             for key ,prompts in zip(role_list,inf_list_split):
                 only_role_emb[key]=prompts
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb}
+            negative = neg_text # TODO
+        elif infer_mode=="bagel_edit":
+            only_role_emb={}
+            for key ,prompts in zip(role_list,inf_list_split):
+                only_role_emb[key]=prompts
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
             negative = neg_text # TODO
         elif infer_mode=="realcustom":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
@@ -1594,8 +1611,6 @@ class StoryDiffusion_KSampler:
                     for emb_list in only_role_emb[key]:
                         samples = model(
                             prompt_embeds=emb_list[0], 
-                            height=height,
-                            width=width,
                             pooled_prompt_embeds=emb_list[1],
                             num_inference_steps=steps,
                             guidance_scale=cfg,
@@ -1651,6 +1666,71 @@ class StoryDiffusion_KSampler:
                         ).images
                         samples_list.insert(index, samples)
                 out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                return (out,) 
+            elif infer_mode =="bagel_edit":
+                
+                VAE=info.get("VAE")
+                samples_list = []
+                if img2img_mode:
+                    from .Bagel.app import edit_image
+                    for key in role_list: 
+                        for prompt in only_role_emb[key]:
+                            samples,text_=edit_image(
+                                model,
+                                image=image_embeds[key],
+                                prompt=prompt,
+                                show_thinking=False, 
+                                cfg_text_scale=cfg, 
+                                cfg_img_scale=2.0,
+                                cfg_interval=0.0, 
+                                timestep_shift=3.0,
+                                num_timesteps=steps,
+                                cfg_renorm_min=0.0, 
+                                cfg_renorm_type="text_channel",
+                                max_think_token_n=1024, 
+                                do_sample=False,
+                                text_temperature=0.3,
+                                seed=seed) # tuple (image,str)
+                            print(f'thinking text is {text_}')
+                            samples_list.append(samples)
+                else:
+                    from .Bagel.app import text_to_image
+                    if width==height: #todo
+                        image_ratio="1:1"
+                    elif width/height==0.75:
+                        image_ratio="4:3"
+                    elif width/height==3/4:
+                        image_ratio="3:4"
+                    elif width/height==9/16:
+                        image_ratio="9:16"
+                    elif width/height==16/9:
+                        image_ratio="16:9"
+                    else:
+                        image_ratio="1:1"
+
+                    for key in role_list: 
+                        for prompt in only_role_emb[key]:
+                            samples,text_=text_to_image(
+                                model,
+                                prompt=prompt,
+                                show_thinking=False, 
+                                cfg_text_scale=cfg, 
+                                cfg_interval=0.4,
+                                timestep_shift=3.0,
+                                num_timesteps=steps,
+                                cfg_renorm_min=0.0,
+                                cfg_renorm_type="global",
+                                max_think_token_n=1024,
+                                do_sample=False,
+                                text_temperature=0.3,
+                                seed=seed,
+                                image_ratio=image_ratio) # tuple (image,str)
+                            print(f'thinking text is {text_}')
+                            samples_list.append(samples)
+                            
+                out = {}
+                samples_list=[VAE.encode(phi2narry(pixels)[:,:,:,:3]) for pixels in samples_list] # TODO pil to tensor
                 out["samples"] = torch.cat(samples_list, dim=0)  
                 return (out,) 
             else: #none:
