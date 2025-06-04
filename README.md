@@ -19,10 +19,12 @@ Origin methods from
 *  [InstantCharacter](https://github.com/Tencent/InstantCharacter),
 *  [DreamO](https://github.com/bytedance/DreamO)
 *  [Bagel](https://github.com/ByteDance-Seed/Bagel)
+*  [OmniConsistency](https://github.com/showlab/OmniConsistency)
 
 
 ## Updates:
-* 2025/06/02
+* 2025/06/04
+*  OmniConsistency 并不是ID的迁移，移植过来是方便使用常规flux diffuser加载，内置多种量化方式（还未完善，目前只支持repo加载），12G以下用nf4就好（1024*1024 在12G 50秒一张图），
 *  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
 
  
@@ -247,6 +249,16 @@ download [BAGEL-7B-MoT](https://huggingface.co/ByteDance-Seed/BAGEL-7B-MoT/tree/
        ├──all files # 所有文件
 ```
 
+**3.12 OmniConsistency mode**  
+flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)  
+[OmniConsistency](https://hf-mirror.com/showlab/OmniConsistency/tree/main)
+```
+├── ComfyUI/models/photomaker/
+       ├──OmniConsistency.safetensors # 
+├── ComfyUI/models/loras/
+       ├── any flux loras
+```
+
 4 Example
 ----
 **4.1 story-diffusion**   
@@ -311,11 +323,17 @@ download [BAGEL-7B-MoT](https://huggingface.co/ByteDance-Seed/BAGEL-7B-MoT/tree/
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/dreamo_id.png" width="50%">
  
 
-**4.11 Bagel**   
+**4.12 Bagel**   
  * nf4 image2image 
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/bagel_img2img.png" width="50%">
  * nf4 txt2image
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/bagel_txt2img.png" width="50%">
+
+**4.13 OmniConsistency**   
+ * nf4 image2image  
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/OmniConsistency.png" width="50%">
+
+
 
 **4.13 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
 * any mode SD1.5 SDXL SD3.5 FLUX...
