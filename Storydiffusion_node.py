@@ -137,7 +137,7 @@ class StoryDiffusion_Apply:
                 {
                     "model": ("MODEL",),
                     "vae": ("VAE",),
-                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","bagel_edit","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","flux_omi","bagel_edit","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
                     "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
                     "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
                     "quantize_mode": ([ "fp8", "nf4","fp16", ],),
@@ -276,6 +276,12 @@ class StoryDiffusion_Apply:
                 raise "EasyFunction_Lite node extra_repo must fill bagel repo"
             max_mem_per_gpu=str(int(total_vram/1000))+"GIB"
             model = load_bagel_model(repo,quantize_mode,max_mem_per_gpu)
+        elif infer_mode == "flux_omi":
+            from .model_loader_utils import Loader_Flux_Diffuser
+            if not isinstance(model,dict) :
+                raise " must link EasyFunction_Lite node "  
+            model = Loader_Flux_Diffuser(model,ipadapter_ckpt_path,vae,quantize_mode)
+            
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
 
@@ -490,6 +496,8 @@ class StoryDiffusion_CLIPTextEncode:
                 # get emb use insightface
                 pass
             elif infer_mode == "bagel_edit":
+                image_emb=input_id_images_dict
+            elif infer_mode == "flux_omi":
                 image_emb=input_id_images_dict
             elif infer_mode == "dreamo":
                 from .model_loader_utils import Dreamo_image_encoder
@@ -738,7 +746,7 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode=="classic": #TODO 逆序的角色会出现iD不匹配，受影响的有story文生图
                     only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
-                elif infer_mode=="dreamo" or infer_mode=="bagel_edit":
+                elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or infer_mode=="flux_omi":
                     pass # TODO 暂时不支持dreamo
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
@@ -757,7 +765,7 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode!="kolor_face":
                     nc_emb=cf_clip(nc_txt_list, clip, infer_mode,role_list,input_split=False)
-                elif infer_mode=="dreamo" or infer_mode=="bagel_edit":
+                elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or infer_mode=="flux_omi":
                     pass # TODO 暂时不支持dreamo
                 else:
                     nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
@@ -863,6 +871,12 @@ class StoryDiffusion_CLIPTextEncode:
         elif infer_mode=="bagel_edit":
             only_role_emb={}
             for key ,prompts in zip(role_list,inf_list_split):
+                only_role_emb[key]=prompts
+            postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
+            negative = neg_text # TODO
+        elif infer_mode=="flux_omi":
+            only_role_emb={}
+            for key,prompts in zip(role_list,inf_list_split):
                 only_role_emb[key]=prompts
             postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
             negative = neg_text # TODO
@@ -1733,6 +1747,30 @@ class StoryDiffusion_KSampler:
                 samples_list=[VAE.encode(phi2narry(pixels)[:,:,:,:3]) for pixels in samples_list] # TODO pil to tensor
                 out["samples"] = torch.cat(samples_list, dim=0)  
                 return (out,) 
+            elif infer_mode =="flux_omi":
+                samples_list = []
+                for key in role_list: 
+                    for prompt in only_role_emb[key]:
+                        samples=model(
+                            prompt=prompt,
+                            height=height,
+                            width=width, 
+                            guidance_scale=cfg if cfg==3.5 else 3.5, 
+                            num_inference_steps=steps,
+                            max_sequence_length=512,
+                            generator=torch.Generator("cpu").manual_seed(seed),
+                            spatial_images=[image_embeds[key]],
+                            subject_images=[], #TODO TRY ON
+                            cond_size=512,
+                            ).images
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                # Clear cache after generation
+                from .OmniConsistency.infer import clear_cache
+                clear_cache(model.transformer)
+                return (out,)
             else: #none:
                 return
 
@@ -1792,6 +1830,24 @@ class StoryDiffusion_Lora_Control:
                 if  "blur" in lora_path:
                     loras.append([lora_path, 'anti_blur', 1.0])
                 model.load_loras(loras)
+        elif infer_mode=="flux_omi":
+            if loras != "none":
+                lora_path = folder_paths.get_full_path("loras", loras)
+            else:
+                raise  Exception("InfiniteYou need to select a lora")
+           
+            multi_lora=[lora_path]
+            if switch.get("lora_ckpt_path") is not None:
+                multi_lora.append(switch.get("lora_ckpt_path"))
+            if switch.get("lora_dual_path") is not None:
+                multi_lora.append(switch.get("lora_dual_path"))
+            if switch.get("lora_ckpt_path") is not None and switch.get("lora_dual_path") is not None:
+                from .OmniConsistency.src_inference.lora_helper  import set_multi_lora
+                lora_weights = [1]*len(multi_lora)
+                set_multi_lora(model.transformer, multi_lora, lora_weights=[lora_weights], cond_size=512)
+            else:
+                model.load_lora_weights(lora_path)
+
         switch["controlnet_scale"]=controlnet_scale
         switch["controlnet"]=controlnet
         switch["use_lora"]=use_lora
