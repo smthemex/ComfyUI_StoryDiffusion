@@ -2934,3 +2934,96 @@ def Dreamo_image_encoder(BEN2_path,ref_image1,ref_image2,ref_task1,ref_task2,ref
                 }
             )
     return ref_conds
+
+def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
+    from .OmniConsistency.src_inference.pipeline import FluxPipeline as FluxPipeline_dif
+    from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
+    from .OmniConsistency.src_inference.lora_helper import set_single_lora
+    flux_dif_repo=os.path.join(cur_path,"config/FLUX.1-dev")
+    if cf_model.get("use_gguf"): 
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        print("use gguf quantization")
+        if cf_model.get("model_path") is None:
+            raise "need chocie a  gguf model in EasyFunction_Lite!"
+        from diffusers import  GGUFQuantizationConfig
+        transformer = FluxPipeline_dif.from_single_file(
+            cf_model.get("model_path"),
+            config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
+            quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
+            torch_dtype=torch.bfloat16,
+        )
+        pipeline = FluxPipeline_dif.from_pretrained(flux_dif_repo, vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+       
+    elif cf_model.get("use_svdq") :
+        print("use svdq")
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        from nunchaku import NunchakuFluxTransformer2dModel    
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        try:
+            transformer.set_attention_impl("nunchaku-fp16")
+        except:
+            pass
+        pipeline = FluxPipeline_dif.from_pretrained(flux_dif_repo, vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+       
+    elif cf_model.get("use_unet"):
+        print("use single unet")
+        vae=convert_cfvae2diffuser(VAE,use_flux=True)
+        if quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+                                                                            torch_dtype=torch.bfloat16)
+        else:
+            from safetensors.torch import load_file
+            t_state_dict=load_file(cf_model.get("model_path"))
+            unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
+            transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
+            transformer.load_state_dict(t_state_dict, strict=False)
+            del t_state_dict
+            gc_cleanup()
+        pipeline = FluxPipeline_dif.from_pretrained(flux_dif_repo, vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
+        
+    else:
+        print(f"use {quantize_mode} quantization") 
+         
+        if quantize_mode=="nf4": #nf4
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(
+                    load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
+                ),
+                torch_dtype=torch.bfloat16,)
+        elif quantize_mode=="fp8":
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
+                torch_dtype=torch.bfloat16,
+            )
+        else:
+            transformer = FluxTransformer2DModel.from_pretrained(
+                cf_model.get("extra_repo"),
+                subfolder="transformer",
+                    torch_dtype=torch.bfloat16,
+                )
+        pipeline = FluxPipeline_dif.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,torch_dtype=torch.bfloat16)
+    
+    multi_lora=[]
+    if cf_model.get("lora_ckpt_path") is not None:
+        multi_lora.append(cf_model.get("lora_ckpt_path"))
+    if cf_model.get("lora_dual_path") is not None:
+        multi_lora.append(cf_model.get("lora_dual_path"))
+    if multi_lora:
+        if len(multi_lora)==1:
+            set_single_lora(pipeline.transformer, omi_lora_path, lora_weights=[1], cond_size=512)
+            pipeline.unload_lora_weights() 
+            pipeline.load_lora_weights(os.path.dirname(multi_lora[0]),weight_name=os.path.basename(multi_lora[0]))      
+            
+        else:
+            from .OmniConsistency.src_inference.lora_helper  import set_multi_lora
+            lora_weights = [1]*len(multi_lora)
+            set_multi_lora(pipeline.transformer, multi_lora, lora_weights=[[lora_weights]], cond_size=512)
+            pipeline.unload_lora_weights() 
+    else:
+        raise "need chocie a  lora model in EasyFunction_Lite!"
+    pipeline.enable_model_cpu_offload()
+    return pipeline

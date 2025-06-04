@@ -1,0 +1,17 @@
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch
+torchvision
+torchaudio==2.3.1
+diffusers==0.32.2
+easydict==1.13
+einops==0.8.1
+peft==0.14.0
+pillow==11.0.0
+protobuf==5.29.3
+requests==2.32.3
+safetensors==0.5.2
+sentencepiece==0.2.0
+spaces==0.34.1
+transformers==4.49.0
+datasets
+wandb
