@@ -483,3 +483,11 @@ svdquant
   year    = {2025}
 }
 ```
+```
+@inproceedings{Song2025OmniConsistencyLS,
+  title={OmniConsistency: Learning Style-Agnostic Consistency from Paired Stylization Data},
+  author={Yiren Song and Cheng Liu and Mike Zheng Shou},
+  year={2025},
+  url={https://api.semanticscholar.org/CorpusID:278905729}
+}
+```
