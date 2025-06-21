@@ -24,7 +24,7 @@ Origin methods from
 
 ## Updates:
 * 2025/06/21
-* 新增OmniConsistency  单体unet fp8 以及 gguf 的支持,没repo快
+* 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
 
  
 ## previous
