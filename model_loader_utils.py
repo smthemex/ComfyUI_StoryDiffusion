@@ -2937,6 +2937,7 @@ def Dreamo_image_encoder(BEN2_path,ref_image1,ref_image2,ref_task1,ref_task2,ref
 
 def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
     from .OmniConsistency.src_inference.pipeline import FluxPipeline as FluxPipeline_dif
+    from .OmniConsistency.src_inference.pipeline_ import FluxPipeline as FluxPipeline_dif_original
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
     from .OmniConsistency.src_inference.lora_helper import set_single_lora
     flux_dif_repo=os.path.join(cur_path,"config/FLUX.1-dev")
@@ -2946,7 +2947,7 @@ def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
         if cf_model.get("model_path") is None:
             raise "need chocie a  gguf model in EasyFunction_Lite!"
         from diffusers import  GGUFQuantizationConfig
-        transformer = FluxPipeline_dif.from_single_file(
+        transformer = FluxTransformer2DModel.from_single_file(
             cf_model.get("model_path"),
             config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
@@ -3005,7 +3006,7 @@ def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
                 subfolder="transformer",
                     torch_dtype=torch.bfloat16,
                 )
-        pipeline = FluxPipeline_dif.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,torch_dtype=torch.bfloat16)
+        pipeline = FluxPipeline_dif_original.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,torch_dtype=torch.bfloat16)
     
     multi_lora=[]
     if cf_model.get("lora_ckpt_path") is not None:
