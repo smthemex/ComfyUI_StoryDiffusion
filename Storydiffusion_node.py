@@ -168,7 +168,7 @@ class StoryDiffusion_Apply:
         clip_vision_path_dual=model.get("clip_vision_path_dual") if isinstance(model,dict) else None
         repo=model.get("extra_repo") if isinstance(model,dict) else None
 
-        vae_encoder,vae_downsample_factor,vae_config,vision_model_config_ar,image_proj_model,CLIP_VISION_2=None,None,None,None,None,None
+        vae_encoder,vae_downsample_factor,vae_config,vision_model_config_ar,image_proj_model,CLIP_VISION_2,no_dif_quantization=None,None,None,None,None,None,False
     
         CLIP_VISION=kwargs.get("CLIP_VISION") 
         unet_type=torch.float16 #use for sdxl
@@ -280,6 +280,7 @@ class StoryDiffusion_Apply:
             from .model_loader_utils import Loader_Flux_Diffuser
             if not isinstance(model,dict) :
                 raise " must link EasyFunction_Lite node "  
+            no_dif_quantization=True if model.get("use_unet") or model.get("use_svdq") or model.get("use_gguf") else False
             model = Loader_Flux_Diffuser(model,ipadapter_ckpt_path,vae,quantize_mode)
             
         else:  # can not choice a mode
@@ -288,7 +289,7 @@ class StoryDiffusion_Apply:
         story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
         model_=model if infer_mode=="flux_pulid" or story_img else None
 
-        return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"vision_model_config_ar":vision_model_config_ar,
+        return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"vision_model_config_ar":vision_model_config_ar,"no_dif_quantization":no_dif_quantization,
                        "lora_scale":lora_scale,"image_proj_model":image_proj_model, "vae_encoder":vae_encoder,"vae_downsample_factor":vae_downsample_factor,"vae_config":vae_config,
                        "CLIP_VISION":CLIP_VISION,"CLIP_VISION_2":CLIP_VISION_2,"VAE":vae,"repo":repo,"model_":model_,"unet_type":unet_type,"extra_function":extra_function,"clip_vision_path":clip_vision_path})
 
@@ -718,6 +719,16 @@ class StoryDiffusion_CLIPTextEncode:
                 'tokenizer': tokenizer
                 }
             only_role_emb,only_role_emb_ne=glm_single_encode(chatglm3_model, inf_list_split,role_list, neg_text, 1) 
+        elif infer_mode=="flux_omi" and  switch.get("no_dif_quantization"): #need comfyclip
+            from .model_loader_utils import cf_flux_prompt_clip
+            only_role_emb={}
+            for key ,prompts in zip(role_list,inf_list_split):
+                emb_list_=[]
+                for prompt in prompts:
+                    p_,pool_,ind_=cf_flux_prompt_clip(clip,prompt)
+                    emb_list_.append([p_,pool_,ind_])
+                only_role_emb[key]=emb_list_
+
         else:
             if photomake_ckpt_path is not None and img2img_mode and infer_mode in["story","story_maker","story_and_maker","msdiffusion"]: #img2img模式下SDXL的story的clip要特殊处理，有2个imgencoder进程，所以分离出来 TODO
                 if use_photov2:
@@ -746,7 +757,7 @@ class StoryDiffusion_CLIPTextEncode:
             else:
                 if infer_mode=="classic": #TODO 逆序的角色会出现iD不匹配，受影响的有story文生图
                     only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
-                elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or infer_mode=="flux_omi":
+                elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or (infer_mode=="flux_omi" and not switch.get("no_dif_quantization")):
                     pass # TODO 暂时不支持dreamo
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
@@ -875,11 +886,15 @@ class StoryDiffusion_CLIPTextEncode:
             postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
             negative = neg_text # TODO
         elif infer_mode=="flux_omi":
-            only_role_emb={}
-            for key,prompts in zip(role_list,inf_list_split):
-                only_role_emb[key]=prompts
-            postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
-            negative = neg_text # TODO
+            if switch.get("no_dif_quantization"):
+                postive_dict= {"role": only_role_emb, "nc": None, "daul": None} #only_role_emb:p_,pool_,ind_
+                negative = neg_text # TODO
+            else:
+                only_role_emb={}
+                for key,prompts in zip(role_list,inf_list_split):
+                    only_role_emb[key]=prompts
+                postive_dict= {"role": only_role_emb, "nc": None, "daul": None}
+                negative = neg_text # TODO
         elif infer_mode=="realcustom":
             postive_dict= {"role": only_role_emb, "nc": None, "daul": daul_emb} 
             negative=[letent_real]
@@ -1749,22 +1764,42 @@ class StoryDiffusion_KSampler:
                 return (out,) 
             elif infer_mode =="flux_omi":
                 samples_list = []
-                for key in role_list: 
-                    for prompt in only_role_emb[key]:
-                        samples=model(
-                            prompt=prompt,
-                            height=height,
-                            width=width, 
-                            guidance_scale=cfg if cfg==3.5 else 3.5, 
-                            num_inference_steps=steps,
-                            max_sequence_length=512,
-                            generator=torch.Generator("cpu").manual_seed(seed),
-                            spatial_images=[image_embeds[key]],
-                            subject_images=[], #TODO TRY ON
-                            cond_size=512,
-                            ).images
-                        #print(samples.shape)
-                        samples_list.append(samples)
+                if info.get("no_dif_quantization"):
+                    for key in role_list: 
+                        for ebm_list in only_role_emb[key]:
+                            samples=model(
+                                prompt=None,
+                                height=height,
+                                width=width, 
+                                guidance_scale=cfg if cfg==3.5 else 3.5, 
+                                num_inference_steps=steps,
+                                max_sequence_length=512,
+                                generator=torch.Generator("cpu").manual_seed(seed),
+                                prompt_embeds=ebm_list[0],
+                                pooled_prompt_embeds=ebm_list[1],
+                                spatial_images=[image_embeds[key]],
+                                subject_images=[], #TODO TRY ON
+                                cond_size=512,
+                                ).images
+                            #print(samples.shape)
+                            samples_list.append(samples)
+                else:
+                    for key in role_list: 
+                        for prompt in only_role_emb[key]:
+                            samples=model(
+                                prompt=prompt,
+                                height=height,
+                                width=width, 
+                                guidance_scale=cfg if cfg==3.5 else 3.5, 
+                                num_inference_steps=steps,
+                                max_sequence_length=512,
+                                generator=torch.Generator("cpu").manual_seed(seed),
+                                spatial_images=[image_embeds[key]],
+                                subject_images=[], #TODO TRY ON
+                                cond_size=512,
+                                ).images
+                            #print(samples.shape)
+                            samples_list.append(samples)
                 out = {}
                 out["samples"] = torch.cat(samples_list, dim=0)  
                 # Clear cache after generation
