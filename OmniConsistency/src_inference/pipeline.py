@@ -130,14 +130,14 @@ def retrieve_timesteps(
 
 
 class FluxPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixin):
-    model_cpu_offload_seq = "text_encoder->text_encoder_2->transformer->vae"
+    model_cpu_offload_seq = "transformer->vae"
     def __init__(
             self,
             scheduler: FlowMatchEulerDiscreteScheduler,
             vae: AutoencoderKL,
-            text_encoder: CLIPTextModel,
+            #text_encoder: CLIPTextModel,
             tokenizer: CLIPTokenizer,
-            text_encoder_2: T5EncoderModel,
+            #text_encoder_2: T5EncoderModel,
             tokenizer_2: T5TokenizerFast,
             transformer: FluxTransformer2DModel,
     ):
@@ -145,13 +145,14 @@ class FluxPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixin):
 
         self.register_modules(
             vae=vae,
-            text_encoder=text_encoder,
-            text_encoder_2=text_encoder_2,
+            #text_encoder=text_encoder,
+            #text_encoder_2=text_encoder_2,
             tokenizer=tokenizer,
             tokenizer_2=tokenizer_2,
             transformer=transformer,
             scheduler=scheduler,
         )
+        self.text_encoder=None
         self.vae_scale_factor = (
             2 ** (len(self.vae.config.block_out_channels)) if hasattr(self, "vae") and self.vae is not None else 16
         )
@@ -537,16 +538,16 @@ class FluxPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixin):
         self.cond_size = cond_size
         
         # 1. Check inputs. Raise error if not correct
-        self.check_inputs(
-            prompt,
-            prompt_2,
-            height,
-            width,
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            callback_on_step_end_tensor_inputs=callback_on_step_end_tensor_inputs,
-            max_sequence_length=max_sequence_length,
-        )
+        # self.check_inputs(
+        #     prompt,
+        #     prompt_2,
+        #     height,
+        #     width,
+        #     prompt_embeds=prompt_embeds,
+        #     pooled_prompt_embeds=pooled_prompt_embeds,
+        #     callback_on_step_end_tensor_inputs=callback_on_step_end_tensor_inputs,
+        #     max_sequence_length=max_sequence_length,
+        # )
 
         self._guidance_scale = guidance_scale
         self._joint_attention_kwargs = joint_attention_kwargs
@@ -599,20 +600,26 @@ class FluxPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixin):
         lora_scale = (
             self.joint_attention_kwargs.get("scale", None) if self.joint_attention_kwargs is not None else None
         )
-        (
-            prompt_embeds,
-            pooled_prompt_embeds,
-            text_ids,
-        ) = self.encode_prompt(
-            prompt=prompt,
-            prompt_2=prompt_2,
-            prompt_embeds=prompt_embeds,
-            pooled_prompt_embeds=pooled_prompt_embeds,
-            device=device,
-            num_images_per_prompt=num_images_per_prompt,
-            max_sequence_length=max_sequence_length,
-            lora_scale=lora_scale,
-        )
+        if prompt is not None:
+            
+            (
+                prompt_embeds,
+                pooled_prompt_embeds,
+                text_ids,
+            ) = self.encode_prompt(
+                prompt=prompt,
+                prompt_2=prompt_2,
+                prompt_embeds=prompt_embeds,
+                pooled_prompt_embeds=pooled_prompt_embeds,
+                device=device,
+                num_images_per_prompt=num_images_per_prompt,
+                max_sequence_length=max_sequence_length,
+                lora_scale=lora_scale,
+            )
+        else:
+            prompt_embeds=prompt_embeds.to(self.transformer.device, dtype=self.transformer.dtype)
+            pooled_prompt_embeds=pooled_prompt_embeds.to(self.transformer.device, dtype=self.transformer.dtype)
+            text_ids = torch.zeros(prompt_embeds.shape[1], 3).to(device=prompt_embeds.device, dtype=prompt_embeds.dtype)
 
         # 4. Prepare latent variables
         num_channels_latents = self.transformer.config.in_channels // 4  # 16
