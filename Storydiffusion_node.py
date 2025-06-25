@@ -167,6 +167,7 @@ class StoryDiffusion_Apply:
         clip_vision_path=model.get("clip_vision_path") if isinstance(model,dict) else None
         clip_vision_path_dual=model.get("clip_vision_path_dual") if isinstance(model,dict) else None
         repo=model.get("extra_repo") if isinstance(model,dict) else None
+        dreamo_version="v1.0" if "v1.0" in extra_function else "v1.1"
 
         vae_encoder,vae_downsample_factor,vae_config,vision_model_config_ar,image_proj_model,CLIP_VISION_2,no_dif_quantization=None,None,None,None,None,None,False
     
@@ -188,7 +189,7 @@ class StoryDiffusion_Apply:
         dreamo_lora=model.get("lora_ckpt_path") if isinstance(model,dict) else None
         cfg_distill=model.get("lora_dual_path") if isinstance(model,dict) else None
         if infer_mode =="dreamo" and  dreamo_lora is not None and cfg_distill is not None:
-            if "distill" in dreamo_lora:
+            if "distill" in dreamo_lora.lower():
                 cfg_distill_path=dreamo_lora
                 dreamo_lora_path=cfg_distill
             else:
@@ -267,7 +268,7 @@ class StoryDiffusion_Apply:
             from.model_loader_utils import Loader_Dreamo
             if dreamo_lora_path is None or cfg_distill_path is None or ipadapter_ckpt_path is None:
                 raise "dreamo need a dreamo lora and cfg distill and turbo lora in ipadapter menu"
-            model = Loader_Dreamo(model,vae,quantize_mode,dreamo_lora_path,cfg_distill_path,ipadapter_ckpt_path,device)
+            model = Loader_Dreamo(model,vae,quantize_mode,dreamo_lora_path,cfg_distill_path,ipadapter_ckpt_path,device,dreamo_version)
         elif infer_mode == "bagel_edit":
             from .Bagel.app import load_bagel_model
             if not isinstance(model,dict) :
@@ -290,7 +291,7 @@ class StoryDiffusion_Apply:
         model_=model if infer_mode=="flux_pulid" or story_img else None
 
         return (model,{"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"vision_model_config_ar":vision_model_config_ar,"no_dif_quantization":no_dif_quantization,
-                       "lora_scale":lora_scale,"image_proj_model":image_proj_model, "vae_encoder":vae_encoder,"vae_downsample_factor":vae_downsample_factor,"vae_config":vae_config,
+                       "lora_scale":lora_scale,"image_proj_model":image_proj_model, "vae_encoder":vae_encoder,"vae_downsample_factor":vae_downsample_factor,"vae_config":vae_config,"dreamo_version":dreamo_version,
                        "CLIP_VISION":CLIP_VISION,"CLIP_VISION_2":CLIP_VISION_2,"VAE":vae,"repo":repo,"model_":model_,"unet_type":unet_type,"extra_function":extra_function,"clip_vision_path":clip_vision_path})
 
       
@@ -1657,6 +1658,7 @@ class StoryDiffusion_KSampler:
                 return (out,) 
             elif infer_mode=="dreamo": 
                 samples_list = []
+                cfg=4.5 if info.get("dreamo_version")=="v1.1" else 3.5
         
                 first_step_guidance=0
                 for key in role_list: 
