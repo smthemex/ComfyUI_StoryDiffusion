@@ -2784,7 +2784,7 @@ def instant_character_id_clip(subject_image,siglip_image_encoder,siglip_image_pr
 
     return subject_image_embeds_dict
 
-def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device):
+def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device,dreamo_version):
     from .DreamO.dreamo.dreamo_pipeline import DreamOPipeline
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
     #vae=convert_cfvae2diffuser(VAE,use_flux=True)
@@ -2801,7 +2801,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             torch_dtype=torch.bfloat16,
         )
         dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
-        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
     elif cf_model.get("use_svdq") :#get error
         print("use svdq")
         from nunchaku import NunchakuFluxTransformer2dModel    
@@ -2811,7 +2811,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
         except:
             pass
         dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
-        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,use_svdq=True)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,use_svdq=True,dreamo_version=dreamo_version)
     elif cf_model.get("use_unet"):
         print("use single unet")
         if quantize_mode=="fp8":
@@ -2826,7 +2826,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             del t_state_dict
             gc_cleanup()
         dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
-        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+        dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
     else:
         print(f"use {quantize_mode} quantization") 
         if quantize_mode=="fp8":
@@ -2837,7 +2837,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             #     torch_dtype=torch.bfloat16,
             # )
             dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), torch_dtype=torch.bfloat16)
-            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
             from optimum.quanto import freeze, qint8, quantize
             quantize(dreamo_pipeline.transformer, qint8)
             freeze(dreamo_pipeline.transformer)
@@ -2860,7 +2860,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
                         torch_dtype=torch.bfloat16,
                     )
             dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
-            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True)
+            dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
     dreamo_pipeline.enable_model_cpu_offload()
     return dreamo_pipeline
 
