@@ -45,28 +45,35 @@ class DreamOPipeline(FluxPipeline):
         self.task_embedding = nn.Embedding(2, 3072)
         self.idx_embedding = nn.Embedding(10, 3072)
 
-    def load_dreamo_model(self, device, dreamo_lora_path,cfg_distill_path,Turbo_path,use_turbo=True,):
-        # download models and load file
-        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo.safetensors', local_dir='models')
-        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_cfg_distill.safetensors', local_dir='models')
-        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_pos.safetensors', local_dir='models')
-        # hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_neg.safetensors', local_dir='models')
-        # dreamo_lora = load_file('models/dreamo.safetensors')
-        # cfg_distill_lora = load_file('models/dreamo_cfg_distill.safetensors')
+    def load_dreamo_model(self, device, dreamo_lora_path,cfg_distill_path,Turbo_path,use_turbo=True,use_svdq=False,dreamo_version='v1.0'):
+
         
         dreamo_lora = load_file(dreamo_lora_path)
         cfg_distill_lora = load_file(cfg_distill_path)
 
         quality_lora_pos_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_quality_lora_pos.safetensors")
         quality_lora_neg_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_quality_lora_neg.safetensors")
-        if os.path.exists(quality_lora_pos_path):
+
+        sft_lora_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_sft_lora.safetensors")
+        dpo_lora_path=os.path.join(os.path.dirname(dreamo_lora_path), "dreamo_dpo_lora.safetensors")
+
+        if dreamo_version=='v1.0' and os.path.exists(quality_lora_pos_path) and os.path.exists(quality_lora_neg_path):
             quality_lora_pos = load_file(quality_lora_pos_path)
-        # else:
-        #     hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_pos.safetensors', local_dir=os.path.dirname(dreamo_lora_path))
-        if os.path.exists(quality_lora_neg_path):
             quality_lora_neg = load_file(quality_lora_neg_path)
-        # else:
-        #     hf_hub_download(repo_id='ByteDance/DreamO', filename='dreamo_quality_lora_neg.safetensors', local_dir=os.path.dirname(dreamo_lora_path))
+            add_lora="v1.0"
+        elif dreamo_version=='v1.1' and os.path.exists(sft_lora_path) and os.path.exists(dpo_lora_path):
+            sft_lora = load_file(sft_lora_path)
+            dpo_lora = load_file(dpo_lora_path)
+            add_lora="v1.1"
+        else:  
+            add_lora=""
+            quality_lora_pos=None
+            quality_lora_neg=None
+            sft_lora=None
+            dpo_lora=None
+            print("Dreamo: Quality LoRA not found.and sft lora not found, Using default settings.")
+
+        
         
         # load embedding
         self.t5_embedding.weight.data = dreamo_lora.pop('dreamo_t5_embedding.weight')[-10:]
@@ -96,7 +103,8 @@ class DreamOPipeline(FluxPipeline):
             adapter_weights.append(1)
 
         # quality loras, one pos, one neg
-        if os.path.exists(quality_lora_pos_path) and os.path.exists(quality_lora_neg_path):
+        if add_lora=="v1.0" :
+            print("add quality loras")
             quality_lora_pos = convert_flux_lora_to_diffusers(quality_lora_pos)
             self.load_lora_weights(quality_lora_pos, adapter_name='quality_pos')
             adapter_names.append('quality_pos')
@@ -105,6 +113,17 @@ class DreamOPipeline(FluxPipeline):
             self.load_lora_weights(quality_lora_neg, adapter_name='quality_neg')
             adapter_names.append('quality_neg')
             adapter_weights.append(-0.8)
+        elif add_lora=='v1.1':    
+            print("add dpo loras")
+            self.load_lora_weights(sft_lora, adapter_name='sft_lora')
+            adapter_names.append('sft_lora')
+            adapter_weights.append(1)
+            self.load_lora_weights(dpo_lora, adapter_name='dpo_lora')
+            adapter_names.append('dpo_lora')
+            adapter_weights.append(1.25)
+        else:
+            pass
+
 
         self.set_adapters(adapter_names, adapter_weights)
         self.fuse_lora(adapter_names=adapter_names, lora_scale=1)
