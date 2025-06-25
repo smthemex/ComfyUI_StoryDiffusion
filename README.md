@@ -23,11 +23,13 @@ Origin methods from
 
 
 ## Updates:
-* 2025/06/21
-* 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
+* 2025/06/25
+* add dreamo v1.1 support，新增dreamo v1.1模型支持，下载对应的sft和dpo lora，不要改名，放在lora文件夹即可。
+
 
  
 ## previous
+* 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
 *  OmniConsistency 并不是ID的迁移，移植过来是方便使用常规flux diffuser加载，内置多种量化方式（还未完善，目前只支持repo加载），12G以下用nf4就好（1024*1024 在12G 50秒一张图），
 *  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
 * DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
@@ -232,8 +234,10 @@ turbo lora：[alimama-creative/FLUX.1-Turbo-Alpha](https://huggingface.co/alimam
 ├── ComfyUI/models/loras/
        ├──dreamo_cfg_distill.safetensors
        ├──dreamo.safetensors
-       ├──dreamo_quality_lora_neg.safetensors #可选，没有也能用，与上两个lora在一个目录即可
-       ├──dreamo_quality_lora_pos.safetensors #可选，没有也能用，与上两个lora在一个目录即可
+       ├──dreamo_quality_lora_neg.safetensors #optional  可选，v1.0 没有也能用，与上两个lora在一个目录即可
+       ├──dreamo_quality_lora_pos.safetensors #optional  可选，v1.0 没有也能用，与上两个lora在一个目录即可
+       ├──dreamo_dpo_lora.safetensors # optional 可选 v1.1，没有也能用，与上两个lora在一个目录即可
+       ├──dreamo_sft_lora.safetensors # optional  可选，v1.1，没有也能用，与上两个lora在一个目录即可
 ├── ComfyUI/models/photomaker/
        ├──FLUX.1-Turbo-Alpha.safetensors #rename 重命名的turbo lora
 ├──  anypath/black-forest-labs/FLUX.1-dev
