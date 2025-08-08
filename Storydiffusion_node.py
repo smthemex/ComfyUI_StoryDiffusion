@@ -762,6 +762,10 @@ class StoryDiffusion_CLIPTextEncode:
                     pass # TODO 暂时不支持dreamo
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
+                    if len (role_list)==1 and infer_mode in ["story_maker","story_and_maker"]:
+                        only_role_emb_dict={}
+                        only_role_emb_dict[role_list[0]]=only_role_emb # [ [cond_p, output_p],...]
+                        only_role_emb=only_role_emb_dict
         # pre nc txt emb
         if nc_txt_list and not infer_mode=="consistory":
             nc_txt_list=[i+pos_text for i in nc_txt_list]
@@ -781,6 +785,7 @@ class StoryDiffusion_CLIPTextEncode:
                     pass # TODO 暂时不支持dreamo
                 else:
                     nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
+                  
         else:
             nc_emb=None
         # pre dual role txt emb
@@ -995,7 +1000,7 @@ class StoryDiffusion_CLIPTextEncode:
       
             else:
                 prompt_image_emb,maker_control_image=encode_prompt_image_emb_(make_img[0], image_2, make_mask_img[0], mask_image_2, make_face_info[0], face_info_2, make_cloth_info[0], cloth_2,device, num_images_per_prompt, unet_type, clip_vision,vae,do_classifier_free_guidance=True)
-                prompt_image_emb=={role_list[0]:len(only_role_list)*[prompt_image_emb]}#输出改为字典
+                prompt_image_emb={role_list[0]:len(only_role_list)*[prompt_image_emb]}#输出改为字典
                 maker_control_image={role_list[0]:len(only_role_list)*[maker_control_image]}#输出改为字典
 
             maker_control_image_dual=None
@@ -2294,3 +2299,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StoryDiffusion_KSampler":"StoryDiffusion_KSampler",
     "StoryDiffusion_Lora_Control":"StoryDiffusion_Lora_Control"
 }
+
