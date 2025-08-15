@@ -106,13 +106,15 @@ def get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infe
     inject=False
     onnx_provider="gpu"
     img2img_mode = True if isinstance(image, torch.Tensor) else False
-
+    trigger_words_dual="best"
+    dual_lora_scale=1.0
     dreamo_mode="ip"
 
     if extra_function:
         extra_function = extra_function.strip().lower()
         if "auraface" in extra_function:
             auraface=True  
+       
     
     if extra_param:
         extra_param = extra_param.strip().lower()
@@ -126,11 +128,16 @@ def get_extra_function(extra_function,extra_param,photomake_ckpt_path,image,infe
             dreamo_mode="id"
         elif "style" in extra_param:
             dreamo_mode="style"
+        if "[" in extra_param:
+            trigger_words_param=extra_param.split("[")[1].split("]")[0]
+            trigger_words_dual=trigger_words_param.split(",")[0]
+            dual_lora_scale=float(trigger_words_param.split(",")[1])
+
 
     if isinstance(photomake_ckpt_path, str) and img2img_mode:
         use_photov2 = True if "v2" in photomake_ckpt_path else False
 
-    return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider,dreamo_mode
+    return auraface,use_photov2,img2img_mode,cached,inject,onnx_provider,dreamo_mode,trigger_words_dual,dual_lora_scale
 
 def extract_content_from_brackets(text):
     # 正则表达式匹配多对方括号内的内容
@@ -715,7 +722,7 @@ def fitter_cf_model_type(model):
          raise "unsupport checkpoints"
     return cf_model_type
 
-def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict):
+def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_list):
     '''
     
     Args:
@@ -791,10 +798,10 @@ def pre_text2infer(role_text,scene_text,lora_trigger_words,use_lora,tag_dict):
     #获取字典，实际用词等
     role_index_dict, invert_role_index_dict, replace_prompts, ref_role_index_dict, ref_role_totals= process_original_text(role_dict, prompts)
     
-    if tag_dict is not None and isinstance(tag_dict, list): #tag方法
-        if len(tag_dict) < len(replace_prompts):
+    if tag_list: #tag方法
+        if len(tag_list) < len(replace_prompts):
             raise "The number of input condition images is less than the number of scene prompts!"
-        replace_prompts = [prompt + " " + tag_dict[i] for i, prompt in enumerate(replace_prompts)]
+        replace_prompts = [prompt + " " + tag_list[i] for i, prompt in enumerate(replace_prompts)]
     
     if nc_indexs:
         for x in nc_indexs:  # 获取NC列表
@@ -848,8 +855,9 @@ def cf_clip(txt_list, clip, infer_mode,role_list,input_split=True):
                 pos_cond_list.append(positive)
             role_emb_dict[role]=pos_cond_list
         return role_emb_dict
+    
     pos_cond_list = []
-    for i in txt_list:
+    for i in txt_list[0]:
         tokens_p = clip.tokenize(i)
         output_p = clip.encode_from_tokens(tokens_p, return_dict=True)  # {"pooled_output":tensor}
         cond_p = output_p.pop("cond")
@@ -1157,7 +1165,7 @@ def Loader_Flux_Pulid(model,cf_model, ipadapter_ckpt_path,quantized_mode,aggress
 
     return pipe
 
-def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
+def Loader_InfiniteYou(extra_info,VAE,quantize_mode):
     logging.info("start InfiniteYou mode processing...")    
     from .pipelines.pipeline_infu_flux import InfUFluxPipeline
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
@@ -1177,39 +1185,42 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
     #         quantization_config=quant_config,
     #         torch_dtype=torch.bfloat16,
     #     ) # init nf4 
-    
+    repo_list=[i for i  in [extra_info.get("repo1_path") , extra_info.get("repo2_path")] if i is not None]
+    assert repo_list is not [] ,"repo_list is None"
+    find_infusenet=[i for i in repo_list if "sim_stage1" in i or "aes_stage2" in i]
+
+    assert len(find_infusenet)>=1 ,"no infusenet"
+
     repo_id=os.path.join(cur_path, "config/FLUX.1-dev")
     use_svdq=False
-    if cf_model.get("use_svdq"):
+    if extra_info.get("svdq_repo") is not None:
         print("use svdq quantization")   
         from nunchaku import NunchakuFluxTransformer2dModel
         use_svdq=True
-        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(extra_info.get("svdq_repo"),offload=True)
         try:
             transformer.set_attention_impl("nunchaku-fp16")
         except:
             pass
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
-    elif cf_model.get("use_gguf"):
+    elif extra_info.get("gguf_path") is not None:
         print("use gguf quantization")   
-        if cf_model.get("model_path") is None:
-            raise "need chocie a  gguf model in EasyFunction_Lite!"
         from diffusers import  GGUFQuantizationConfig
         transformer = FluxTransformer2DModel.from_single_file(
-            cf_model.get("model_path"),
+            extra_info.get("gguf_path"),
             config=os.path.join(repo_id, "transformer"),
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             torch_dtype=torch.bfloat16,
         )
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
-    elif cf_model.get("use_unet"):
+    elif extra_info.get("unet_path") is not None:
 
         if quantize_mode=="fp8":
-            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(repo_id,"transformer/config.json"),
+            transformer = FluxTransformer2DModel.from_single_file(extra_info.get("unet_path"), config=os.path.join(repo_id,"transformer/config.json"),
                                                                             torch_dtype=torch.bfloat16)
         else:
             from safetensors.torch import load_file
-            t_state_dict=load_file(cf_model.get("model_path"))
+            t_state_dict=load_file(extra_info.get("unet_path"))
             unet_config = FluxTransformer2DModel.load_config(os.path.join(repo_id,"transformer/config.json"))
             transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
             transformer.load_state_dict(t_state_dict, strict=False)
@@ -1217,12 +1228,13 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
             gc_cleanup()
     else:
         vae = None
-        if not cf_model.get("select_method"):
-            raise "need fill flux repo  in EasyFunction_Lite select_method!"
+        find_flux=[i for i in repo_list if "flux" in i ]
+        if not find_flux:
+            raise "need fill flux repo  in EasyFunction_Lite repo1 or repo2!"
         print("use nf4 quantization")   
         if quantize_mode=="fp8":
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("select_method"),
+                find_flux[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
                 torch_dtype=torch.bfloat16,
@@ -1230,7 +1242,7 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
                    
         elif quantize_mode=="nf4": #nf4
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("select_method"),
+                find_flux[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(
                     load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -1238,16 +1250,13 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
                 torch_dtype=torch.bfloat16,)
         else:
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("select_method"),
+                find_flux[0],
                 subfolder="transformer",
                  torch_dtype=torch.bfloat16,
                 )
 
         
-        
-    if not cf_model.get("extra_repo"):
-        raise "need fill a extra_repo in EasyFunction_Lite!"
-    infusenet_path = os.path.join(cf_model.get("extra_repo"), 'InfuseNetModel')
+    infusenet_path = os.path.join(find_infusenet[0], 'InfuseNetModel')
 
      
     pipe = InfUFluxPipeline(
@@ -1271,10 +1280,11 @@ def Loader_InfiniteYou(cf_model,VAE,quantize_mode):
         output_dim=4096,
         ff_mult=4,
     )
-    image_proj_model_path = os.path.join(cf_model.get("extra_repo"), 'image_proj_model.bin')
-    ipm_state_dict = torch.load(image_proj_model_path, map_location="cpu")
+    image_proj_model_path = os.path.join(find_infusenet[0], 'image_proj_model.bin')
+    ipm_state_dict = torch.load(image_proj_model_path, map_location="cpu",weights_only=False)
     image_proj_model.load_state_dict(ipm_state_dict['image_proj'])
     del ipm_state_dict
+    torch.cuda.empty_cache()
     image_proj_model.to('cuda', torch.bfloat16)
     image_proj_model.eval()
 
@@ -1334,10 +1344,8 @@ def Loader_KOLOR(repo_id,clip_vision_path,face_ckpt,):
     unet = UNet2DConditionModel.from_pretrained(f'{repo_id}/unet', revision=None).half()
     
     if clip_vision_path:
-        if isinstance(clip_vision_path, str):
-            clip_image_encoder = clip_load(clip_vision_path).model
-        else:
-            clip_image_encoder = clip_vision_path.model
+
+        clip_image_encoder = clip_vision_path
         clip_image_processor = CLIPImageProcessor(size=224, crop_size=224)
         use_singel_clip = True
     else:
@@ -2218,18 +2226,22 @@ def photomaker_clip_v2(clip,model_,prompt_list,negative_prompt,input_id_images,i
               }    
     return emb_dict
 
-def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
+def Loader_UNO(extra_info,offload,quantize_mode,save_quantezed,lora_rank):
     from .UNO.uno.flux.pipeline import UNOPipeline
     from accelerate import Accelerator
     accelerator = Accelerator()
     device= accelerator.device
-    if isinstance(model, dict):
-        model_path = model["model_path"]
-        lora_ckpt_path= model["lora_ckpt_path"]
-        only_lora=True if lora_ckpt_path is not None else False
-        if  lora_ckpt_path:
-            if "dit_lora" not in lora_ckpt_path:
+    if extra_info is not None:
+        model_path = extra_info["unet_path"]
+        lora_list=[i for i in [extra_info.get("lora1_path"),extra_info.get("lora2_path")] if i is not None]
+        if lora_list:
+            lora_ckpt_path=lora_list[0]
+            if "dit_lora" not in lora_ckpt_path.lower():
                 raise ValueError("lora_ckpt_path must be a dit_lora checkpoint")
+            only_lora=True
+        else:
+            only_lora=False
+    
         
         use_fp8=True if quantize_mode=="fp8"  else False
 
@@ -2258,7 +2270,7 @@ def Loader_UNO(model,offload,quantize_mode,save_quantezed,lora_rank):
             use_fp8,
         )
     else:
-        raise ValueError("must sue lite model node")
+        raise ValueError("must use EasyFunction_Lite node")
     return model
 
 def load_pipeline_realcustom(cf_model,realcustom_checkpoint):
@@ -2592,40 +2604,38 @@ def load_realcustom_vae(vae,device):
 
 
 
-def load_pipeline_instant_character(cf_model,ip_adapter_path,VAE,quantize_mode):
+def load_pipeline_instant_character(extra_info,ip_adapter_path,VAE,quantize_mode):
     from .InstantCharacter.pipeline_wrapper import InstantCharacterFluxPipeline
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
-    if cf_model.get("use_svdq") :
+    if extra_info.get("svdq_repo") is not None:
         print("use svdq")
         from nunchaku import NunchakuFluxTransformer2dModel    
-        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(extra_info.get("svdq_repo"),offload=True)
         try:
             transformer.set_attention_impl("nunchaku-fp16")
         except:
             pass
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
         pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
-    elif cf_model.get("use_gguf"):
+    elif extra_info.get("gguf_path") is not None:
         print("use gguf quantization")   
-        if cf_model.get("model_path") is None:
-            raise "need chocie a  gguf model in EasyFunction_Lite!"
         from diffusers import  GGUFQuantizationConfig
         transformer = FluxTransformer2DModel.from_single_file(
-            cf_model.get("model_path"),
+            extra_info.get("gguf_path") ,
             config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             torch_dtype=torch.bfloat16,
         )
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
         pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
-    elif cf_model.get("use_unet"):
+    elif extra_info.get("unet_path"):
 
         if quantize_mode=="fp8":
-            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+            transformer = FluxTransformer2DModel.from_single_file(extra_info.get("unet_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
                                                                             torch_dtype=torch.bfloat16)
         else:
             from safetensors.torch import load_file
-            t_state_dict=load_file(cf_model.get("model_path"))
+            t_state_dict=load_file(extra_info.get("unet_path"))
             unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
             transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
             transformer.load_state_dict(t_state_dict, strict=False)
@@ -2635,9 +2645,12 @@ def load_pipeline_instant_character(cf_model,ip_adapter_path,VAE,quantize_mode):
         pipe = InstantCharacterFluxPipeline.from_pretrained(os.path.join(cur_path,"config/FLUX.1-dev"),transformer=transformer,vae=vae,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
     else:
         print(f"use {quantize_mode} quantization") 
+        find_flux=[i for i in [extra_info.get("repo1_path") , extra_info.get("repo2_path")] if "flux" in i ]
+        if  not find_flux:
+            raise ValueError("can not find flux repo")
         if quantize_mode=="fp8":
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                find_flux[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
                 torch_dtype=torch.bfloat16,
@@ -2645,7 +2658,7 @@ def load_pipeline_instant_character(cf_model,ip_adapter_path,VAE,quantize_mode):
                    
         elif quantize_mode=="nf4": #nf4
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                find_flux[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(
                     load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -2653,12 +2666,12 @@ def load_pipeline_instant_character(cf_model,ip_adapter_path,VAE,quantize_mode):
                 torch_dtype=torch.bfloat16,)
         else:
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                find_flux[0],
                 subfolder="transformer",
                  torch_dtype=torch.bfloat16,
                 )
 
-        pipe = InstantCharacterFluxPipeline.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
+        pipe = InstantCharacterFluxPipeline.from_pretrained(find_flux[0],transformer=transformer,text_encoder=None,text_encoder_2=None, torch_dtype=torch.bfloat16)
     # if not cf_model.get("use_svdq"):
     #     pipe.enable_model_cpu_offload()
     pipe.to(device)
@@ -2784,48 +2797,50 @@ def instant_character_id_clip(subject_image,siglip_image_encoder,siglip_image_pr
 
     return subject_image_embeds_dict
 
-def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device,dreamo_version):
+def Loader_Dreamo(extra_info,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,Turbo_path,device,dreamo_version):
     from .DreamO.dreamo.dreamo_pipeline import DreamOPipeline
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
     #vae=convert_cfvae2diffuser(VAE,use_flux=True)
-    
-    if cf_model.get("use_gguf"): #get error
+    repo_list=[i for i  in [extra_info.get("repo1_path"),extra_info.get("repo2_path")] if i is not None]
+    if repo_list:
+        flux_repo=[i for i in repo_list if "flux" in i.lower()]
+    else:
+        raise "you must fill a flux repo"
+    if extra_info.get("gguf_path") is not None: #get error
         print("use gguf quantization")
-        if cf_model.get("model_path") is None:
-            raise "need chocie a  gguf model in EasyFunction_Lite!"
         from diffusers import  GGUFQuantizationConfig
         transformer = FluxTransformer2DModel.from_single_file(
-            cf_model.get("model_path"),
+            extra_info.get("gguf_path"),
             config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             torch_dtype=torch.bfloat16,
         )
-        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(flux_repo, transformer=transformer,torch_dtype=torch.bfloat16)
         dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
-    elif cf_model.get("use_svdq") :#get error
+    elif extra_info.get("svdq_repo") is not None:#get error
         print("use svdq")
         from nunchaku import NunchakuFluxTransformer2dModel    
-        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(extra_info.get("svdq_repo"),offload=True)
         try:
             transformer.set_attention_impl("nunchaku-fp16")
         except:
             pass
-        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(flux_repo, transformer=transformer,torch_dtype=torch.bfloat16)
         dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,use_svdq=True,dreamo_version=dreamo_version)
-    elif cf_model.get("use_unet"):
+    elif extra_info.get("unet_path") is not None:
         print("use single unet")
         if quantize_mode=="fp8":
-            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+            transformer = FluxTransformer2DModel.from_single_file(extra_info.get("unet_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
                                                                             torch_dtype=torch.bfloat16)
         else:
             from safetensors.torch import load_file
-            t_state_dict=load_file(cf_model.get("model_path"))
+            t_state_dict=load_file(extra_info.get("unet_path"))
             unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
             transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
             transformer.load_state_dict(t_state_dict, strict=False)
             del t_state_dict
             gc_cleanup()
-        dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+        dreamo_pipeline = DreamOPipeline.from_pretrained(flux_repo, transformer=transformer,torch_dtype=torch.bfloat16)
         dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
     else:
         print(f"use {quantize_mode} quantization") 
@@ -2836,7 +2851,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
             #     quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
             #     torch_dtype=torch.bfloat16,
             # )
-            dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), torch_dtype=torch.bfloat16)
+            dreamo_pipeline = DreamOPipeline.from_pretrained(flux_repo, torch_dtype=torch.bfloat16)
             dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
             from optimum.quanto import freeze, qint8, quantize
             quantize(dreamo_pipeline.transformer, qint8)
@@ -2847,7 +2862,7 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
         else:    
             if quantize_mode=="nf4": #nf4
                 transformer = FluxTransformer2DModel.from_pretrained(
-                    cf_model.get("extra_repo"),
+                    flux_repo,
                     subfolder="transformer",
                     quantization_config=DiffusersBitsAndBytesConfig(
                         load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -2855,11 +2870,11 @@ def Loader_Dreamo(cf_model,VAE,quantize_mode,dreamo_lora_path,cfg_distill_path,T
                     torch_dtype=torch.bfloat16,)
             else:
                 transformer = FluxTransformer2DModel.from_pretrained(
-                    cf_model.get("extra_repo"),
+                   flux_repo,
                     subfolder="transformer",
                         torch_dtype=torch.bfloat16,
                     )
-            dreamo_pipeline = DreamOPipeline.from_pretrained(cf_model.get("extra_repo"), transformer=transformer,torch_dtype=torch.bfloat16)
+            dreamo_pipeline = DreamOPipeline.from_pretrained(flux_repo, transformer=transformer,torch_dtype=torch.bfloat16)
             dreamo_pipeline.load_dreamo_model(device,dreamo_lora_path,cfg_distill_path,Turbo_path, use_turbo=True,dreamo_version=dreamo_version)
     dreamo_pipeline.enable_model_cpu_offload()
     return dreamo_pipeline
@@ -2935,46 +2950,45 @@ def Dreamo_image_encoder(BEN2_path,ref_image1,ref_image2,ref_task1,ref_task2,ref
             )
     return ref_conds
 
-def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
+def Loader_Flux_Diffuser(extra_info,omi_lora_path,VAE,quantize_mode):
     from .OmniConsistency.src_inference.pipeline import FluxPipeline as FluxPipeline_dif
     from .OmniConsistency.src_inference.pipeline_ import FluxPipeline as FluxPipeline_dif_original
     from diffusers import BitsAndBytesConfig as DiffusersBitsAndBytesConfig,FluxTransformer2DModel
     from .OmniConsistency.src_inference.lora_helper import set_single_lora
     flux_dif_repo=os.path.join(cur_path,"config/FLUX.1-dev")
-    if cf_model.get("use_gguf"): 
+    if extra_info.get("gguf_path") is not None: 
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
         print("use gguf quantization")
-        if cf_model.get("model_path") is None:
-            raise "need chocie a  gguf model in EasyFunction_Lite!"
+     
         from diffusers import  GGUFQuantizationConfig
         transformer = FluxTransformer2DModel.from_single_file(
-            cf_model.get("model_path"),
+            extra_info.get("gguf_path"),
             config=os.path.join(cur_path, "config/FLUX.1-dev/transformer"),
             quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
             torch_dtype=torch.bfloat16,
         )
         pipeline = FluxPipeline_dif.from_pretrained(flux_dif_repo, vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
        
-    elif cf_model.get("use_svdq") :
+    elif extra_info.get("svdq_repo") is not None:
         print("use svdq")
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
         from nunchaku import NunchakuFluxTransformer2dModel    
-        transformer = NunchakuFluxTransformer2dModel.from_pretrained(cf_model.get("select_method"),offload=True)
+        transformer = NunchakuFluxTransformer2dModel.from_pretrained(extra_info.get("svdq_repo"),offload=True)
         try:
             transformer.set_attention_impl("nunchaku-fp16")
         except:
             pass
         pipeline = FluxPipeline_dif.from_pretrained(flux_dif_repo, vae=vae,transformer=transformer,text_encoder=None,text_encoder_2=None,torch_dtype=torch.bfloat16)
        
-    elif cf_model.get("use_unet"):
+    elif extra_info.get("unet_path") is not None:
         print("use single unet")
         vae=convert_cfvae2diffuser(VAE,use_flux=True)
         if quantize_mode=="fp8":
-            transformer = FluxTransformer2DModel.from_single_file(cf_model.get("model_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
+            transformer = FluxTransformer2DModel.from_single_file(extra_info.get("unet_path"), config=os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"),
                                                                             torch_dtype=torch.bfloat16)
         else:
             from safetensors.torch import load_file
-            t_state_dict=load_file(cf_model.get("model_path"))
+            t_state_dict=load_file(extra_info.get("unet_path"))
             unet_config = FluxTransformer2DModel.load_config(os.path.join(cur_path,"config/FLUX.1-dev/transformer/config.json"))
             transformer = FluxTransformer2DModel.from_config(unet_config).to(torch.bfloat16)
             transformer.load_state_dict(t_state_dict, strict=False)
@@ -2984,10 +2998,14 @@ def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
         
     else:
         print(f"use {quantize_mode} quantization") 
-         
+        repo_list=[i for i  in [extra_info.get("repo1_path"),extra_info.get("repo2_path")] if i is not None]
+        if repo_list:
+            flux_repo=[i for i in repo_list if "flux" in i.lower()]
+        else:
+            raise "you must fill a flux repo"
         if quantize_mode=="nf4": #nf4
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                flux_repo[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(
                     load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16
@@ -2995,24 +3013,24 @@ def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
                 torch_dtype=torch.bfloat16,)
         elif quantize_mode=="fp8":
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                flux_repo[0],
                 subfolder="transformer",
                 quantization_config=DiffusersBitsAndBytesConfig(load_in_8bit=True,),
                 torch_dtype=torch.bfloat16,
             )
         else:
             transformer = FluxTransformer2DModel.from_pretrained(
-                cf_model.get("extra_repo"),
+                flux_repo[0],
                 subfolder="transformer",
                     torch_dtype=torch.bfloat16,
                 )
-        pipeline = FluxPipeline_dif_original.from_pretrained(cf_model.get("extra_repo"),transformer=transformer,torch_dtype=torch.bfloat16)
+        pipeline = FluxPipeline_dif_original.from_pretrained(flux_repo[0],transformer=transformer,torch_dtype=torch.bfloat16)
     
     multi_lora=[]
-    if cf_model.get("lora_ckpt_path") is not None:
-        multi_lora.append(cf_model.get("lora_ckpt_path"))
-    if cf_model.get("lora_dual_path") is not None:
-        multi_lora.append(cf_model.get("lora_dual_path"))
+    if extra_info.get("lora1_path") is not None:
+        multi_lora.append(extra_info.get("lora1_path"))
+    if extra_info.get("lora2_path") is not None:
+        multi_lora.append(extra_info.get("lora2_path"))
     if multi_lora:
         if len(multi_lora)==1:
             set_single_lora(pipeline.transformer, omi_lora_path, lora_weights=[1], cond_size=512)
@@ -3027,4 +3045,18 @@ def Loader_Flux_Diffuser(cf_model,omi_lora_path,VAE,quantize_mode):
     else:
         raise "need chocie a  lora model in EasyFunction_Lite!"
     pipeline.enable_model_cpu_offload()
+    return pipeline
+
+
+
+def load_lora_for_unet_only(pipeline, lora_path, adapter_name="default", lora_scale=1.0):
+
+    try:
+      
+        pipeline.load_lora_weights(lora_path, adapter_name=adapter_name)
+        pipeline.set_adapters(adapter_name, adapter_weights=lora_scale)
+        print(f"成功加载LoRA权重: {adapter_name} (scale: {lora_scale})")
+    except Exception as e:
+        print(f"加载LoRA权重失败: {e}")
+    
     return pipeline
