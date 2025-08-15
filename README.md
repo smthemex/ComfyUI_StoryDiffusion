@@ -23,12 +23,13 @@ Origin methods from
 
 
 ## Updates:
-* 2025/06/25
-* add dreamo v1.1 support，新增dreamo v1.1模型支持，下载对应的sft和dpo lora，不要改名，放在lora文件夹即可。
-
+* 2025/08/15
+* SDXL lora is return ，support story storymaker and msdiffusion /SDXL模式的lora回归，除了realcustom和Consistory两个方法，图例见下方
 
  
 ## previous
+
+* add dreamo v1.1 support，新增dreamo v1.1模型支持，下载对应的sft和dpo lora，不要改名，放在lora文件夹即可。
 * 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
 *  OmniConsistency 并不是ID的迁移，移植过来是方便使用常规flux diffuser加载，内置多种量化方式（还未完善，目前只支持repo加载），12G以下用nf4就好（1024*1024 在12G 50秒一张图），
 *  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
@@ -271,12 +272,16 @@ flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/storytxt2img.png" width="50%">
 * img2img 图生图示例
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/storytxt2imgv1orv2.png" width="50%">
-
+* lora   
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main//example_workflows/example0815s.png" width="50%">
+ 
 **4.2 ms-diffusion**   
 * txt2img 文生图  双角色同框 
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/msdiffusion_txt2img_2role1img.png" width="50%">
  * img2img 图生图  双角色同框
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/msdiffusion_img2img_2role1img.png" width="50%">
+ * lora
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/example_workflows/example0815ms.png" width="50%">
  
 **4.3 story-maker or story-and-maker**   
 * story-and-maker 
@@ -284,6 +289,9 @@ flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/storyandmaker_txt2img.png" width="50%">
 * story-maker 
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/maker_image2image.png" width="50%">
+* lora
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/example_workflows/example0815story_and_maker.png" width="50%">
+  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/example_workflows/example0815.png" width="50%">
 
 **4.4 consistory**
 * only one role 只支持单角色 use example.json
