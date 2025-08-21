@@ -85,9 +85,9 @@ class EasyFunction_Lite:
         controlnet_path=folder_paths.get_full_path("controlnet", controlnet) if controlnet != "none" else None
  
         clip_glm,tag_model,pipe,svdq_repo=None,None,None,None
-
+        repo_list=[i for i in [repo1_path,repo2_path] if i is not None]
         if repo1_path is not None or repo2_path is not None:
-            find_svdq=[i for i in [repo1_path,repo2_path] if "svdq" in i ]
+            find_svdq=[i for i in repo_list if "svdq" in i ]
             svdq_repo=find_svdq[0] if find_svdq else None
    
 
@@ -2276,3 +2276,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StoryDiffusion_CLIPTextEncode":"StoryDiffusion_CLIPTextEncode",
     "StoryDiffusion_KSampler":"StoryDiffusion_KSampler",
 }
+
