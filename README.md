@@ -3,52 +3,19 @@
 Using different ID migration methods to make storys in ComfyUI
 ----
 
-Origin methods from  
-*  [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion)
-*  [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),
-*  [StoryMaker](https://github.com/RedAIGC/StoryMaker),
-*  [Consistory](https://github.com/NVlabs/consistory),
-*  [Kolor](https://github.com/Kwai-Kolors/Kolors),
-*  [Pulid](https://github.com/ToTheBeginning/PuLID),
-*  [Flux](https://github.com/black-forest-labs/flux),
-*  [photomaker](https://github.com/TencentARC/PhotoMaker),
-*  [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter),
-*  [InfiniteYou](https://github.com/bytedance/InfiniteYou),
-*  [UNO](https://github.com/bytedance/UNO),
-*  [RealCustom](https://github.com/bytedance/RealCustom),
-*  [InstantCharacter](https://github.com/Tencent/InstantCharacter),
-*  [DreamO](https://github.com/bytedance/DreamO)
-*  [Bagel](https://github.com/ByteDance-Seed/Bagel)
-*  [OmniConsistency](https://github.com/showlab/OmniConsistency)
+Origin methods from:
+*    [StoryDiffusion](https://github.com/HVision-NKU/StoryDiffusion) [MS-Diffusion](https://github.com/MS-Diffusion/MS-Diffusion),[StoryMaker](https://github.com/RedAIGC/StoryMaker), [Consistory](https://github.com/NVlabs/consistory),  [Kolor](https://github.com/Kwai-Kolors/Kolors),  [Pulid](https://github.com/ToTheBeginning/PuLID),  [Flux](https://github.com/black-forest-labs/flux), [photomaker](https://github.com/TencentARC/PhotoMaker),  [IP-Adapter](https://github.com/tencent-ailab/IP-Adapter), [InfiniteYou](https://github.com/bytedance/InfiniteYou), [UNO](https://github.com/bytedance/UNO),  [RealCustom](https://github.com/bytedance/RealCustom),  [InstantCharacter](https://github.com/Tencent/InstantCharacter),  [DreamO](https://github.com/bytedance/DreamO)  [Bagel](https://github.com/ByteDance-Seed/Bagel)  [OmniConsistency](https://github.com/showlab/OmniConsistency)  [ Qwen-Image & Edit ](https://github.com/QwenLM/Qwen-Image)
 
 
 ## Updates:
-* 2025/08/15
-* SDXL lora is return ，support story storymaker and msdiffusion /SDXL模式的lora回归，除了realcustom和Consistory两个方法，图例见下方
-
+* 2025/08/24 Add Qwen-Image & Edit suuport ,use a Q8 or Q6 gguf ,and lighting lora(from lightx2v)
+* 新增支持千问生图和编辑两个模型，以及配套的加速lora，编辑模式会自动裁切以避免像素偏移。
  
-## previous
 
-* add dreamo v1.1 support，新增dreamo v1.1模型支持，下载对应的sft和dpo lora，不要改名，放在lora文件夹即可。
-* 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
-*  OmniConsistency 并不是ID的迁移，移植过来是方便使用常规flux diffuser加载，内置多种量化方式（还未完善，目前只支持repo加载），12G以下用nf4就好（1024*1024 在12G 50秒一张图），
-*  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
-* DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
-* 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
-* 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
-* 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
-* Use the function of UNO to realize the dual roles of the FLUX process in the same frame, the prompt example is shown in the figure;
-* Fixed the error of the dual role prompt words of ms-diffusion, the role prompts of ms diffusion should be [A] a (man)... ,[B] a (woman)..., the scene prompts do not need to be changed, or [A] ... [B]... in the same sentence;
-* Add UNO support，Only the single FLUX model (27G) and UNO's Lora are needed. Please enable FP8 quantization and use storydiffusionw_flowjson workflow testing ，fix a bug， 
-* 新增UNO支持，只需要单体FLUX模型(27G)和UNO的lora，请开启fp8量化和使用storydiffusion_workflow.json工作流测试,修复tokens过长的bug;  
-* Add infinite svdq v0.2 support,it'work well when your svdq update v0.2，[download wheel](https://huggingface.co/mit-han-lab/nunchaku/tree/main) 更新 svdq v0.2的支持，infinite工作正常，[轮子](https://huggingface.co/mit-han-lab/nunchaku/tree/main)下载地址。
-* 1.修改了模型加载的流程，更新到V2版本，如果你喜欢旧的，可以下载V1.0版本的,2.请使用storydiffusion_workflow.json，它集成了主要的工作流;3.剔除掉一些过时的功能;
-* 1.Modified the model loading process.Update to V2 version, If you like the old one, you can download version 1.0，2.Please use 'storydiffusion_workflow.json', which integrates the main workflow，3.Remove some outdated features;
-  
 
 1.Installation  
 -----
-  In the ./ComfyUI /custom_node directory, run the following:   
+  In the'./ComfyUI /custom_nodes ' directory, run the following:   
 ```
 git clone https://github.com/smthemex/ComfyUI_StoryDiffusion.git
 ```  
@@ -265,6 +232,26 @@ flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)
        ├── any flux loras
 ```
 
+**3.13 Qwen-Image mode**  
+Qwen-Image-Edit:[QuantStack/Qwen-Image-Edit-GGUF](https://huggingface.co/QuantStack/Qwen-Image-Edit-GGUF/tree/main)  #Q6 Q8 if lowVRAM Q4   
+Qwen-Image : [city96/Qwen-Image-gguf](https://huggingface.co/city96/Qwen-Image-gguf/tree/main)  #Q6 Q8 if lowVRAM Q4   
+text-encoder : [Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/tree/main/split_files/text_encoders) # fp8 or fp16   
+vae :[Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/tree/main/split_files/vae) #    
+lighting-lora :[ightx2v/Qwen-Image-Lightning](https://huggingface.co/lightx2v/Qwen-Image-Lightning/tree/main)  # optional 可选   
+```
+├── ComfyUI/models/gguf/
+       ├──qwen-image-edit-q6_k.gguf # or Q8,q5,q4
+       ├──qwen-image-Q8_0.gguf # or q6,q5,q4
+├── ComfyUI/models/loras/
+       ├── Qwen-Image-Lightning-4steps-V1.0-bf16.safetensors
+       ├── Qwen-Image-Edit-Lightning-8steps-V1.0-bf16.safetensors
+├── ComfyUI/models/clip/
+       ├── qwen_2.5_vl_7b_fp8_scaled.safetensors
+├── ComfyUI/models/vae/
+       ├── qwen_image_vae.safetensors
+```
+
+
 4 Example
 ----
 **4.1 story-diffusion**   
@@ -346,12 +333,36 @@ flux repo: [flux](https://huggingface.co/black-forest-labs/FLUX.1-dev/tree/main)
  * nf4 image2image  
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/OmniConsistency.png" width="50%">
 
+**4.13 Qwen-Image & Eidt**   
+ * Qwen-Image  
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/example_workflows/qwen-image.png" width="50%">
+  * Qwen-Image-Edit  
+ <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/example_workflows/edit.png" width="50%">
 
 
-**4.13 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
-* any mode SD1.5 SDXL SD3.5 FLUX...
+**4.15 comfyUI classic（comfyUI经典模式，可以接任意适配CF的流程，主要是方便使用多角色的clip）**  
+* any mode SD1.5 SDXL SD3.5 FLUX, Qwen-Image...
  <img src="https://github.com/smthemex/ComfyUI_StoryDiffusion/blob/main/images/comfyui_classic.png" width="50%">
 
+
+## Previous update 
+* SDXL lora is return ，support story storymaker and msdiffusion /SDXL模式的lora回归，除了realcustom和Consistory两个方法，图例见下方
+* add dreamo v1.1 support，新增dreamo v1.1模型支持，下载对应的sft和dpo lora，不要改名，放在lora文件夹即可。
+* 新增OmniConsistency  单体unet fp8 以及( gguf 和svdq,虽然支持，但是lora不支持，无法复现，不推荐 )的支持,没repo快
+*  OmniConsistency 并不是ID的迁移，移植过来是方便使用常规flux diffuser加载，内置多种量化方式（还未完善，目前只支持repo加载），12G以下用nf4就好（1024*1024 在12G 50秒一张图），
+*  新增Bagel模型的支持，支持int8和nf4量化（官方用的十字鱼佬的PR）输入图片则是edit模式，不输入就是文生图，在量化nf4的情况下，显存峰值大约7G，实际跑4G多,edit的编辑能力,在nf4条件下一般；
+* DreamO的方法ip id style方法实现，双人同框使用ip+ip，默认都是ip模式。带人脸的可以用ip，也可以用id（可以不连入衣服），pos 和neg lora在lora的目录下时默认开启，如果没有就是3 lora模式。开启id和style模式，需要在extra 输入id或 style
+* 新增2个ID迁移的方法实现，分别是RealCustom（SDXL）和InstantCharacter（FLUX），基准测试在4070 12G，二个方法的速度都很慢，InstantCharacter支持多种量化，如果使用双截棍量化加速很快，但是没意义，因为IP层没加载进去，具体看示例图和新的工作流文件，RealCustom需要6个单体模型，InstantCharacter需要2个repo形式的clip_vison(暂时没空改)，16G以上显存会好点
+* 利用uno的功能来实现flux流程的双角色同框，prompt示例见图； 
+* 修复ms-diffusion的双角色提示词错误，使用ms diffusion 角色提示词应该是 [A] a (man)... ,[B] a (woman)...,场景提示词不用改，还是[A] ...[B]...在同一句里时开启；
+* Use the function of UNO to realize the dual roles of the FLUX process in the same frame, the prompt example is shown in the figure;
+* Fixed the error of the dual role prompt words of ms-diffusion, the role prompts of ms diffusion should be [A] a (man)... ,[B] a (woman)..., the scene prompts do not need to be changed, or [A] ... [B]... in the same sentence;
+* Add UNO support，Only the single FLUX model (27G) and UNO's Lora are needed. Please enable FP8 quantization and use storydiffusionw_flowjson workflow testing ，fix a bug， 
+* 新增UNO支持，只需要单体FLUX模型(27G)和UNO的lora，请开启fp8量化和使用storydiffusion_workflow.json工作流测试,修复tokens过长的bug;  
+* Add infinite svdq v0.2 support,it'work well when your svdq update v0.2，[download wheel](https://huggingface.co/mit-han-lab/nunchaku/tree/main) 更新 svdq v0.2的支持，infinite工作正常，[轮子](https://huggingface.co/mit-han-lab/nunchaku/tree/main)下载地址。
+* 1.修改了模型加载的流程，更新到V2版本，如果你喜欢旧的，可以下载V1.0版本的,2.请使用storydiffusion_workflow.json，它集成了主要的工作流;3.剔除掉一些过时的功能;
+* 1.Modified the model loading process.Update to V2 version, If you like the old one, you can download version 1.0，2.Please use 'storydiffusion_workflow.json', which integrates the main workflow，3.Remove some outdated features;
+  
 
 
 5 Citation
@@ -504,3 +515,36 @@ svdquant
   url={https://api.semanticscholar.org/CorpusID:278905729}
 }
 ```
+```
+@misc{wu2025qwenimagetechnicalreport,
+      title={Qwen-Image Technical Report}, 
+      author={Chenfei Wu and Jiahao Li and Jingren Zhou and Junyang Lin and Kaiyuan Gao and Kun Yan and Sheng-ming Yin and Shuai Bai and Xiao Xu and Yilei Chen and Yuxiang Chen and Zecheng Tang and Zekai Zhang and Zhengyi Wang and An Yang and Bowen Yu and Chen Cheng and Dayiheng Liu and Deqing Li and Hang Zhang and Hao Meng and Hu Wei and Jingyuan Ni and Kai Chen and Kuan Cao and Liang Peng and Lin Qu and Minggang Wu and Peng Wang and Shuting Yu and Tingkun Wen and Wensen Feng and Xiaoxiao Xu and Yi Wang and Yichang Zhang and Yongqiang Zhu and Yujia Wu and Yuxuan Cai and Zenan Liu},
+      year={2025},
+      eprint={2508.02324},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2508.02324}, 
+}
+```
+```
+@misc{von-platen-etal-2022-diffusers,
+  author = {Patrick von Platen and Suraj Patil and Anton Lozhkov and Pedro Cuenca and Nathan Lambert and Kashif Rasul and Mishig Davaadorj and Dhruv Nair and Sayak Paul and William Berman and Yiyi Xu and Steven Liu and Thomas Wolf},
+  title = {Diffusers: State-of-the-art diffusion models},
+  year = {2022},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/huggingface/diffusers}}
+}
+```
+```
+@misc{lightx2v,
+ author = {LightX2V Contributors},
+ title = {LightX2V: Light Video Generation Inference Framework},
+ year = {2025},
+ publisher = {GitHub},
+ journal = {GitHub repository},
+ howpublished = {\url{https://github.com/ModelTC/lightx2v}},
+}
+```
+
+
