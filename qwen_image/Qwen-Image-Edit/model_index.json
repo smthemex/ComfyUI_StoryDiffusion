@@ -1,0 +1,28 @@
+{
+  "_class_name": "QwenImageEditPipeline",
+  "_diffusers_version": "0.35.0.dev0",
+  "processor": [
+    "transformers",
+    "Qwen2VLProcessor"
+  ],
+  "scheduler": [
+    "diffusers",
+    "FlowMatchEulerDiscreteScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "Qwen2_5_VLForConditionalGeneration"
+  ],
+  "tokenizer": [
+    "transformers",
+    "Qwen2Tokenizer"
+  ],
+  "transformer": [
+    "diffusers",
+    "QwenImageTransformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLQwenImage"
+  ]
+}
