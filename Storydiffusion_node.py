@@ -13,7 +13,7 @@ from tqdm import tqdm
 from .utils.utils import get_comic
 from .model_loader_utils import  (phi2narry,replicate_data_by_indices,get_float,gc_cleanup,tensor_to_image,photomaker_clip,tensortopil_list_upscale,tensortopil_list,extract_content_from_brackets_,
                                   narry_list_pil,pre_text2infer,cf_clip,get_phrases_idx_cf,get_eot_idx_cf,get_ms_phrase_emb,get_extra_function,photomaker_clip_v2,adjust_indices,load_clip_clipvsion,
-                                  get_scheduler,apply_style_positive,load_lora_for_unet_only,
+                                  get_scheduler,apply_style_positive,load_lora_for_unet_only,tensortolist,
                                   nomarl_upscale,SAMPLER_NAMES,SCHEDULER_NAMES,lora_lightning_list)
 
 from .utils.gradio_utils import cal_attn_indice_xl_effcient_memory,is_torch2_available
@@ -85,8 +85,11 @@ class EasyFunction_Lite:
         controlnet_path=folder_paths.get_full_path("controlnet", controlnet) if controlnet != "none" else None
  
         clip_glm,tag_model,pipe,svdq_repo=None,None,None,None
+
         repo_list=[i for i in [repo1_path,repo2_path] if i is not None]
+
         if repo1_path is not None or repo2_path is not None:
+
             find_svdq=[i for i in repo_list if "svdq" in i ]
             svdq_repo=find_svdq[0] if find_svdq else None
    
@@ -121,7 +124,7 @@ class StoryDiffusion_Apply:
                 {
                     "model": ("MODEL",),
                     "vae": ("VAE",),
-                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","flux_omi","bagel_edit","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
+                    "infer_mode": (["story", "classic","flux_pulid","infiniteyou","uno","realcustom","instant_character","dreamo","qwen_image","flux_omi","bagel_edit","story_maker","story_and_maker","consistory","kolor_face","msdiffusion" ],),
                     "photomake_ckpt": (["none"] + [i for i in folder_paths.get_filename_list("photomaker") if "v1" in i or "v2" in i],),
                     "ipadapter_ckpt": (["none"] + folder_paths.get_filename_list("photomaker"),),
                     "quantize_mode": ([ "fp8", "nf4","fp16", ],),
@@ -129,6 +132,7 @@ class StoryDiffusion_Apply:
                     "extra_function":("STRING", {"default": ""}),
                             },
                 "optional":{
+                   
                     "info": ("STORY_CONDITIONING_1",),
                     "CLIP_VISION": ("CLIP_VISION",),
                             }
@@ -142,7 +146,7 @@ class StoryDiffusion_Apply:
     def main_apply(self,model,vae,infer_mode,photomake_ckpt,ipadapter_ckpt,quantize_mode,lora_scale,extra_function, **kwargs):
         print(f"infer model is {infer_mode}")
         extra_info=kwargs.get("info",{})
-
+       
         # pre data
         photomake_ckpt_path = None if photomake_ckpt == "none"  else  folder_paths.get_full_path("photomaker", photomake_ckpt)
         ipadapter_ckpt_path = None if ipadapter_ckpt == "none"  else  folder_paths.get_full_path("photomaker", ipadapter_ckpt)
@@ -154,14 +158,16 @@ class StoryDiffusion_Apply:
 
         clip_vision1_path=extra_info.get("clip_vision1_path") if extra_info else None
         clip_vision2_path=extra_info.get("clip_vision2_path") if extra_info else None
-        repo1_path=extra_info.get("repo1_path") if extra_info else None
-        repo2_path=extra_info.get("repo2_path") if extra_info else None
+        repo1_path=extra_info.get("repo1_path",None) 
+        repo2_path=extra_info.get("repo2_path",None) 
         lora1_path=extra_info.get("lora1_path") if extra_info else None
         lora2_path=extra_info.get("lora2_path") if extra_info else None
         unet_path=extra_info.get("unet_path") if extra_info else None
+        gguf_path=extra_info.get("gguf_path") if extra_info else None
 
         repo_list=[i for i  in [repo1_path,repo2_path] if i is not None]
-
+        lora_list=[i for i in [lora1_path,lora2_path] if i is not None]
+        
         dreamo_version="v1.0" if "v1.0" in extra_function else "v1.1"
 
         vae_encoder,vae_downsample_factor,vae_config,vision_model_config_ar,image_proj_model,no_dif_quantization,find_Kolors=None,None,None,None,None,False,None
@@ -282,13 +288,19 @@ class StoryDiffusion_Apply:
         
             no_dif_quantization=True if extra_info.get("unet_path") or extra_info.get("svdq_repo") or extra_info.get("gguf_path") else False
             model = Loader_Flux_Diffuser(extra_info,ipadapter_ckpt_path,vae,quantize_mode)
+        elif infer_mode == "qwen_image":
+            from.qwen_image.inferencer import load_quwen_image   
             
+            df_repo=repo_list[0] if repo_list else None
+            
+            model,edit_mode = load_quwen_image(cpu_offload=True,cpu_offload_blocks=16,no_pin_memory=True, dir_path =dir_path, repo=df_repo,unet_path=unet_path,gguf_path=gguf_path,lora_path=lora_list[0] if lora_list else None) 
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
 
         story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
         model_=model if infer_mode=="flux_pulid" or story_img else None
-        switch={"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,"vision_model_config_ar":vision_model_config_ar,"no_dif_quantization":no_dif_quantization,
+        switch={"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,
+                "vision_model_config_ar":vision_model_config_ar,"no_dif_quantization":no_dif_quantization,"edit_mode":edit_mode,
                        "lora_scale":lora_scale,"image_proj_model":image_proj_model, "vae_encoder":vae_encoder,"vae_downsample_factor":vae_downsample_factor,"vae_config":vae_config,"dreamo_version":dreamo_version,
                        "CLIP_VISION":CLIP_VISION,"VAE":vae,"find_Kolors":find_Kolors,"model_":model_,"unet_type":unet_type,"extra_function":extra_function,}
         switch.update(extra_info)
@@ -339,8 +351,8 @@ class StoryDiffusion_CLIPTextEncode:
         vae=switch.get("VAE")
 
 
-        image=kwargs.get("image")
-        control_image=kwargs.get("control_image")
+        image=kwargs.get("image",None)
+        control_image=kwargs.get("control_image",None)
 
         lora_list=[i for i in [switch.get("lora1_path"),switch.get("lora2_path")] if i is not None]
         repo_list=[i for i in [switch.get("repo1_path"),switch.get("repo2_path")] if i is not None]
@@ -774,9 +786,13 @@ class StoryDiffusion_CLIPTextEncode:
                     only_role_emb= cf_clip(only_role_list, clip, infer_mode,role_list) #story模式需要拆分prompt，所以这里需要传入role_list
                 elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or (infer_mode=="flux_omi" and not switch.get("no_dif_quantization")):
                     pass # TODO 暂时不支持dreamo
+                elif infer_mode=="qwen_image":
+                    from .qwen_image.inferencer import get_emb_data
+                    image_list_=tensortolist(image,width,height)
+                    only_role_emb= get_emb_data(clip,vae,inf_list_split,image_list_,role_list)
                 else:
                     only_role_emb= cf_clip(inf_list_split, clip, infer_mode,role_list)  #story,story_maker,story_and_maker,msdiffusion,infinite
-                    if len (role_list)==1 and infer_mode in ["story_maker","story_and_maker","story"]:
+                    if len (role_list)==1 :
                         only_role_emb_dict={}
                         only_role_emb_dict[role_list[0]]=only_role_emb # [ [cond_p, output_p],...]
                         only_role_emb=only_role_emb_dict
@@ -797,6 +813,7 @@ class StoryDiffusion_CLIPTextEncode:
                     nc_emb=cf_clip(nc_txt_list, clip, infer_mode,role_list,input_split=False)
                 elif infer_mode=="dreamo" or infer_mode=="bagel_edit" or infer_mode=="flux_omi":
                     pass # TODO 暂时不支持dreamo
+
                 else:
                     nc_emb,_= glm_single_encode(chatglm3_model, nc_txt_list,role_list, neg_text, 1,nc_mode=True) 
         else:
@@ -928,6 +945,14 @@ class StoryDiffusion_CLIPTextEncode:
         elif infer_mode=="kolor_face":
             postive_dict = {"role": only_role_emb, "nc": nc_emb, "daul": daul_emb}
             negative = only_role_emb_ne[0]
+        elif infer_mode=="qwen_image":
+            postive_dict = {"role": only_role_emb, "nc": nc_emb, "daul": daul_emb}
+            from .qwen_image.inferencer import get_emb_data
+
+            image_list_=tensortolist(image, width, height) if not switch.get("edit_mode") else None
+            neg_list=[[neg_text]] if len(role_list)==1 else [[neg_text],[neg_text]]
+            negative= get_emb_data(clip,vae,neg_list,image_list_,role_list)
+
         else:
             tokens_n = clip.tokenize(neg_text)
             output_n = clip.encode_from_tokens(tokens_n, return_pooled=True, return_dict=True) #{"pooled_output":tensor}
@@ -1024,17 +1049,18 @@ class StoryDiffusion_CLIPTextEncode:
                 prompt_image_emb_dual,maker_control_image_dual=encode_prompt_image_emb_(make_img[0], make_img[1], make_mask_img[0], make_mask_img[1], make_face_info[0], make_face_info[1], make_cloth_info[0], make_cloth_info[1],device, num_images_per_prompt, unet_type, CLIP_VISION,vae,do_classifier_free_guidance=True)
                 prompt_image_emb_dual=len(prompts_dual)*[prompt_image_emb_dual]
                 maker_control_image_dual=len(prompts_dual)*[maker_control_image_dual] 
-        else:   
+        else: 
+            
             prompt_image_emb,maker_control_image,prompt_image_emb_dual,maker_control_image_dual=None,None,None,None
 
               
         
         # switch
         new_dict={
-            "id_len":len(role_list),"role_list":role_list,"invert_role_index_dict":invert_role_index_dict,
+            "id_len":len(role_list),"role_list":role_list,"invert_role_index_dict":invert_role_index_dict,"image_list":image_list,"inf_list_split":inf_list_split,
             "nc_index":nc_indexs,"dual_index":positions_index_dual,"grounding_kwargs":grounding_kwargs,"cross_attention_kwargs":cross_attention_kwargs,
             "image_embeds":image_emb,"img2img_mode":img2img_mode,"positions_index_char_1":positions_index_char_1,"dreamo_mode":dreamo_mode,
-            "positions_index_char_2":positions_index_char_2,"mask_threshold":mask_threshold,
+            "positions_index_char_2":positions_index_char_2,"mask_threshold":mask_threshold,"lora_list":lora_list,
             "input_id_emb_s_dict":input_id_emb_s_dict,"input_id_img_s_dict":input_id_img_s_dict,"input_id_emb_un_dict":input_id_emb_un_dict,"trigger_words_dual":trigger_words_dual,
             "maker_control_image":maker_control_image,"prompt_image_emb":prompt_image_emb,"prompt_image_emb_dual":prompt_image_emb_dual,"dual_lora_scale":dual_lora_scale,
             "maker_control_image_dual":maker_control_image_dual,"prompts_dual":prompts_dual,"control_image":control_image,"trigger_words":lora_trigger_words,
@@ -1145,10 +1171,13 @@ class StoryDiffusion_KSampler:
         neg_text=condition.get("neg_text")
         cached=condition.get("cached")
         inject=condition.get("inject")
+        inf_list_split=condition.get("inf_list_split")
         input_id_images_dict=condition.get("input_id_images_dict")
         dreamo_mode=condition.get("dreamo_mode")
         invert_role_index_dict=condition.get("invert_role_index_dict")
         latent_init=latent_image["samples"]
+
+
         scheduler_choice = get_scheduler(sampler_name, scheduler)
         #from latent get h & w
         batch_size,_,height, width = latent_init.size()
@@ -1174,16 +1203,17 @@ class StoryDiffusion_KSampler:
             out["samples"] = torch.cat(samples_list,dim=0)
             return (out,)
         else:
+
+            lora_list=condition.get("lora_list",[])
+            trigger_words=condition.get("trigger_words","best")     
+            trigger_words_dual=condition.get("trigger_words_dual","best")
+            lora_scale=condition.get("lora_scale",1.0)
+            dual_lora_scale=condition.get("dual_lora_scale",1.0)
             if infer_mode in ["story_maker" ,"msdiffusion" ,"story_and_maker" ,"story",]:
-                lora_path1=condition.get("lora1_path")
-                lora_path2=condition.get("lora2_path")
-                trigger_words=condition.get("trigger_words","best")     
-                trigger_words_dual=condition.get("trigger_words_dual","best")
-                lora_scale=condition.get("lora_scale",1.0)
-                dual_lora_scale=condition.get("dual_lora_scale",1.0)
-                if lora_path1 is not None or lora_path2 is not None:
-                    if lora_path1 is not None and lora_path2 is not None:
-                        lora_list_l = [ i for i  in [lora_path1,lora_path2] if  os.path.basename(i) in lora_lightning_list]
+                
+                if lora_list:
+                    if len(lora_list)==2:
+                        lora_list_l = [ i for i  in lora_list if  os.path.basename(i) in lora_lightning_list]
 
                         if lora_list_l:
                             if 1==len(lora_list_l):
@@ -1193,14 +1223,10 @@ class StoryDiffusion_KSampler:
                                 for i,j,k in zip(lora_list_l,[trigger_words,trigger_words_dual],[lora_scale,dual_lora_scale]):
                                     model=load_lora_for_unet_only(model,i,j,k)
                         else:
-                            for i,j ,k in zip([lora_path1,lora_path2],[trigger_words,trigger_words_dual],[lora_scale,dual_lora_scale]):
+                            for i,j ,k in zip(lora_list,[trigger_words,trigger_words_dual],[lora_scale,dual_lora_scale]):
                                  model=load_lora_for_unet_only(model,i,j,k)
-
-                    elif lora_path1 is not None:
-                        model=load_lora_for_unet_only(model,lora_path1,trigger_words,lora_scale)
-
                     else:
-                        model=load_lora_for_unet_only(model,lora_path2,trigger_words,lora_scale)
+                        model=load_lora_for_unet_only(model,lora_list[0],trigger_words,lora_scale)
 
                 if condition.get("controlnet_path")  is not None and infer_mode!="story":
                     controlnet_path =condition.get("controlnet") 
@@ -1872,6 +1898,36 @@ class StoryDiffusion_KSampler:
                 from .OmniConsistency.infer import clear_cache
                 clear_cache(model.transformer)
                 return (out,)
+            elif infer_mode =="qwen_image":
+                from .qwen_image.inferencer import infer_qwen_image_edit
+                samples_list = []
+                # import comfy.model_management as model_management
+                # model_management.unload_all_models()
+             
+                image_list=condition.get("image_list") if  condition.get("edit_mode") else [None,None]
+                for key,image in zip(role_list,image_list): 
+                    negative_prompt_embeds,_=negative[key][0]
+                   
+                    for prompt in only_role_emb[key]:
+                        samples=infer_qwen_image_edit(
+                            model,
+                            image=image,
+                            prompt_embeds=prompt[0],
+                            prompt_embeds_mask=torch.zeros_like(prompt[0]),
+                            negative_prompt_embeds=negative_prompt_embeds,
+                            negative_prompt_embeds_mask=torch.zeros_like(negative_prompt_embeds),
+                            seed=seed,
+                            num_inference_steps=steps,
+                            true_cfg_scale=cfg,
+                            image_latents=prompt[1],
+                            edit_mode=condition.get("edit_mode"),
+                            latents=latent_init,
+                            )
+                        #print(samples.shape)
+                        samples_list.append(samples)
+                out = {}
+                out["samples"] = torch.cat(samples_list, dim=0)  
+                return (out,)
             else: #none:
                 return
 
@@ -2276,4 +2332,3 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StoryDiffusion_CLIPTextEncode":"StoryDiffusion_CLIPTextEncode",
     "StoryDiffusion_KSampler":"StoryDiffusion_KSampler",
 }
-
