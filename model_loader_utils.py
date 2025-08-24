@@ -171,6 +171,8 @@ def tensortopil_list_upscale(tensor_in,width,height):
     return img_list
 
 def tensortolist(tensor_in,width,height):
+    if tensor_in is None:
+        return None
     d1, _, _, _ = tensor_in.size()
     if d1 == 1:
         tensor_list = [nomarl_tensor_upscale(tensor_in,width,height)]
