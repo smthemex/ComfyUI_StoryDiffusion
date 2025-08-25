@@ -8,6 +8,7 @@ Origin methods from:
 
 
 ## Updates:
+* 因为同时调用comfy的text encoder和diffuser的步骤，所以推荐的减少偏移问题的 Qwen-Image-Edit图片缩放/缩放尺寸是 任意正方形，横板 (1184, 880),（1248 832），(1392, 752),(1456, 720)，竖版(880,1184),（ 832,1248），(752,1392),(720,1456) 自动裁切代码迟点整，忙；  
 * 2025/08/24 Add Qwen-Image & Edit suuport ,use a Q8 or Q6 gguf ,and lighting lora(from lightx2v)
 * 新增支持千问生图和编辑两个模型，以及配套的加速lora，编辑模式会自动裁切以避免像素偏移。
  
