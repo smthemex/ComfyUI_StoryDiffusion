@@ -469,7 +469,7 @@ class QwenImageEditPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
         # latent height and width to be divisible by 2.
         height = 2 * (int(height) // (self.vae_scale_factor * 2))
         width = 2 * (int(width) // (self.vae_scale_factor * 2))
-
+       
         shape = (batch_size, 1, num_channels_latents, height, width)
 
         if image_latents is None:
@@ -507,6 +507,7 @@ class QwenImageEditPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
             )
             image_latents = (image_latents - latents_mean) / latents_std
             image_latent_height, image_latent_width = image_latents.shape[3:]
+            
             image_latents = self._pack_latents(
                 image_latents, batch_size, num_channels_latents, image_latent_height, image_latent_width)
         if isinstance(generator, list) and len(generator) != batch_size:
@@ -649,7 +650,9 @@ class QwenImageEditPipeline(DiffusionPipeline, QwenImageLoraLoaderMixin):
             returning a tuple, the first element is a list with the generated images.
         """
         image_size = image[0].size if isinstance(image, list) else image.size
-        calculated_width, calculated_height, _ = calculate_dimensions(1024 * 1024, image_size[0] / image_size[1])
+        #calculated_width, calculated_height, _ = calculate_dimensions(1024 * 1024, image_size[0] / image_size[1])
+        calculated_width, calculated_height=image_latents.shape[4]*8,image_latents.shape[3]*8 
+        
         height = height or calculated_height
         width = width or calculated_width
 
