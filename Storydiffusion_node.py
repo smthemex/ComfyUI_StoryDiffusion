@@ -462,11 +462,11 @@ class StoryDiffusion_CLIPTextEncode:
         input_id_images_dict={}
         image_list=[]
         
-        if img2img_mode and image is not None:
+        if img2img_mode and image is not None :
              if len(role_list)==1:
-                image_pil=nomarl_upscale(image, width, height)
-                input_id_images_dict[role_list[0]]=image_pil
-                image_list=[image_pil]
+                image_pil=tensortopil_list_upscale(image, width, height)
+                input_id_images_dict[role_list[0]]=image_pil[0]
+                image_list=[image_pil[0]]
              else:
                 f1, _, _, _ = image.size()
                 img_list = list(torch.chunk(image, chunks=f1))
