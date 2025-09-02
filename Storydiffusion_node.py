@@ -175,7 +175,7 @@ class StoryDiffusion_Apply:
         # per clip vision
         CLIP_VISION=kwargs.get("CLIP_VISION") 
         unet_type=torch.float16 #use for sdxl
-       
+        
         if infer_mode=="flux_pulid" or infer_mode=="kolor_face":# 2种加载clip vision的方式 
             from comfy.clip_vision import load as clip_load
             if CLIP_VISION is not None:
@@ -228,7 +228,7 @@ class StoryDiffusion_Apply:
         else:
             aggressive_offload = True
             offload = True
-
+        edit_mode=None
         logging.info(f"total_vram is {total_vram},aggressive_offload is {aggressive_offload},offload is {offload}")
 
         if infer_mode in["story", "story_and_maker","msdiffusion"]:# mix mode,use maker or ms to make 2 roles in on image
@@ -296,7 +296,7 @@ class StoryDiffusion_Apply:
             model,edit_mode = load_quwen_image(cpu_offload=True,cpu_offload_blocks=16,no_pin_memory=True, dir_path =dir_path, repo=df_repo,unet_path=unet_path,gguf_path=gguf_path,lora_path=lora_list[0] if lora_list else None) 
         else:  # can not choice a mode
             print("infer use comfyui classic mode")
-
+        
         story_img=True if photomake_ckpt_path and infer_mode in["story","story_maker","story_and_maker","msdiffusion"] else False
         model_=model if infer_mode=="flux_pulid" or story_img else None
         switch={"infer_mode":infer_mode,"ipadapter_ckpt_path":ipadapter_ckpt_path,"photomake_ckpt_path":photomake_ckpt_path,
@@ -2332,3 +2332,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StoryDiffusion_CLIPTextEncode":"StoryDiffusion_CLIPTextEncode",
     "StoryDiffusion_KSampler":"StoryDiffusion_KSampler",
 }
+
